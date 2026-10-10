@@ -48,6 +48,15 @@ How the app behaves, written so the web and Android clients can be ported from t
 - When the output device goes away (headphones unplugged, Bluetooth disconnected), playback pauses and stays paused. It never continues through the speaker, and reconnecting does not auto-resume.
 - Not handled yet: "media services were reset" (see `docs/ISSUES.md`).
 
+### Lock screen, Control Center and remote commands
+
+- Now Playing shows the current track's title, artist, album, artwork, duration and elapsed time. An empty queue clears it.
+- A restored queue shows its track paused at the saved position, before anything plays.
+- Updates are sent on play, pause, seek, track changes and status changes, not on every time tick: the system extrapolates elapsed time from the playback rate (1 while playing, 0 otherwise, including while buffering). Unchanged info is not re-sent.
+- Artwork is fetched by cover art id after the text appears. If the track changes before the image arrives, the late image is discarded.
+- Remote commands (lock screen, Control Center, headphone buttons, CarPlay) map to the engine's own commands: play, pause, toggle, next, previous, and seek by dragging the progress bar. They follow the same rules as the in-app buttons.
+- Next is disabled on the last track. Previous is always enabled, because it restarts the track when there's nothing before it.
+
 ### Scrobbling
 
 - A track is scrobbled once it has played for 50% of its duration or 4 minutes, whichever comes first.
@@ -87,3 +96,14 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Play through wired or USB headphones, unplug them. Music pauses and does not play through the speaker. Plug back in: still paused.
 - [ ] Play through Bluetooth headphones, turn them off. Music pauses, no speaker output. Turn them back on: still paused.
 - [ ] Play, switch output to AirPlay or a Bluetooth speaker from Control Center. Music continues on the new device.
+
+### Lock screen and Control Center
+- [ ] Play, lock the phone. Lock screen shows title, artist, album, artwork and a moving progress bar.
+- [ ] Pause and play from the lock screen. The app follows, and the progress bar stops and starts at the right time.
+- [ ] Next and previous from the lock screen follow the same rules as in the app (previous restarts after 3 seconds).
+- [ ] Drag the lock screen progress bar. Playback jumps there.
+- [ ] On the last track, next is disabled.
+- [ ] Control Center shows the same info and controls.
+- [ ] Wired or Bluetooth headphone buttons play, pause and skip.
+- [ ] Skip quickly through several tracks. Artwork always matches the track shown.
+- [ ] Force-quit the app and relaunch, then open Control Center before pressing play. Record whether the restored track appears. iOS may only show apps that have played audio, so either result is acceptable, but note which.

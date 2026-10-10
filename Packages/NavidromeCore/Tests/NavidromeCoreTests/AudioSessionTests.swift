@@ -7,9 +7,10 @@ struct EngineAudioSessionTests {
     private let songs = (1...3).map { Song(id: "so-\($0)", title: "Song \($0)", duration: 200) }
     private let player = FakeAudioPlayer()
     private let session = FakeAudioSession()
+    private let nowPlaying = FakeNowPlaying()
 
     private func playingEngine() -> PlaybackEngine {
-        let engine = PlaybackEngine(player: player, session: session, urls: FakeStreamURLs(), store: InMemoryQueueStore())
+        let engine = PlaybackEngine(player: player, session: session, nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: InMemoryQueueStore())
         engine.play(songs: songs)
         return engine
     }

@@ -34,6 +34,12 @@ public final class PlaybackEngine {
 
     @ObservationIgnored private let player: any AudioPlayer
     @ObservationIgnored private let session: any AudioSessionControlling
+    @ObservationIgnored private let nowPlaying: any NowPlayingControlling
+    /// Last info sent, so unchanged state isn't re-sent on every event.
+    @ObservationIgnored private var lastNowPlaying: NowPlayingInfo?
+    /// The first update is always sent, even when it's `nil`, so anything left
+    /// over from a previous run is cleared.
+    @ObservationIgnored private var hasPublishedNowPlaying = false
     @ObservationIgnored private let urls: any StreamURLProviding
     @ObservationIgnored private let store: any QueueStore
     /// Whether the player holds the current track. False after launch until play,
@@ -52,11 +58,13 @@ public final class PlaybackEngine {
     public init(
         player: any AudioPlayer,
         session: any AudioSessionControlling,
+        nowPlaying: any NowPlayingControlling,
         urls: any StreamURLProviding,
         store: any QueueStore
     ) {
         self.player = player
         self.session = session
+        self.nowPlaying = nowPlaying
         self.urls = urls
         self.store = store
 
@@ -70,12 +78,15 @@ public final class PlaybackEngine {
 
         player.onEvent = { [weak self] event in self?.handle(event) }
         session.onEvent = { [weak self] event in self?.handle(event) }
+        nowPlaying.onCommand = { [weak self] command in self?.handle(command) }
+        publishNowPlaying()
     }
 
     // MARK: - Commands
 
     /// Replaces the queue and starts playing at `startIndex`.
     public func play(songs: [Song], startIndex: Int = 0) {
+        defer { publishNowPlaying() }
         queue = PlaybackQueue(songs: songs, startIndex: startIndex)
         resetForNewTrack()
         saveSnapshot()
@@ -90,6 +101,7 @@ public final class PlaybackEngine {
     }
 
     public func play() {
+        defer { publishNowPlaying() }
         guard !queue.isEmpty else { return }
         resumeAfterInterruption = false
         if !isPlayerLoaded {
@@ -99,6 +111,7 @@ public final class PlaybackEngine {
     }
 
     public func pause() {
+        defer { publishNowPlaying() }
         guard !queue.isEmpty else { return }
         resumeAfterInterruption = false
         player.pause()
@@ -111,6 +124,7 @@ public final class PlaybackEngine {
     }
 
     public func next() {
+        defer { publishNowPlaying() }
         guard queue.hasNext else { return }
         if isPlayerLoaded {
             // The player already holds the next track; the resulting
@@ -125,6 +139,7 @@ public final class PlaybackEngine {
     }
 
     public func previous() {
+        defer { publishNowPlaying() }
         guard !queue.isEmpty else { return }
         switch PreviousAction.decide(elapsed: position, hasPrevious: queue.hasPrevious) {
         case .restartCurrent:
@@ -136,12 +151,14 @@ public final class PlaybackEngine {
     }
 
     public func jump(to entryID: QueueEntry.ID) {
+        defer { publishNowPlaying() }
         guard entryID != queue.current?.id, queue.jump(to: entryID) else { return }
         reloadCurrentTrack()
     }
 
     /// Adds songs to the end of the queue without interrupting playback.
     public func append(_ songs: [Song]) {
+        defer { publishNowPlaying() }
         guard !songs.isEmpty else { return }
         let wasEmpty = queue.isEmpty
         let hadNext = queue.hasNext
@@ -157,6 +174,7 @@ public final class PlaybackEngine {
     }
 
     public func seek(to target: TimeInterval) {
+        defer { publishNowPlaying() }
         guard !queue.isEmpty else { return }
         var clamped = max(target, 0)
         if let duration { clamped = min(clamped, duration) }
@@ -167,9 +185,23 @@ public final class PlaybackEngine {
         saveSnapshot()
     }
 
+    // MARK: - Remote commands
+
+    private func handle(_ command: RemoteCommand) {
+        switch command {
+        case .play: play()
+        case .pause: pause()
+        case .togglePlayPause: togglePlayPause()
+        case .next: next()
+        case .previous: previous()
+        case .seek(let position): seek(to: position)
+        }
+    }
+
     // MARK: - Audio session events
 
     private func handle(_ event: AudioSessionEvent) {
+        defer { publishNowPlaying() }
         switch event {
         case .interruptionBegan:
             guard status.isActive else { return }
@@ -197,6 +229,10 @@ public final class PlaybackEngine {
     // MARK: - Player events
 
     private func handle(_ event: PlayerEvent) {
+        defer {
+            // Time ticks are left to the system's own extrapolation.
+            if case .timeChanged = event {} else { publishNowPlaying() }
+        }
         switch event {
         case .currentItemChanged(let entryID):
             currentItemChanged(to: entryID)
@@ -250,6 +286,28 @@ public final class PlaybackEngine {
             player.append(item)
         }
         saveSnapshot()
+    }
+
+    // MARK: - Now Playing
+
+    private func publishNowPlaying() {
+        let info = queue.current.map { entry in
+            NowPlayingInfo(
+                title: entry.song.title,
+                artist: entry.song.artist,
+                album: entry.song.album,
+                coverArtID: entry.song.coverArtID,
+                duration: duration,
+                elapsed: position,
+                isPlaying: status == .playing,
+                hasNext: queue.hasNext,
+                hasPrevious: queue.hasPrevious
+            )
+        }
+        guard !hasPublishedNowPlaying || info != lastNowPlaying else { return }
+        hasPublishedNowPlaying = true
+        lastNowPlaying = info
+        nowPlaying.update(info)
     }
 
     // MARK: - Helpers
