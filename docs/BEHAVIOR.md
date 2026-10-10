@@ -48,7 +48,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 ### Lock screen, Control Center and remote commands
 
 - Now Playing shows the current track's title, artist, album, artwork, duration and elapsed time. An empty queue clears it.
-- A restored queue shows its track paused at the saved position, before anything plays.
+- A restored queue is sent to Now Playing paused at its saved position, but iOS 27 doesn't show the app in Control Center or on the lock screen until it has actually played since launch (observed on device, 2026-10-10). After the first play, it shows normally.
 - Updates are sent on play, pause, seek, track changes and status changes, not on every time tick: the system extrapolates elapsed time from the playback rate (1 while playing, 0 otherwise, including while buffering). Unchanged info is not re-sent.
 - Artwork is fetched by cover art id after the text appears. If the track changes before the image arrives, the late image is discarded.
 - Remote commands (lock screen, Control Center, headphone buttons, CarPlay) map to the engine's own commands: play, pause, toggle, next, previous, and seek by dragging the progress bar. They follow the same rules as the in-app buttons.
@@ -127,7 +127,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Control Center shows the same info and controls.
 - [ ] Wired or Bluetooth headphone buttons play, pause and skip.
 - [ ] Skip quickly through several tracks. Artwork always matches the track shown.
-- [ ] Force-quit the app and relaunch, then open Control Center before pressing play. Record whether the restored track appears. iOS may only show apps that have played audio, so either result is acceptable, but note which.
+- [ ] Force-quit the app and relaunch, then press play. Control Center and the lock screen show the restored track. (Before pressing play they show nothing; that's iOS behavior.)
 
 ### Network recovery
 - [ ] Play on Wi-Fi, walk out of Wi-Fi range (or turn Wi-Fi off) so the phone switches to cellular. Playback continues, or resumes within a few seconds at the same point.
