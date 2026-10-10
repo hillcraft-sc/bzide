@@ -4,3 +4,5 @@ Running log of bugs and annoyances found in real-world use or during development
 
 Format: `- [open|fixed] YYYY-MM-DD: description (where it was seen)`
 
+- [open] 2026-10-10: Keychain tests can't run as package tests. The bare test runner has no Keychain entitlement, so every Keychain call fails with -34018 (`errSecMissingEntitlement`). `KeychainCredentialStoreTests` is disabled until the app target hosts the tests; re-enable it at the start of M2. (NavidromeCore tests, iOS 27 Simulator)
+- [open] 2026-10-10: `xcodebuild test` from the command line hangs with "The test runner hung before establishing connection" on the iOS 27 virtual device, while ⌘U in Xcode runs the same tests fine. Tried `xcodebuild -runFirstLaunch` and restarting CoreSimulatorService. Possibly related to Device Hub replacing Simulator in Xcode 27; not yet understood. Until fixed, tests are run from Xcode and results read from the `.xcresult` bundle. (Xcode 27.0 beta 27A5218g)

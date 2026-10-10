@@ -89,6 +89,8 @@ These must all work and each needs automated tests where feasible and a manual c
 
 Build and test commands (fill in once the project exists):
 
+Known problem: `xcodebuild test` currently hangs from the command line on Xcode 27, while ⌘U in Xcode works (Xcode 27 has no Simulator app; virtual devices are managed in Device Hub). See `docs/ISSUES.md`. Until it's fixed, ask the owner to run ⌘U and read the newest `.xcresult` with `xcrun xcresulttool get test-results summary --path <bundle>`.
+
 Run the core package's tests on the iOS Simulator with `xcodebuild`, not with `swift test`. `swift test` builds for the macOS host, where `AVAudioSession` doesn't exist and the iOS-27-only platform setting doesn't apply, so `Playback/` won't compile there.
 ```
 # Core package (run from Packages/NavidromeCore)
@@ -130,7 +132,7 @@ Design goals: fast, uncluttered, large readable controls, minimal taps to play s
 ## Milestones
 
 - [ ] **M1: Foundation.** Repo, package layout, API client with auth, Keychain storage, unit tests, integration test against the real server.
-- [ ] **M2: Playback engine.** Background audio, lock screen controls, interruptions, route changes, gapless, queue persistence, tested through a bare debug screen. Stress-test on a real device before moving on.
+- [ ] **M2: Playback engine.** First: create the app target, host the package tests in it, and re-enable `KeychainCredentialStoreTests` (see `docs/ISSUES.md`). Background audio, lock screen controls, interruptions, route changes, gapless, queue persistence, tested through a bare debug screen. Stress-test on a real device before moving on.
 - [ ] **M3: Library UI.** Artists, albums, playlists, search, now playing.
 - [ ] **M4: Offline and caching.** Downloads, cover art cache, cellular transcoding settings.
 - [ ] **M5: CarPlay (simulator) and widgets.**
