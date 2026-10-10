@@ -68,6 +68,10 @@ public final class PlaybackEngine {
     /// Retries ran out while the user was listening; retry when the network returns.
     @ObservationIgnored private var retryWhenNetworkReturns = false
 
+    @ObservationIgnored private let scrobbler: any ScrobbleSubmitting
+    @ObservationIgnored private var scrobbleTracker = ScrobbleTracker()
+    @ObservationIgnored private let now: @MainActor () -> Date
+
     /// How often, in seconds of playback, the position is saved while playing.
     static let positionSaveInterval: TimeInterval = 10
 
@@ -81,7 +85,9 @@ public final class PlaybackEngine {
         store: any QueueStore,
         scheduler: any Scheduling,
         network: any NetworkMonitoring,
-        recoveryPolicy: RecoveryPolicy = RecoveryPolicy()
+        scrobbler: any ScrobbleSubmitting,
+        recoveryPolicy: RecoveryPolicy = RecoveryPolicy(),
+        now: @escaping @MainActor () -> Date = { Date() }
     ) {
         self.player = player
         self.session = session
@@ -91,6 +97,8 @@ public final class PlaybackEngine {
         self.scheduler = scheduler
         self.network = network
         self.recoveryPolicy = recoveryPolicy
+        self.scrobbler = scrobbler
+        self.now = now
 
         let snapshot = Self.restore(from: store)
         let restoredQueue = snapshot?.queue ?? PlaybackQueue()
@@ -104,6 +112,7 @@ public final class PlaybackEngine {
         session.onEvent = { [weak self] event in self?.handle(event) }
         nowPlaying.onCommand = { [weak self] command in self?.handle(command) }
         network.onNetworkAvailable = { [weak self] in self?.networkBecameAvailable() }
+        beginPlay()
         publishNowPlaying()
     }
 
@@ -174,6 +183,8 @@ public final class PlaybackEngine {
         switch PreviousAction.decide(elapsed: position, hasPrevious: queue.hasPrevious) {
         case .restartCurrent:
             seek(to: 0)
+            // Listening to it again is a new play, with its own scrobble.
+            beginPlay()
         case .goToPrevious:
             queue.goBack()
             reloadCurrentTrack()
@@ -210,6 +221,7 @@ public final class PlaybackEngine {
         var clamped = max(target, 0)
         if let duration { clamped = min(clamped, duration) }
         position = clamped
+        scrobbleTracker.seeked(to: clamped)
         if isPlayerLoaded {
             player.seek(to: clamped)
         }
@@ -279,23 +291,36 @@ public final class PlaybackEngine {
             case .playing:
                 status = .playing
                 playbackSucceeded()
+                if scrobbleTracker.announce(), let songID = scrobbleTracker.play?.songID {
+                    scrobbler.nowPlaying(songID: songID)
+                }
             }
         case .timeChanged(let time):
             position = time
             if recoveryAttempts > 0, time - lastRetryPosition >= recoveryPolicy.playbackNeededToReset {
                 recoveryAttempts = 0
             }
+            // Announced here as well as on `.playing`: when one track flows into the
+            // next, the player never stops playing, so no `.playing` event comes.
+            if status == .playing, scrobbleTracker.announce(), let songID = scrobbleTracker.play?.songID {
+                scrobbler.nowPlaying(songID: songID)
+            }
+            if scrobbleTracker.observe(time: time), let play = scrobbleTracker.play {
+                scrobbler.submit(PendingScrobble(songID: play.songID, playedAt: play.startedAt))
+            }
             if abs(time - lastSavedPosition) >= Self.positionSaveInterval {
                 saveSnapshot()
             }
         case .durationKnown(let seconds):
             duration = seconds
+            scrobbleTracker.updateDuration(seconds)
         case .reachedEnd:
             // Stay on the last track, rewound, so play starts it again.
             cancelRecovery()
             isPlayerLoaded = false
             status = .paused
             position = 0
+            beginPlay()
             saveSnapshot()
         case .itemFailed(let entryID, let message):
             if entryID == queue.current?.id {
@@ -507,6 +532,16 @@ public final class PlaybackEngine {
         position = 0
         lastSavedPosition = 0
         duration = metadataDuration
+        beginPlay()
+    }
+
+    /// Starts counting a new play of the current track from the current position.
+    private func beginPlay() {
+        guard let song = queue.current?.song else {
+            scrobbleTracker.end()
+            return
+        }
+        scrobbleTracker.begin(songID: song.id, duration: duration, position: position, at: now())
     }
 
     private var metadataDuration: TimeInterval? {

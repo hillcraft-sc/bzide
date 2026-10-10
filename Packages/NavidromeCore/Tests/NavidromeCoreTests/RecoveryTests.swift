@@ -12,7 +12,7 @@ struct RecoveryTests {
     private func playingEngine() -> PlaybackEngine {
         let engine = PlaybackEngine(
             player: player, session: FakeAudioSession(), nowPlaying: FakeNowPlaying(),
-            urls: FakeStreamURLs(), store: InMemoryQueueStore(), scheduler: scheduler, network: network
+            urls: FakeStreamURLs(), store: InMemoryQueueStore(), scheduler: scheduler, network: network, scrobbler: FakeScrobbler()
         )
         engine.play(songs: songs)
         return engine

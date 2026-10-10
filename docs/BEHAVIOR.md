@@ -67,9 +67,13 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 ### Scrobbling
 
-- A track is scrobbled once it has played for 50% of its duration or 4 minutes, whichever comes first.
-- A single play is never scrobbled twice.
-- Only time actually listened counts toward the threshold. Seeking forward does not add to it; seeking back does not remove from it.
+- A track is scrobbled once it has played for 50% of its duration or 4 minutes, whichever comes first. If the duration is unknown, 4 minutes.
+- Only time actually listened counts toward the threshold. Seeking forward does not add to it; seeking back does not remove from it. Listening is counted from the player's time ticks (about every half second); any forward jump over 2 seconds counts as a seek.
+- A play begins when a track becomes current (natural advance, next, previous, jump, new queue), when previous restarts the current track, and when the last track ends (so playing it again is a new play). Seeking within a track does not start a new play. A queue restored after relaunch starts a fresh play at the saved position; listening from before the relaunch is not counted.
+- Each play is scrobbled at most once, with the time the play began.
+- "Now playing" is sent once per play, when it first plays (including when one track flows straight into the next). It is best effort and never retried.
+- Scrobbles are saved to `Application Support/PendingScrobbles.json` before sending and removed only once the server accepts them. They are sent oldest first, never in parallel, stopping at the first failure. Pending ones are retried at the next scrobble and at launch.
+- Known limit: if the server records a scrobble but the reply is lost, it will be sent again and may count twice.
 
 ## Queue
 
@@ -124,3 +128,10 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Play, turn on Airplane Mode, then press pause while it shows reconnecting. Turn Airplane Mode off. The app stays paused.
 - [ ] Play near the end of a track on a weak connection. The next track still starts without a gap, or with only a short one.
 - [ ] Lock the phone during all of the above. Recovery works the same with the screen off.
+
+### Scrobbling
+- [ ] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it.
+- [ ] Play a track, skip to near the end, let it finish. It is not scrobbled.
+- [ ] While a track plays, Navidrome shows it as now playing. Let it flow into the next track: now playing updates.
+- [ ] Turn on Airplane Mode, play two tracks past halfway, turn Airplane Mode off and play a third. All three appear in order.
+- [ ] Turn on Airplane Mode, play a track past halfway, force-quit the app, turn Airplane Mode off, relaunch. The track appears.

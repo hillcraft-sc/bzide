@@ -13,7 +13,7 @@ struct PlaybackEngineTests {
     private func makeEngine(urls: FakeStreamURLs = FakeStreamURLs(), recoveryPolicy: RecoveryPolicy = RecoveryPolicy()) -> PlaybackEngine {
         PlaybackEngine(
             player: player, session: session, nowPlaying: nowPlaying, urls: urls, store: store,
-            scheduler: FakeScheduler(), network: FakeNetworkMonitor(), recoveryPolicy: recoveryPolicy
+            scheduler: FakeScheduler(), network: FakeNetworkMonitor(), scrobbler: FakeScrobbler(), recoveryPolicy: recoveryPolicy
         )
     }
 
@@ -223,7 +223,7 @@ struct PlaybackEngineTests {
         defer { try? FileManager.default.removeItem(at: file) }
         try Data("garbage".utf8).write(to: file)
 
-        let engine = PlaybackEngine(player: player, session: session, nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: FileQueueStore(fileURL: file), scheduler: FakeScheduler(), network: FakeNetworkMonitor())
+        let engine = PlaybackEngine(player: player, session: session, nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: FileQueueStore(fileURL: file), scheduler: FakeScheduler(), network: FakeNetworkMonitor(), scrobbler: FakeScrobbler())
 
         #expect(engine.queue.isEmpty)
         #expect(engine.status == .idle)
