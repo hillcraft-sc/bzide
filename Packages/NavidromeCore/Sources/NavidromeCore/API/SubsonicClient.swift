@@ -73,6 +73,10 @@ public struct SubsonicClient: Sendable {
         return try Self.decode(data, as: type)
     }
 
+    func mediaURL(_ endpoint: String, parameters: [URLQueryItem]) throws(SubsonicError) -> URL {
+        try builder.url(endpoint: endpoint, parameters: parameters)
+    }
+
     static func decode<Payload: Decodable>(_ data: Data, as type: Payload.Type) throws(SubsonicError) -> Payload {
         do {
             return try JSONDecoder().decode(SubsonicResponse<Payload>.self, from: data).payload

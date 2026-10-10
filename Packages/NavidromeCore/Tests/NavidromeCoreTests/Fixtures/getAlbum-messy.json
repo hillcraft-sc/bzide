@@ -1,0 +1,8 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1",
+"album":{"id":17,"title":"Untitled Session","songCount":"4","year":null,"song":[
+  {"id":"so-10","title":"Has Everything Wrong","track":"2","duration":"187.0","bitRate":"320","discNumber":null,"artist":["not","a","string"]},
+  {"title":"No Id, Must Be Skipped","track":3},
+  {"id":"","title":"Empty Id, Must Be Skipped"},
+  {"id":"so-11"},
+  "not even an object"
+]}}}

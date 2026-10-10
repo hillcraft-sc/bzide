@@ -1,0 +1,4 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","albumList2":{"album":[
+  {"id":"al-2","name":"Second Wind","artist":"Aurora Lines","artistId":"ar-1","songCount":10,"year":2022},
+  {"id":"al-1","name":"First Light","artist":"Aurora Lines","artistId":"ar-1","songCount":3,"year":2019}
+]}}}

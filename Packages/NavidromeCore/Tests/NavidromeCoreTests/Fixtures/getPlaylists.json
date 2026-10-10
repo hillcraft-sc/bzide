@@ -1,0 +1,4 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","playlists":{"playlist":[
+  {"id":"pl-1","name":"Morning","comment":"Slow start","owner":"listener","public":false,"songCount":2,"duration":406,"coverArt":"pl-pl-1"},
+  {"id":"pl-2","name":"Road Trip","owner":"listener","public":"true","songCount":"40"}
+]}}}

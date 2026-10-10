@@ -1,0 +1,4 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","playlist":{"id":"pl-1","name":"Morning","owner":"listener","public":false,"songCount":2,"duration":406,"entry":[
+  {"id":"so-1","title":"Dawn","album":"First Light","albumId":"al-1","artist":"Aurora Lines","duration":201},
+  {"id":"so-2","title":"Noon","album":"First Light","albumId":"al-1","artist":"Aurora Lines","duration":205}
+]}}}

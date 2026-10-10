@@ -1,0 +1,8 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","type":"navidrome","serverVersion":"0.58.0","openSubsonic":true,
+"artists":{"ignoredArticles":"The El La Los Las Le Les","index":[
+  {"name":"A","artist":[
+    {"id":"ar-1","name":"Aurora Lines","albumCount":2,"coverArt":"ar-ar-1","starred":"2026-01-02T03:04:05Z"},
+    {"id":"ar-2","name":"Atlas Crane","albumCount":1}
+  ]},
+  {"name":"#","artist":[{"id":"ar-3","name":"4 Corners","albumCount":1}]}
+]}}}

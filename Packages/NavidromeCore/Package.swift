@@ -11,6 +11,10 @@ let package = Package(
     ],
     targets: [
         .target(name: "NavidromeCore"),
-        .testTarget(name: "NavidromeCoreTests", dependencies: ["NavidromeCore"]),
+        .testTarget(
+            name: "NavidromeCoreTests",
+            dependencies: ["NavidromeCore"],
+            resources: [.copy("Fixtures")]
+        ),
     ]
 )

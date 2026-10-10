@@ -1,0 +1,5 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","searchResult3":{
+  "artist":[{"id":"ar-1","name":"Aurora Lines"}],
+  "album":{"id":"al-1","name":"First Light","artist":"Aurora Lines"},
+  "song":[{"id":"so-1","title":"Dawn"},{"id":"so-3","title":"Dusk"}]
+}}}
