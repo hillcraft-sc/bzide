@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 ## Project overview
 
 A native iOS music player for a self-hosted Navidrome server. The owner finds existing Navidrome clients clunky and unreliable, with weak CarPlay and widget support. This app exists to fix that.
@@ -10,7 +12,7 @@ A native iOS music player for a self-hosted Navidrome server. The owner finds ex
 3. **CarPlay and widgets** (added after the core is solid).
 4. Later, in this order: a web client, then an Android client. Do not build these yet, but do not make decisions that block them.
 
-**Status:** greenfield. Nothing exists yet. App name: TBD (use `MusicApp` as a placeholder).
+**Status:** see the Milestones checklist below. It is the source of truth for progress: tick a milestone off when it is done, and check the repo itself rather than assuming. App name: TBD (use `MusicApp` as a placeholder).
 
 ## Principles
 
@@ -69,7 +71,7 @@ These must all work and each needs automated tests where feasible and a manual c
 - Network resilience: Wi-Fi to cellular handoff and brief signal loss must recover without stopping the queue or losing position when avoidable.
 - Queue state (current item, position, upcoming items) persists across app termination and relaunch.
 - Playback and queue state live in one place (the engine). The UI observes it and never owns it.
-- Scrobble correctly: only after a reasonable play threshold, and never twice for the same play.
+- Scrobble correctly: only once the track has played for 50% of its duration or 4 minutes, whichever comes first, and never twice for the same play.
 
 ## Security
 
@@ -80,18 +82,24 @@ These must all work and each needs automated tests where feasible and a manual c
 ## Testing
 
 - Unit tests for the API client use a mocked `URLSession` / protocol-based transport with recorded sample JSON responses in `Tests/Fixtures`.
-- Integration tests against the real Navidrome server run only when `NAVIDROME_URL`, `NAVIDROME_USER`, and `NAVIDROME_PASSWORD` are set in the environment, and are skipped otherwise.
+- Integration tests against the real Navidrome server run only when `NAVIDROME_URL`, `NAVIDROME_USER`, and `NAVIDROME_PASSWORD` are set in the environment, and are skipped otherwise. `xcodebuild` only forwards variables to the Simulator test process when they carry a `TEST_RUNNER_` prefix (it strips the prefix), so set `TEST_RUNNER_NAVIDROME_URL`, `TEST_RUNNER_NAVIDROME_USER`, and `TEST_RUNNER_NAVIDROME_PASSWORD`. Without the prefix the integration tests skip silently.
 - Playback logic (queue, state machine, prefetch decisions) is tested through protocol abstractions around `AVPlayer`, so it runs without audio hardware.
 - Run the full test suite before declaring any task done. Report failures honestly; do not skip or weaken tests to make them pass.
 - Real-world playback quality can only be judged on a physical device. When a change affects playback, list what the owner should manually test.
 
 Build and test commands (fill in once the project exists):
+
+Run the core package's tests on the iOS Simulator with `xcodebuild`, not with `swift test`. `swift test` builds for the macOS host, where `AVAudioSession` doesn't exist and the iOS-27-only platform setting doesn't apply, so `Playback/` won't compile there.
 ```
-# Core package
-swift test --package-path Packages/NavidromeCore
+# Core package (run from Packages/NavidromeCore)
+xcodebuild test -scheme NavidromeCore -destination 'platform=iOS Simulator,name=<an installed iOS 27 simulator>'
 
 # App
 xcodebuild -scheme MusicApp -destination 'platform=iOS Simulator,name=<an installed iOS 27 simulator>' build test
+
+# Single test class or method (works with either command above; repeat the flag for more)
+xcodebuild test ... -only-testing:<TestTarget>/<TestClass>
+xcodebuild test ... -only-testing:<TestTarget>/<TestClass>/<testMethod>
 ```
 
 ## Code conventions
