@@ -72,7 +72,9 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         let avItem = AVPlayerItem(url: item.url)
         let key = ObjectIdentifier(avItem)
         entryIDs[key] = item.entryID
-        itemObservations[key] = avItem.observe(\.status, options: [.new]) { [weak self] avItem, _ in
+        // KVO may call back on any thread, so the handler is @Sendable (not
+        // main-actor isolated) and hops to the main actor itself.
+        itemObservations[key] = avItem.observe(\.status, options: [.new]) { @Sendable [weak self] avItem, _ in
             Task { @MainActor in self?.itemStatusChanged(avItem) }
         }
         player.insert(avItem, after: nil)
@@ -127,10 +129,11 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     // MARK: - Player observation
 
     private func observePlayer() {
-        playerObservations.append(player.observe(\.currentItem, options: [.new]) { [weak self] _, _ in
+        // KVO handlers are @Sendable for the same reason as in `enqueue`.
+        playerObservations.append(player.observe(\.currentItem, options: [.new]) { @Sendable [weak self] _, _ in
             Task { @MainActor in self?.currentItemChanged() }
         })
-        playerObservations.append(player.observe(\.timeControlStatus, options: [.new]) { [weak self] _, _ in
+        playerObservations.append(player.observe(\.timeControlStatus, options: [.new]) { @Sendable [weak self] _, _ in
             Task { @MainActor in self?.timeControlStatusChanged() }
         })
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)

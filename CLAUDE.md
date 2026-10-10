@@ -111,6 +111,7 @@ xcodebuild test ... -only-testing:<TestTarget>/<TestClass>/<testMethod>
 - Use protocols at boundaries (network transport, audio player, storage) so each can be faked in tests.
 - Use actors or `@MainActor` deliberately; avoid shared mutable state.
 - No force unwraps (`!`) or `try!` outside tests. Handle errors with typed errors and surface useful messages.
+- The app target defaults to main-actor isolation (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`). A closure written inside main-actor code is main-actor isolated, and Swift 6 checks that at runtime. Closures handed to Apple frameworks that may call them on another thread (KVO handlers, `MPMediaItemArtwork`, AVFoundation and MediaPlayer callbacks) must be `@Sendable` or built in a `nonisolated` function, then hop to the main actor themselves. Getting this wrong hangs or crashes the app, and unit tests with fakes won't catch it.
 - Small files, small functions, clear names. Comment the *why*, not the *what*.
 - Keep SwiftUI views small and composable. No networking or business logic inside views.
 

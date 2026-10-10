@@ -1,13 +1,14 @@
-import NavidromeCore
 import SwiftUI
 
+/// Signed out: the sign-in form. Signed in: the debug player.
 struct ContentView: View {
-    var body: some View {
-        Text(ClientIdentity().name)
-            .padding()
-    }
-}
+    let model: AppModel
 
-#Preview {
-    ContentView()
+    var body: some View {
+        if let engine = model.engine {
+            DebugPlayerView(model: model, engine: engine)
+        } else {
+            SignInView(model: model)
+        }
+    }
 }

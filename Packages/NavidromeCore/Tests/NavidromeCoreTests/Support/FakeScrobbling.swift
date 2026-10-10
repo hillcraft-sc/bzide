@@ -42,14 +42,3 @@ final class FakeScrobbleSender: ScrobbleSending {
         if offline { throw URLError(.notConnectedToInternet) }
     }
 }
-
-final class InMemoryScrobbleStore: ScrobbleStore {
-    private let stored: Mutex<[PendingScrobble]>
-
-    init(_ pending: [PendingScrobble] = []) {
-        stored = Mutex(pending)
-    }
-
-    func load() -> [PendingScrobble] { stored.withLock { $0 } }
-    func save(_ pending: [PendingScrobble]) { stored.withLock { $0 = pending } }
-}

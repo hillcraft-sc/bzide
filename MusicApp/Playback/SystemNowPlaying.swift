@@ -69,10 +69,18 @@ final class SystemNowPlaying: NowPlayingControlling {
     private func artworkLoaded(_ image: UIImage, for coverID: String) {
         // The track may have changed while the image was loading.
         guard coverID == artworkCoverID, var dictionary = infoCenter.nowPlayingInfo else { return }
-        let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+        let artwork = Self.makeArtwork(image)
         self.artwork = artwork
         dictionary[MPMediaItemPropertyArtwork] = artwork
         infoCenter.nowPlayingInfo = dictionary
+    }
+
+    /// MediaPlayer calls the artwork closure on its own background queue. This app
+    /// target defaults to main-actor isolation, so a closure written in a method
+    /// here would be main-actor isolated and trap (or hang) when called off the
+    /// main thread. Building it in a nonisolated function keeps it callable anywhere.
+    nonisolated private static func makeArtwork(_ image: UIImage) -> MPMediaItemArtwork {
+        MPMediaItemArtwork(boundsSize: image.size) { _ in image }
     }
 
     // MARK: - Commands
@@ -88,14 +96,23 @@ final class SystemNowPlaying: NowPlayingControlling {
         }
     }
 
-    /// Remote command handlers are called on the main thread.
-    private func register(_ command: MPRemoteCommand, _ makeCommand: @escaping (MPRemoteCommandEvent) -> RemoteCommand?) {
+    private func register(_ command: MPRemoteCommand, _ makeCommand: @escaping @Sendable (MPRemoteCommandEvent) -> RemoteCommand?) {
         command.isEnabled = true
-        command.addTarget { [weak self] event in
-            MainActor.assumeIsolated {
-                guard let self, let remoteCommand = makeCommand(event), let onCommand = self.onCommand else {
-                    return .commandFailed
-                }
+        command.addTarget(handler: Self.handler(for: self, makeCommand))
+    }
+
+    /// Remote command handlers are documented to run on the main thread, but the
+    /// handler is built nonisolated (see `makeArtwork`) so that if one ever doesn't,
+    /// it fails at `assumeIsolated` with a clear message rather than a hidden check.
+    nonisolated private static func handler(
+        for target: SystemNowPlaying,
+        _ makeCommand: @escaping @Sendable (MPRemoteCommandEvent) -> RemoteCommand?
+    ) -> (MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus {
+        { [weak target] event in
+            // Read the event here; only the resulting value crosses to the main actor.
+            guard let remoteCommand = makeCommand(event) else { return .commandFailed }
+            return MainActor.assumeIsolated {
+                guard let target, let onCommand = target.onCommand else { return .commandFailed }
                 onCommand(remoteCommand)
                 return .success
             }

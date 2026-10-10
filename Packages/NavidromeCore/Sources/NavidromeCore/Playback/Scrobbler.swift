@@ -1,5 +1,6 @@
 import Foundation
 import os
+import Synchronization
 
 /// A scrobble waiting to be accepted by the server.
 public struct PendingScrobble: Sendable, Equatable, Codable {
@@ -134,4 +135,16 @@ public struct FileScrobbleStore: ScrobbleStore {
             Self.logger.error("Couldn't save pending scrobbles: \(String(describing: error), privacy: .public)")
         }
     }
+}
+
+/// For tests, previews, and as a fallback when the file can't be used.
+public final class InMemoryScrobbleStore: ScrobbleStore {
+    private let stored: Mutex<[PendingScrobble]>
+
+    public init(_ pending: [PendingScrobble] = []) {
+        stored = Mutex(pending)
+    }
+
+    public func load() -> [PendingScrobble] { stored.withLock { $0 } }
+    public func save(_ pending: [PendingScrobble]) { stored.withLock { $0 = pending } }
 }
