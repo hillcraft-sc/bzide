@@ -99,6 +99,15 @@ _Filled in during M4._
 
 Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.md`.
 
+### Basics
+- [ ] Play an album, lock the phone, and leave it for several tracks. Playback continues track to track with the screen off.
+- [ ] Play, switch to another app (Safari, Messages). Playback continues.
+- [ ] Play an album that is meant to be gapless (a live album or continuous mix). Track changes have no audible gap or click. Note the file format if there is one.
+- [ ] Skip quickly with next several times in a row. Each skip lands on the right track and the queue view agrees.
+- [ ] Play a few tracks into an album, pause mid-track, force-quit the app (swipe it away), relaunch. The same track is shown, paused at roughly the same position. Press play: it resumes there.
+- [ ] Same, but force-quit while playing. Relaunch: same track, paused, position within about 10 seconds of where it was.
+- [ ] Let the last track of a queue finish. Playback stops on it, rewound. Pressing play starts it again.
+
 ### Audio session
 - [ ] Play, then receive a phone call. Music pauses. Decline or end the call: music resumes.
 - [ ] Play, then trigger Siri and dismiss it. Music pauses and resumes.
