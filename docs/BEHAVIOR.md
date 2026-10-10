@@ -23,7 +23,21 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 ## Playback
 
-_Filled in during M2._
+- One engine owns the queue and playback state. The UI shows that state and sends commands; it never changes playback itself.
+- Status is one of: idle (nothing queued), paused, buffering, playing, or failed (with a message).
+- Gapless: the player always holds the current track and the one after it, so the next track is buffered before the current one ends. When a track ends, the player moves on by itself and the engine loads the track after that.
+- Next uses the already-buffered next track. On the last track it does nothing.
+- Previous, jump, and starting a new queue load the chosen track from the start, keeping the play/pause state.
+- When the last track ends, playback stops on that track, rewound to the start. Play starts it again.
+- Seek is clamped to the track's length.
+- Duration comes from the server's metadata until the player knows the real duration.
+- Stream URLs contain auth tokens, so they are built only when a track is loaded and are never saved.
+- On launch, a saved queue is restored paused at its saved position. Nothing loads or plays until the user presses play.
+- The queue is saved whenever it changes. While playing, the position is saved every 10 seconds of playback, and on pause and seek.
+- Failures:
+  - If the current track fails, status becomes failed and stays failed until the user acts. Play retries the track. (Automatic recovery comes later in M2.)
+  - If the preloaded next track fails, the current track keeps playing.
+  - If a stream URL can't be built, the track fails the same way.
 
 ### Scrobbling
 
