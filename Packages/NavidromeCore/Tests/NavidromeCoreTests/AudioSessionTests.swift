@@ -10,7 +10,7 @@ struct EngineAudioSessionTests {
     private let nowPlaying = FakeNowPlaying()
 
     private func playingEngine() -> PlaybackEngine {
-        let engine = PlaybackEngine(player: player, session: session, nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: InMemoryQueueStore())
+        let engine = PlaybackEngine(player: player, session: session, nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: InMemoryQueueStore(), scheduler: FakeScheduler(), network: FakeNetworkMonitor())
         engine.play(songs: songs)
         return engine
     }

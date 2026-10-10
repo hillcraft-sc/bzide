@@ -46,6 +46,9 @@ public protocol AudioPlayer: AnyObject {
     func setItems(_ items: [PlayerItem], startPosition: TimeInterval)
     /// Adds an item after the last loaded one.
     func append(_ item: PlayerItem)
+    /// Replaces every loaded item after the current one, leaving the current one
+    /// playing undisturbed.
+    func replaceUpcoming(with item: PlayerItem)
     /// Drops the current item and starts the next loaded one.
     func skipToNextItem()
     func play()

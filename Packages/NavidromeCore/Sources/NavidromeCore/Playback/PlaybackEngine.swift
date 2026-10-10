@@ -8,12 +8,15 @@ public enum PlaybackStatus: Sendable, Equatable {
     case paused
     case buffering
     case playing
-    /// The current track couldn't be played. Play retries it.
+    /// The current track failed while playing; a retry is scheduled.
+    case reconnecting
+    /// The current track couldn't be played, and retries (if any) ran out.
+    /// Play retries it.
     case failed(String)
 
     /// Playing or about to be: the user's intent is "music on".
     public var isActive: Bool {
-        self == .playing || self == .buffering
+        self == .playing || self == .buffering || self == .reconnecting
     }
 }
 
@@ -50,6 +53,21 @@ public final class PlaybackEngine {
     /// play/pause so the user's latest choice wins over the system's resume hint.
     @ObservationIgnored private var resumeAfterInterruption = false
 
+    @ObservationIgnored private let scheduler: any Scheduling
+    @ObservationIgnored private let network: any NetworkMonitoring
+    @ObservationIgnored private let recoveryPolicy: RecoveryPolicy
+    /// Retries used for the current track since it last played successfully.
+    @ObservationIgnored private var recoveryAttempts = 0
+    @ObservationIgnored private var pendingRecovery: ScheduledAction?
+    /// Where the last retry resumed from, to measure playback since.
+    @ObservationIgnored private var lastRetryPosition: TimeInterval = 0
+    @ObservationIgnored private var stallCheck: ScheduledAction?
+    /// Retries used to rebuild the preloaded next track.
+    @ObservationIgnored private var nextRebuildAttempts = 0
+    @ObservationIgnored private var pendingNextRebuild: ScheduledAction?
+    /// Retries ran out while the user was listening; retry when the network returns.
+    @ObservationIgnored private var retryWhenNetworkReturns = false
+
     /// How often, in seconds of playback, the position is saved while playing.
     static let positionSaveInterval: TimeInterval = 10
 
@@ -60,13 +78,19 @@ public final class PlaybackEngine {
         session: any AudioSessionControlling,
         nowPlaying: any NowPlayingControlling,
         urls: any StreamURLProviding,
-        store: any QueueStore
+        store: any QueueStore,
+        scheduler: any Scheduling,
+        network: any NetworkMonitoring,
+        recoveryPolicy: RecoveryPolicy = RecoveryPolicy()
     ) {
         self.player = player
         self.session = session
         self.nowPlaying = nowPlaying
         self.urls = urls
         self.store = store
+        self.scheduler = scheduler
+        self.network = network
+        self.recoveryPolicy = recoveryPolicy
 
         let snapshot = Self.restore(from: store)
         let restoredQueue = snapshot?.queue ?? PlaybackQueue()
@@ -79,6 +103,7 @@ public final class PlaybackEngine {
         player.onEvent = { [weak self] event in self?.handle(event) }
         session.onEvent = { [weak self] event in self?.handle(event) }
         nowPlaying.onCommand = { [weak self] command in self?.handle(command) }
+        network.onNetworkAvailable = { [weak self] in self?.networkBecameAvailable() }
         publishNowPlaying()
     }
 
@@ -87,6 +112,7 @@ public final class PlaybackEngine {
     /// Replaces the queue and starts playing at `startIndex`.
     public func play(songs: [Song], startIndex: Int = 0) {
         defer { publishNowPlaying() }
+        cancelRecovery()
         queue = PlaybackQueue(songs: songs, startIndex: startIndex)
         resetForNewTrack()
         saveSnapshot()
@@ -102,6 +128,7 @@ public final class PlaybackEngine {
 
     public func play() {
         defer { publishNowPlaying() }
+        cancelRecovery()
         guard !queue.isEmpty else { return }
         resumeAfterInterruption = false
         if !isPlayerLoaded {
@@ -112,6 +139,7 @@ public final class PlaybackEngine {
 
     public func pause() {
         defer { publishNowPlaying() }
+        cancelRecovery()
         guard !queue.isEmpty else { return }
         resumeAfterInterruption = false
         player.pause()
@@ -125,6 +153,7 @@ public final class PlaybackEngine {
 
     public func next() {
         defer { publishNowPlaying() }
+        cancelRecovery()
         guard queue.hasNext else { return }
         if isPlayerLoaded {
             // The player already holds the next track; the resulting
@@ -140,6 +169,7 @@ public final class PlaybackEngine {
 
     public func previous() {
         defer { publishNowPlaying() }
+        cancelRecovery()
         guard !queue.isEmpty else { return }
         switch PreviousAction.decide(elapsed: position, hasPrevious: queue.hasPrevious) {
         case .restartCurrent:
@@ -152,6 +182,7 @@ public final class PlaybackEngine {
 
     public func jump(to entryID: QueueEntry.ID) {
         defer { publishNowPlaying() }
+        cancelRecovery()
         guard entryID != queue.current?.id, queue.jump(to: entryID) else { return }
         reloadCurrentTrack()
     }
@@ -221,6 +252,7 @@ public final class PlaybackEngine {
 
     /// Pauses because of something outside the user's control.
     private func stopForSystem() {
+        cancelRecovery()
         player.pause()
         status = .paused
         saveSnapshot()
@@ -237,15 +269,22 @@ public final class PlaybackEngine {
         case .currentItemChanged(let entryID):
             currentItemChanged(to: entryID)
         case .statusChanged(let playerStatus):
-            // A failure stays visible until the user acts on it.
+            // A failure stays visible until the user acts on it, and while
+            // reconnecting the old player's reports are stale.
             if case .failed = status { return }
+            if status == .reconnecting { return }
             switch playerStatus {
             case .paused: status = .paused
             case .buffering: status = .buffering
-            case .playing: status = .playing
+            case .playing:
+                status = .playing
+                playbackSucceeded()
             }
         case .timeChanged(let time):
             position = time
+            if recoveryAttempts > 0, time - lastRetryPosition >= recoveryPolicy.playbackNeededToReset {
+                recoveryAttempts = 0
+            }
             if abs(time - lastSavedPosition) >= Self.positionSaveInterval {
                 saveSnapshot()
             }
@@ -253,23 +292,23 @@ public final class PlaybackEngine {
             duration = seconds
         case .reachedEnd:
             // Stay on the last track, rewound, so play starts it again.
+            cancelRecovery()
             isPlayerLoaded = false
             status = .paused
             position = 0
             saveSnapshot()
         case .itemFailed(let entryID, let message):
-            guard entryID == queue.current?.id else {
+            if entryID == queue.current?.id {
+                Self.logger.error("Current item failed: \(message, privacy: .public)")
+                currentTrackFailed(message: message)
+            } else if entryID == queue.upNext.first?.id {
                 Self.logger.error("Preloaded item failed: \(message, privacy: .public)")
-                return
+                scheduleNextRebuild(entryID: entryID)
             }
-            Self.logger.error("Current item failed: \(message, privacy: .public)")
-            isPlayerLoaded = false
-            status = .failed(message)
-            saveSnapshot()
-        case .stalled:
-            // Recovery is handled in a later step; for now the player's own
-            // buffering status is what the UI shows.
+        case .stalled(let entryID):
+            guard entryID == queue.current?.id else { return }
             Self.logger.notice("Playback stalled")
+            scheduleStallCheck()
         }
     }
 
@@ -282,10 +321,109 @@ public final class PlaybackEngine {
             return
         }
         resetForNewTrack()
+        // A new track: its own recovery budget, and the old next-track rebuild is moot.
+        cancelRecovery()
         if let next = queue.upNext.first, let item = makeItem(for: next) {
             player.append(item)
         }
         saveSnapshot()
+    }
+
+    // MARK: - Recovery
+
+    private func currentTrackFailed(message: String) {
+        stallCheck?.cancel()
+        stallCheck = nil
+        isPlayerLoaded = false
+        guard status.isActive else {
+            // Nobody is listening; show it and let play retry.
+            status = .failed(message)
+            saveSnapshot()
+            return
+        }
+        guard recoveryAttempts < recoveryPolicy.retryDelays.count else {
+            Self.logger.error("Giving up after \(self.recoveryAttempts) retries")
+            status = .failed(message)
+            retryWhenNetworkReturns = true
+            saveSnapshot()
+            return
+        }
+        status = .reconnecting
+        let delay = recoveryPolicy.retryDelays[recoveryAttempts]
+        recoveryAttempts += 1
+        pendingRecovery?.cancel()
+        pendingRecovery = scheduler.schedule(after: delay) { [weak self] in
+            self?.retryCurrentTrack()
+        }
+        saveSnapshot()
+    }
+
+    /// Reloads the current track with a freshly signed URL at the last known position.
+    private func retryCurrentTrack() {
+        defer { publishNowPlaying() }
+        pendingRecovery = nil
+        lastRetryPosition = position
+        loadPlayer(startPosition: position)
+        startPlayback()
+    }
+
+    /// A stalled player usually recovers by itself; reload only if it doesn't.
+    private func scheduleStallCheck() {
+        guard status.isActive, stallCheck == nil else { return }
+        stallCheck = scheduler.schedule(after: recoveryPolicy.stallGracePeriod) { [weak self] in
+            guard let self else { return }
+            self.stallCheck = nil
+            guard self.status != .playing else { return }
+            self.currentTrackFailed(message: "Playback stalled")
+            self.publishNowPlaying()
+        }
+    }
+
+    private func scheduleNextRebuild(entryID: QueueEntry.ID) {
+        guard pendingNextRebuild == nil, nextRebuildAttempts < recoveryPolicy.retryDelays.count else { return }
+        let delay = recoveryPolicy.retryDelays[nextRebuildAttempts]
+        nextRebuildAttempts += 1
+        pendingNextRebuild = scheduler.schedule(after: delay) { [weak self] in
+            guard let self else { return }
+            self.pendingNextRebuild = nil
+            // Only if that entry is still next and the player is still running.
+            guard self.isPlayerLoaded, let next = self.queue.upNext.first, next.id == entryID,
+                  let item = self.makeItem(for: next) else { return }
+            self.player.replaceUpcoming(with: item)
+        }
+    }
+
+    private func networkBecameAvailable() {
+        defer { publishNowPlaying() }
+        if status == .reconnecting {
+            pendingRecovery?.cancel()
+            retryCurrentTrack()
+        } else if case .failed = status, retryWhenNetworkReturns {
+            recoveryAttempts = 0
+            retryWhenNetworkReturns = false
+            retryCurrentTrack()
+        }
+    }
+
+    /// The retry budget is not reset here; that waits for sustained playback
+    /// (see `RecoveryPolicy.playbackNeededToReset`).
+    private func playbackSucceeded() {
+        retryWhenNetworkReturns = false
+        stallCheck?.cancel()
+        stallCheck = nil
+    }
+
+    /// Called whenever the user (or a track change) takes over from recovery.
+    private func cancelRecovery() {
+        pendingRecovery?.cancel()
+        pendingRecovery = nil
+        stallCheck?.cancel()
+        stallCheck = nil
+        pendingNextRebuild?.cancel()
+        pendingNextRebuild = nil
+        recoveryAttempts = 0
+        nextRebuildAttempts = 0
+        retryWhenNetworkReturns = false
     }
 
     // MARK: - Now Playing

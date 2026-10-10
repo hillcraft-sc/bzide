@@ -41,6 +41,14 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         enqueue(item)
     }
 
+    public func replaceUpcoming(with item: PlayerItem) {
+        for upcoming in player.items().dropFirst() {
+            player.remove(upcoming)
+        }
+        forgetItems(except: player.items())
+        enqueue(item)
+    }
+
     public func skipToNextItem() {
         player.advanceToNextItem()
     }

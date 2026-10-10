@@ -34,10 +34,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Stream URLs contain auth tokens, so they are built only when a track is loaded and are never saved.
 - On launch, a saved queue is restored paused at its saved position. Nothing loads or plays until the user presses play.
 - The queue is saved whenever it changes. While playing, the position is saved every 10 seconds of playback, and on pause and seek.
-- Failures:
-  - If the current track fails, status becomes failed and stays failed until the user acts. Play retries the track. (Automatic recovery comes later in M2.)
-  - If the preloaded next track fails, the current track keeps playing.
-  - If a stream URL can't be built, the track fails the same way.
+- Failures are covered under "Network recovery" below. If a stream URL can't be built, the track fails without retrying.
 
 ### Audio session and interruptions
 
@@ -56,6 +53,17 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Artwork is fetched by cover art id after the text appears. If the track changes before the image arrives, the late image is discarded.
 - Remote commands (lock screen, Control Center, headphone buttons, CarPlay) map to the engine's own commands: play, pause, toggle, next, previous, and seek by dragging the progress bar. They follow the same rules as the in-app buttons.
 - Next is disabled on the last track. Previous is always enabled, because it restarts the track when there's nothing before it.
+
+### Network recovery
+
+- If the current track fails while the user is listening, status becomes **reconnecting** and the engine retries automatically: it builds a fresh stream URL and resumes at the last known position. Retries wait 1, 2, then 4 seconds. After the third retry fails, status becomes failed with the error message.
+- The retry budget resets only after 10 seconds of uninterrupted playback following a retry, so a stream that keeps dropping right after starting doesn't retry forever.
+- If the current track fails while paused, status becomes failed with no automatic retry. Play retries it.
+- A stall (the player ran out of buffered audio) gets 10 seconds to recover by itself. If it isn't playing by then, it is treated as a failure and the retries above apply.
+- When the network comes back (offline to online, or a switch such as Wi-Fi to cellular), a pending retry runs immediately. If retries had run out while the user was listening, playback is retried once more with a fresh budget. A paused player is never started by this.
+- If the preloaded next track fails, it is rebuilt in the background (same 1, 2, 4 second schedule) without interrupting the current track, so the hand-over stays gapless.
+- Pause, play, next, previous, jump and starting a new queue cancel any pending retry. So do interruptions and losing the output device. A track change gives the new track a fresh retry budget.
+- While reconnecting, the lock screen shows the track as paused (playback rate 0).
 
 ### Scrobbling
 
@@ -107,3 +115,12 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Wired or Bluetooth headphone buttons play, pause and skip.
 - [ ] Skip quickly through several tracks. Artwork always matches the track shown.
 - [ ] Force-quit the app and relaunch, then open Control Center before pressing play. Record whether the restored track appears. iOS may only show apps that have played audio, so either result is acceptable, but note which.
+
+### Network recovery
+- [ ] Play on Wi-Fi, walk out of Wi-Fi range (or turn Wi-Fi off) so the phone switches to cellular. Playback continues, or resumes within a few seconds at the same point.
+- [ ] Play, turn on Airplane Mode for 5 seconds, turn it off. Playback resumes at the same point without pressing anything.
+- [ ] Play, turn on Airplane Mode for 30 seconds or more, until the app shows failed. Turn it off. Playback resumes by itself.
+- [ ] Pause, turn on Airplane Mode, turn it off. The app stays paused.
+- [ ] Play, turn on Airplane Mode, then press pause while it shows reconnecting. Turn Airplane Mode off. The app stays paused.
+- [ ] Play near the end of a track on a weak connection. The next track still starts without a gap, or with only a short one.
+- [ ] Lock the phone during all of the above. Recovery works the same with the screen off.

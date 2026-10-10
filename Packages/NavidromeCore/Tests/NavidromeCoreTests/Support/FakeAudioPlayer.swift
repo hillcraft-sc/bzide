@@ -23,6 +23,13 @@ final class FakeAudioPlayer: AudioPlayer {
         loaded.append(item)
     }
 
+    private(set) var replacedUpcoming: [PlayerItem] = []
+
+    func replaceUpcoming(with item: PlayerItem) {
+        loaded = Array(loaded.prefix(1)) + [item]
+        replacedUpcoming.append(item)
+    }
+
     func skipToNextItem() {
         finishCurrentItem()
     }

@@ -13,7 +13,7 @@ struct NowPlayingTests {
     private let store = InMemoryQueueStore()
 
     private func makeEngine() -> PlaybackEngine {
-        PlaybackEngine(player: player, session: FakeAudioSession(), nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: store)
+        PlaybackEngine(player: player, session: FakeAudioSession(), nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: store, scheduler: FakeScheduler(), network: FakeNetworkMonitor())
     }
 
     @Test func emptyQueueClearsNowPlaying() {

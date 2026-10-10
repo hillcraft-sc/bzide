@@ -10,8 +10,11 @@ struct PlaybackEngineTests {
     private let nowPlaying = FakeNowPlaying()
     private let store = InMemoryQueueStore()
 
-    private func makeEngine(urls: FakeStreamURLs = FakeStreamURLs()) -> PlaybackEngine {
-        PlaybackEngine(player: player, session: session, nowPlaying: nowPlaying, urls: urls, store: store)
+    private func makeEngine(urls: FakeStreamURLs = FakeStreamURLs(), recoveryPolicy: RecoveryPolicy = RecoveryPolicy()) -> PlaybackEngine {
+        PlaybackEngine(
+            player: player, session: session, nowPlaying: nowPlaying, urls: urls, store: store,
+            scheduler: FakeScheduler(), network: FakeNetworkMonitor(), recoveryPolicy: recoveryPolicy
+        )
     }
 
     private func ids(_ engine: PlaybackEngine, _ indices: Int...) -> [QueueEntry.ID] {
@@ -220,7 +223,7 @@ struct PlaybackEngineTests {
         defer { try? FileManager.default.removeItem(at: file) }
         try Data("garbage".utf8).write(to: file)
 
-        let engine = PlaybackEngine(player: player, session: session, nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: FileQueueStore(fileURL: file))
+        let engine = PlaybackEngine(player: player, session: session, nowPlaying: nowPlaying, urls: FakeStreamURLs(), store: FileQueueStore(fileURL: file), scheduler: FakeScheduler(), network: FakeNetworkMonitor())
 
         #expect(engine.queue.isEmpty)
         #expect(engine.status == .idle)
@@ -247,7 +250,9 @@ struct PlaybackEngineTests {
     // MARK: Failures
 
     @Test func failedCurrentTrackShowsAndPlayRetries() {
-        let engine = makeEngine()
+        // With no automatic retries, a failure shows straight away (see RecoveryTests
+        // for what happens when retries are available).
+        let engine = makeEngine(recoveryPolicy: RecoveryPolicy(retryDelays: []))
         engine.play(songs: songs)
         let current = engine.queue.entries[0].id
 
