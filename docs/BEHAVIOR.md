@@ -29,11 +29,13 @@ _Filled in during M2._
 
 - A track is scrobbled once it has played for 50% of its duration or 4 minutes, whichever comes first.
 - A single play is never scrobbled twice.
-- Open question: whether seeking forward counts toward the threshold. Decide before implementing.
+- Only time actually listened counts toward the threshold. Seeking forward does not add to it; seeking back does not remove from it.
 
 ## Queue
 
-_Filled in during M2._
+- Previous: if the current track has played more than 3 seconds, restart it. Otherwise go to the previous track. On the first track, restart it.
+
+_Rest filled in during M2._
 
 ## Caching and offline
 
