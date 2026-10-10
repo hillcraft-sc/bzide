@@ -110,7 +110,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 
 ### Audio session
 - [ ] Play, then receive a phone call. Music pauses. Decline or end the call: music resumes.
-- [ ] Play, then trigger Siri and dismiss it. Music pauses and resumes.
+- [ ] Play, then trigger Siri and dismiss it. On iOS 27 the system sends no interruption for Siri, so music keeps playing (possibly quieter while Siri talks). Check only that playback is still going normally afterwards.
 - [ ] Play, then start a video in another app. Music stops. Close the video: music does not resume on its own unless iOS offers resumption.
 - [ ] Pause, then receive and end a call. Music stays paused.
 - [ ] Play, receive a call, press play then pause during the call, end the call. Music stays paused.
