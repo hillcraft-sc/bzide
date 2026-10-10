@@ -39,6 +39,15 @@ How the app behaves, written so the web and Android clients can be ported from t
   - If the preloaded next track fails, the current track keeps playing.
   - If a stream URL can't be built, the track fails the same way.
 
+### Audio session and interruptions
+
+- Before every play, the app claims audio output for long-form music playback (category playback, long-form audio routing policy, which routes to AirPlay and CarPlay like other music apps). If the system refuses, the track fails with "Can't play right now: <reason>".
+- When the system takes audio away (call, Siri, alarm, another app), playback pauses. If music was playing, the app remembers that.
+- When the system later sends its resumption recommendation, playback resumes only if music was playing before the interruption **and** the system recommends resuming. A missing recommendation means don't resume.
+- If the user presses play or pause during an interruption, their choice wins and the app won't auto-resume.
+- When the output device goes away (headphones unplugged, Bluetooth disconnected), playback pauses and stays paused. It never continues through the speaker, and reconnecting does not auto-resume.
+- Not handled yet: "media services were reset" (see `docs/ISSUES.md`).
+
 ### Scrobbling
 
 - A track is scrobbled once it has played for 50% of its duration or 4 minutes, whichever comes first.
@@ -67,4 +76,14 @@ _Filled in during M4._
 
 ## Manual test checklist
 
-_Entries are added alongside each playback rule._
+Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.md`.
+
+### Audio session
+- [ ] Play, then receive a phone call. Music pauses. Decline or end the call: music resumes.
+- [ ] Play, then trigger Siri and dismiss it. Music pauses and resumes.
+- [ ] Play, then start a video in another app. Music stops. Close the video: music does not resume on its own unless iOS offers resumption.
+- [ ] Pause, then receive and end a call. Music stays paused.
+- [ ] Play, receive a call, press play then pause during the call, end the call. Music stays paused.
+- [ ] Play through wired or USB headphones, unplug them. Music pauses and does not play through the speaker. Plug back in: still paused.
+- [ ] Play through Bluetooth headphones, turn them off. Music pauses, no speaker output. Turn them back on: still paused.
+- [ ] Play, switch output to AirPlay or a Bluetooth speaker from Control Center. Music continues on the new device.

@@ -33,20 +33,30 @@ public final class PlaybackEngine {
     public private(set) var duration: TimeInterval?
 
     @ObservationIgnored private let player: any AudioPlayer
+    @ObservationIgnored private let session: any AudioSessionControlling
     @ObservationIgnored private let urls: any StreamURLProviding
     @ObservationIgnored private let store: any QueueStore
     /// Whether the player holds the current track. False after launch until play,
     /// so restoring a queue never touches the network or makes sound.
     @ObservationIgnored private var isPlayerLoaded = false
     @ObservationIgnored private var lastSavedPosition: TimeInterval = 0
+    /// Set when an interruption stopped active playback; cleared by any user
+    /// play/pause so the user's latest choice wins over the system's resume hint.
+    @ObservationIgnored private var resumeAfterInterruption = false
 
     /// How often, in seconds of playback, the position is saved while playing.
     static let positionSaveInterval: TimeInterval = 10
 
     private static let logger = Logger(subsystem: "MusicApp", category: "PlaybackEngine")
 
-    public init(player: any AudioPlayer, urls: any StreamURLProviding, store: any QueueStore) {
+    public init(
+        player: any AudioPlayer,
+        session: any AudioSessionControlling,
+        urls: any StreamURLProviding,
+        store: any QueueStore
+    ) {
         self.player = player
+        self.session = session
         self.urls = urls
         self.store = store
 
@@ -59,6 +69,7 @@ public final class PlaybackEngine {
         duration = restoredQueue.current?.song.duration.map(TimeInterval.init)
 
         player.onEvent = { [weak self] event in self?.handle(event) }
+        session.onEvent = { [weak self] event in self?.handle(event) }
     }
 
     // MARK: - Commands
@@ -80,6 +91,7 @@ public final class PlaybackEngine {
 
     public func play() {
         guard !queue.isEmpty else { return }
+        resumeAfterInterruption = false
         if !isPlayerLoaded {
             loadPlayer(startPosition: position)
         }
@@ -88,6 +100,7 @@ public final class PlaybackEngine {
 
     public func pause() {
         guard !queue.isEmpty else { return }
+        resumeAfterInterruption = false
         player.pause()
         status = .paused
         saveSnapshot()
@@ -154,6 +167,33 @@ public final class PlaybackEngine {
         saveSnapshot()
     }
 
+    // MARK: - Audio session events
+
+    private func handle(_ event: AudioSessionEvent) {
+        switch event {
+        case .interruptionBegan:
+            guard status.isActive else { return }
+            resumeAfterInterruption = true
+            stopForSystem()
+        case .interruptionEnded(let shouldResume):
+            let resume = resumeAfterInterruption && shouldResume
+            resumeAfterInterruption = false
+            if resume { play() }
+        case .outputDeviceLost:
+            // Never fall back to the speaker on our own; the user presses play.
+            guard status.isActive else { return }
+            resumeAfterInterruption = false
+            stopForSystem()
+        }
+    }
+
+    /// Pauses because of something outside the user's control.
+    private func stopForSystem() {
+        player.pause()
+        status = .paused
+        saveSnapshot()
+    }
+
     // MARK: - Player events
 
     private func handle(_ event: PlayerEvent) {
@@ -216,6 +256,13 @@ public final class PlaybackEngine {
 
     private func startPlayback() {
         guard isPlayerLoaded else { return }
+        do {
+            try session.activate()
+        } catch {
+            player.pause()
+            status = .failed("Can't play right now: \(error.message)")
+            return
+        }
         // Set before calling the player, so its own status report (which may arrive
         // immediately) has the last word.
         status = .buffering

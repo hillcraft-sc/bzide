@@ -6,10 +6,11 @@ import Testing
 struct PlaybackEngineTests {
     private let songs = (1...4).map { Song(id: "so-\($0)", title: "Song \($0)", duration: 200) }
     private let player = FakeAudioPlayer()
+    private let session = FakeAudioSession()
     private let store = InMemoryQueueStore()
 
     private func makeEngine(urls: FakeStreamURLs = FakeStreamURLs()) -> PlaybackEngine {
-        PlaybackEngine(player: player, urls: urls, store: store)
+        PlaybackEngine(player: player, session: session, urls: urls, store: store)
     }
 
     private func ids(_ engine: PlaybackEngine, _ indices: Int...) -> [QueueEntry.ID] {
@@ -218,7 +219,7 @@ struct PlaybackEngineTests {
         defer { try? FileManager.default.removeItem(at: file) }
         try Data("garbage".utf8).write(to: file)
 
-        let engine = PlaybackEngine(player: player, urls: FakeStreamURLs(), store: FileQueueStore(fileURL: file))
+        let engine = PlaybackEngine(player: player, session: session, urls: FakeStreamURLs(), store: FileQueueStore(fileURL: file))
 
         #expect(engine.queue.isEmpty)
         #expect(engine.status == .idle)
