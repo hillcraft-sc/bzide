@@ -83,6 +83,7 @@ These must all work and each needs automated tests where feasible and a manual c
 
 - Unit tests for the API client use a mocked `URLSession` / protocol-based transport with hand-written sample JSON responses in `Packages/NavidromeCore/Tests/NavidromeCoreTests/Fixtures` (see the README there).
 - Integration tests against the real Navidrome server run only when `NAVIDROME_URL`, `NAVIDROME_USER`, and `NAVIDROME_PASSWORD` are set in the environment, and are skipped otherwise. In Xcode, they are set in the test plan: Configurations > Environment Variables, double-click the value cell. Xcode saves them in `Packages/NavidromeCore/.swiftpm/NavidromeCore.xctestplan`, which is git-ignored. `xcodebuild` only forwards variables to the Simulator test process when they carry a `TEST_RUNNER_` prefix (it strips the prefix), so set `TEST_RUNNER_NAVIDROME_URL`, `TEST_RUNNER_NAVIDROME_USER`, and `TEST_RUNNER_NAVIDROME_PASSWORD`. Without the prefix the integration tests skip silently.
+- Tests that need a host app (Keychain, anything touching app entitlements) live in `MusicAppTests`, not the package. Everything else belongs in the package tests. The two suites are run separately: the `NavidromeCore` scheme (package, opened from `Packages/NavidromeCore/Package.swift`) and the `MusicApp` scheme.
 - Playback logic (queue, state machine, prefetch decisions) is tested through protocol abstractions around `AVPlayer`, so it runs without audio hardware.
 - Run the full test suite before declaring any task done. Report failures honestly; do not skip or weaken tests to make them pass.
 - Real-world playback quality can only be judged on a physical device. When a change affects playback, list what the owner should manually test.
@@ -96,8 +97,8 @@ Run the core package's tests on the iOS Simulator with `xcodebuild`, not with `s
 # Core package (run from Packages/NavidromeCore)
 xcodebuild test -scheme NavidromeCore -destination 'platform=iOS Simulator,name=<an installed iOS 27 simulator>'
 
-# App
-xcodebuild -scheme MusicApp -destination 'platform=iOS Simulator,name=<an installed iOS 27 simulator>' build test
+# App, including MusicAppTests (tests that need a host app, e.g. Keychain)
+xcodebuild -project MusicApp.xcodeproj -scheme MusicApp -destination 'platform=iOS Simulator,name=<an installed iOS 27 simulator>' build test
 
 # Single test class or method (works with either command above; repeat the flag for more)
 xcodebuild test ... -only-testing:<TestTarget>/<TestClass>
@@ -132,7 +133,7 @@ Design goals: fast, uncluttered, large readable controls, minimal taps to play s
 ## Milestones
 
 - [x] **M1: Foundation.** Repo, package layout, API client with auth, Keychain storage, unit tests, integration test against the real server.
-- [ ] **M2: Playback engine.** First: create the app target, host the package tests in it, and re-enable `KeychainCredentialStoreTests` (see `docs/ISSUES.md`). Background audio, lock screen controls, interruptions, route changes, gapless, queue persistence, tested through a bare debug screen. Stress-test on a real device before moving on.
+- [ ] **M2: Playback engine.** Background audio, lock screen controls, interruptions, route changes, gapless, queue persistence, tested through a bare debug screen. Stress-test on a real device before moving on.
 - [ ] **M3: Library UI.** Artists, albums, playlists, search, now playing.
 - [ ] **M4: Offline and caching.** Downloads, cover art cache, cellular transcoding settings.
 - [ ] **M5: CarPlay (simulator) and widgets.**
