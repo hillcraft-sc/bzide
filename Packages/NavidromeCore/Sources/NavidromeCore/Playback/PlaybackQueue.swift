@@ -1,0 +1,108 @@
+import Foundation
+
+/// One slot in the queue. The same song can be queued more than once, so each
+/// entry has its own identity separate from the song's id.
+public struct QueueEntry: Sendable, Equatable, Identifiable, Codable {
+    public let id: UUID
+    public let song: Song
+
+    public init(song: Song, id: UUID = UUID()) {
+        self.id = id
+        self.song = song
+    }
+}
+
+/// The ordered list of songs to play and which one is current.
+///
+/// Pure value type: no audio, no I/O. The playback engine owns one and is the only
+/// thing that mutates it. Rules are in docs/BEHAVIOR.md under "Queue".
+public struct PlaybackQueue: Sendable, Equatable, Codable {
+    public private(set) var entries: [QueueEntry]
+    /// `nil` only when the queue is empty.
+    public private(set) var currentIndex: Int?
+
+    public init() {
+        entries = []
+        currentIndex = nil
+    }
+
+    /// A new queue starting at `startIndex`, clamped into range.
+    public init(songs: [Song], startIndex: Int = 0) {
+        entries = songs.map { QueueEntry(song: $0) }
+        currentIndex = songs.isEmpty ? nil : min(max(startIndex, 0), songs.count - 1)
+    }
+
+    public var isEmpty: Bool { entries.isEmpty }
+
+    public var current: QueueEntry? {
+        currentIndex.map { entries[$0] }
+    }
+
+    /// Everything after the current entry.
+    public var upNext: ArraySlice<QueueEntry> {
+        guard let currentIndex else { return [] }
+        return entries[(currentIndex + 1)...]
+    }
+
+    public var hasNext: Bool { !upNext.isEmpty }
+
+    public var hasPrevious: Bool { (currentIndex ?? 0) > 0 }
+
+    /// Moves to the next entry. Returns `false` (and stays put) at the end.
+    @discardableResult
+    public mutating func advance() -> Bool {
+        guard let currentIndex, hasNext else { return false }
+        self.currentIndex = currentIndex + 1
+        return true
+    }
+
+    /// Moves to the previous entry. Returns `false` (and stays put) at the start.
+    @discardableResult
+    public mutating func goBack() -> Bool {
+        guard let currentIndex, hasPrevious else { return false }
+        self.currentIndex = currentIndex - 1
+        return true
+    }
+
+    /// Makes the entry with this id current. Returns `false` if it isn't in the queue.
+    @discardableResult
+    public mutating func jump(to entryID: QueueEntry.ID) -> Bool {
+        guard let index = entries.firstIndex(where: { $0.id == entryID }) else { return false }
+        currentIndex = index
+        return true
+    }
+
+    /// Adds songs to the end. If the queue was empty, the first added song becomes current.
+    public mutating func append(_ songs: [Song]) {
+        entries.append(contentsOf: songs.map { QueueEntry(song: $0) })
+        if currentIndex == nil, !entries.isEmpty {
+            currentIndex = 0
+        }
+    }
+}
+
+extension PlaybackQueue {
+    private enum CodingKeys: String, CodingKey { case entries, currentIndex }
+
+    /// A saved queue is untrusted input: an index outside the entries would crash
+    /// `current`, so it is clamped back into range.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        entries = try c.decode([QueueEntry].self, forKey: .entries)
+        let index = try c.decodeIfPresent(Int.self, forKey: .currentIndex) ?? 0
+        currentIndex = entries.isEmpty ? nil : min(max(index, 0), entries.count - 1)
+    }
+}
+
+/// What the previous button does, given how far into the current track we are.
+public enum PreviousAction: Sendable, Equatable {
+    case restartCurrent
+    case goToPrevious
+
+    /// Past this many seconds, previous restarts the track instead of going back.
+    public static let restartThreshold: TimeInterval = 3
+
+    public static func decide(elapsed: TimeInterval, hasPrevious: Bool) -> PreviousAction {
+        (elapsed > restartThreshold || !hasPrevious) ? .restartCurrent : .goToPrevious
+    }
+}

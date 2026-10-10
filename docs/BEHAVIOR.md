@@ -33,9 +33,19 @@ _Filled in during M2._
 
 ## Queue
 
+- The queue is an ordered list of entries plus a current position. Each entry has its own id, so the same song can appear more than once and the UI and player can tell the copies apart.
+- A new queue starts at the requested index, clamped into range. An empty queue has no current entry.
+- Next moves to the following entry. At the last entry it does nothing.
 - Previous: if the current track has played more than 3 seconds, restart it. Otherwise go to the previous track. On the first track, restart it.
+- Jumping to an entry that isn't in the queue does nothing.
+- Appending adds to the end. Appending to an empty queue makes the first added song current.
+- Shuffle and repeat are not implemented yet.
 
-_Rest filled in during M2._
+### Persistence
+
+- The queue and the position within the current entry are saved as JSON to `Application Support/PlaybackQueue.json`, replaced atomically so a crash never leaves a half-written file.
+- The file stays writable while the device is locked (after the first unlock since boot), because saves happen during locked-screen playback.
+- A saved file that can't be read is reported, not crashed on; the app starts with an empty queue. A saved current index outside the entries is clamped into range.
 
 ## Caching and offline
 
