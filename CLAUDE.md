@@ -81,13 +81,13 @@ These must all work and each needs automated tests where feasible and a manual c
 
 ## Testing
 
-- Unit tests for the API client use a mocked `URLSession` / protocol-based transport with recorded sample JSON responses in `Tests/Fixtures`.
-- Integration tests against the real Navidrome server run only when `NAVIDROME_URL`, `NAVIDROME_USER`, and `NAVIDROME_PASSWORD` are set in the environment, and are skipped otherwise. `xcodebuild` only forwards variables to the Simulator test process when they carry a `TEST_RUNNER_` prefix (it strips the prefix), so set `TEST_RUNNER_NAVIDROME_URL`, `TEST_RUNNER_NAVIDROME_USER`, and `TEST_RUNNER_NAVIDROME_PASSWORD`. Without the prefix the integration tests skip silently.
+- Unit tests for the API client use a mocked `URLSession` / protocol-based transport with hand-written sample JSON responses in `Packages/NavidromeCore/Tests/NavidromeCoreTests/Fixtures` (see the README there).
+- Integration tests against the real Navidrome server run only when `NAVIDROME_URL`, `NAVIDROME_USER`, and `NAVIDROME_PASSWORD` are set in the environment, and are skipped otherwise. In Xcode, they are set in the test plan: Configurations > Environment Variables, double-click the value cell. Xcode saves them in `Packages/NavidromeCore/.swiftpm/NavidromeCore.xctestplan`, which is git-ignored. `xcodebuild` only forwards variables to the Simulator test process when they carry a `TEST_RUNNER_` prefix (it strips the prefix), so set `TEST_RUNNER_NAVIDROME_URL`, `TEST_RUNNER_NAVIDROME_USER`, and `TEST_RUNNER_NAVIDROME_PASSWORD`. Without the prefix the integration tests skip silently.
 - Playback logic (queue, state machine, prefetch decisions) is tested through protocol abstractions around `AVPlayer`, so it runs without audio hardware.
 - Run the full test suite before declaring any task done. Report failures honestly; do not skip or weaken tests to make them pass.
 - Real-world playback quality can only be judged on a physical device. When a change affects playback, list what the owner should manually test.
 
-Build and test commands (fill in once the project exists):
+Build and test commands:
 
 Known problem: `xcodebuild test` currently hangs from the command line on Xcode 27, while ⌘U in Xcode works (Xcode 27 has no Simulator app; virtual devices are managed in Device Hub). See `docs/ISSUES.md`. Until it's fixed, ask the owner to run ⌘U and read the newest `.xcresult` with `xcrun xcresulttool get test-results summary --path <bundle>`.
 
@@ -131,7 +131,7 @@ Design goals: fast, uncluttered, large readable controls, minimal taps to play s
 
 ## Milestones
 
-- [ ] **M1: Foundation.** Repo, package layout, API client with auth, Keychain storage, unit tests, integration test against the real server.
+- [x] **M1: Foundation.** Repo, package layout, API client with auth, Keychain storage, unit tests, integration test against the real server.
 - [ ] **M2: Playback engine.** First: create the app target, host the package tests in it, and re-enable `KeychainCredentialStoreTests` (see `docs/ISSUES.md`). Background audio, lock screen controls, interruptions, route changes, gapless, queue persistence, tested through a bare debug screen. Stress-test on a real device before moving on.
 - [ ] **M3: Library UI.** Artists, albums, playlists, search, now playing.
 - [ ] **M4: Offline and caching.** Downloads, cover art cache, cellular transcoding settings.
