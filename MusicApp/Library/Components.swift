@@ -135,16 +135,24 @@ struct RateMenu: View {
         let current = ratings.rating(target, fromServer: fromServer)
         Menu(current.map { "Rated \($0.title)" } ?? "Rate", systemImage: current == nil ? "star" : "star.fill") {
             ForEach(Rating.allCases.reversed(), id: \.self) { rating in
-                Button {
-                    Task { await ratings.choose(rating, for: target, fromServer: fromServer) }
-                } label: {
-                    if rating == current {
-                        Label(rating.title, systemImage: "checkmark")
-                    } else {
-                        Text(rating.title)
-                    }
-                }
+                // A toggle so the menu draws the checkmark; turning the current
+                // one off is choosing it again, which clears it.
+                Toggle("\(rating.face) \(rating.title)", isOn: Binding(
+                    get: { rating == current },
+                    set: { _ in Task { await ratings.choose(rating, for: target, fromServer: fromServer) } }
+                ))
             }
+        }
+    }
+}
+
+extension Rating {
+    /// Shown beside the title in the Rate menu.
+    var face: String {
+        switch self {
+        case .meh: "😒"
+        case .good: "🙂"
+        case .great: "😍"
         }
     }
 }
