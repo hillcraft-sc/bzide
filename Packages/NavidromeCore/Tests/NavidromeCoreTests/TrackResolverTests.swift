@@ -76,6 +76,13 @@ struct StreamingSettingsTests {
         #expect(second.settings.cellularQuality == .kbps96)
     }
 
+    @Test func settingsSavedBeforeANewOneKeepTheirValues() {
+        let defaults = UserDefaults(suiteName: "StreamingSettingsTests-\(UUID())")!
+        defaults.set(Data("{\"wifiQuality\": 256, \"cellularQuality\": 96}".utf8), forKey: StreamingSettingsModel.key)
+        let settings = StreamingSettingsModel(defaults: defaults).settings
+        #expect(settings == StreamingSettings(wifiQuality: .kbps256, cellularQuality: .kbps96, downloadOverCellular: false))
+    }
+
     @Test func unreadableSettingsFallBackToDefaults() {
         let defaults = UserDefaults(suiteName: "StreamingSettingsTests-\(UUID())")!
         defaults.set(Data("{\"wifiQuality\": 999}".utf8), forKey: StreamingSettingsModel.key)

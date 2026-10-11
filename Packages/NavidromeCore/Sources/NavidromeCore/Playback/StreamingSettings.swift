@@ -24,10 +24,27 @@ public enum StreamQuality: Int, CaseIterable, Codable, Sendable {
 public struct StreamingSettings: Codable, Sendable, Equatable {
     public var wifiQuality: StreamQuality
     public var cellularQuality: StreamQuality
+    /// Off by default: downloads wait for Wi-Fi.
+    public var downloadOverCellular: Bool
 
-    public init(wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192) {
+    public init(wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192, downloadOverCellular: Bool = false) {
         self.wifiQuality = wifiQuality
         self.cellularQuality = cellularQuality
+        self.downloadOverCellular = downloadOverCellular
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case wifiQuality, cellularQuality, downloadOverCellular
+    }
+
+    /// A setting missing from what was saved (added in a later version) takes its
+    /// default; the others are kept.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = StreamingSettings()
+        wifiQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .wifiQuality) ?? defaults.wifiQuality
+        cellularQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .cellularQuality) ?? defaults.cellularQuality
+        downloadOverCellular = try c.decodeIfPresent(Bool.self, forKey: .downloadOverCellular) ?? defaults.downloadOverCellular
     }
 }
 
