@@ -13,7 +13,7 @@ struct RatingTests {
     }
 
     @Test func serverRatingsRoundToTheNearestLevel() {
-        #expect([1, 2, 3, 4, 5].map { Rating(serverValue: $0) } == [.meh, .meh, .good, .great, .great])
+        #expect([1, 2, 3, 4, 5].map { Rating(serverValue: $0) } == [.meh, .meh, .dontHateIt, .rocks, .rocks])
     }
 
     @Test func zeroMissingOrOutOfRangeIsUnrated() {
@@ -37,7 +37,7 @@ struct RatingModelTests {
 
     @Test func followsTheServerUntilChanged() {
         let model = makeModel()
-        #expect(model.rating(album, fromServer: 4) == .great)
+        #expect(model.rating(album, fromServer: 4) == .rocks)
         #expect(model.rating(album, fromServer: nil) == nil)
     }
 
@@ -57,8 +57,8 @@ struct RatingModelTests {
 
     @Test func choosingTheCurrentRatingClearsIt() async {
         let model = makeModel()
-        // 4 stars from the web UI shows as Great; choosing Great clears it.
-        let choose = Task { @MainActor in await model.choose(.great, for: album, fromServer: 4) }
+        // 4 stars from the web UI shows as Rocks; choosing Rocks clears it.
+        let choose = Task { @MainActor in await model.choose(.rocks, for: album, fromServer: 4) }
         await server.waitForCalls(1)
         server.reply(to: 0, with: .success(()))
         await choose.value
@@ -68,22 +68,22 @@ struct RatingModelTests {
 
     @Test func choosingAnotherLevelReplacesIt() async {
         let model = makeModel()
-        let choose = Task { @MainActor in await model.choose(.good, for: album, fromServer: 5) }
+        let choose = Task { @MainActor in await model.choose(.dontHateIt, for: album, fromServer: 5) }
         await server.waitForCalls(1)
         server.reply(to: 0, with: .success(()))
         await choose.value
         #expect(server.requests == [RatingRequest(target: album, stars: 3)])
-        #expect(model.rating(album, fromServer: 5) == .good)
+        #expect(model.rating(album, fromServer: 5) == .dontHateIt)
     }
 
     @Test func failureChangesBackAndSaysWhy() async {
         let model = makeModel()
         let offline = SubsonicError.network(.notConnectedToInternet)
-        let choose = Task { @MainActor in await model.choose(.great, for: album, fromServer: 3) }
+        let choose = Task { @MainActor in await model.choose(.rocks, for: album, fromServer: 3) }
         await server.waitForCalls(1)
         server.reply(to: 0, with: .failure(offline))
         await choose.value
-        #expect(model.rating(album, fromServer: 3) == .good)
+        #expect(model.rating(album, fromServer: 3) == .dontHateIt)
         #expect(model.error == offline.localizedDescription)
 
         model.dismissError()
@@ -92,23 +92,23 @@ struct RatingModelTests {
 
     @Test func choiceWhileSendingIsIgnored() async {
         let model = makeModel()
-        let first = Task { @MainActor in await model.choose(.good, for: album, fromServer: nil) }
+        let first = Task { @MainActor in await model.choose(.dontHateIt, for: album, fromServer: nil) }
         await server.waitForCalls(1)
-        await model.choose(.great, for: album, fromServer: nil)
+        await model.choose(.rocks, for: album, fromServer: nil)
         server.reply(to: 0, with: .success(()))
         await first.value
         #expect(server.requests.count == 1)
-        #expect(model.rating(album, fromServer: nil) == .good)
+        #expect(model.rating(album, fromServer: nil) == .dontHateIt)
     }
 
     @Test func eachItemKeepsItsOwnRating() async {
         let model = makeModel()
         let song = StarTarget.song(id: "so-1")
-        let choose = Task { @MainActor in await model.choose(.good, for: song, fromServer: nil) }
+        let choose = Task { @MainActor in await model.choose(.dontHateIt, for: song, fromServer: nil) }
         await server.waitForCalls(1)
         server.reply(to: 0, with: .success(()))
         await choose.value
         #expect(model.rating(album, fromServer: nil) == nil)
-        #expect(model.rating(song, fromServer: nil) == .good)
+        #expect(model.rating(song, fromServer: nil) == .dontHateIt)
     }
 }
