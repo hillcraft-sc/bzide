@@ -47,7 +47,12 @@ struct TransportControls: View {
                 .font(.largeTitle)
                 Spacer()
                 Button("Next", systemImage: "forward.fill") { engine.next() }
-                    .disabled(!engine.queue.hasNext)
+                    .disabled(!engine.queue.hasNext && engine.repeatMode != .all)
+                Spacer()
+                Button(repeatLabel, systemImage: engine.repeatMode == .one ? "repeat.1" : "repeat") {
+                    engine.cycleRepeatMode()
+                }
+                .foregroundStyle(engine.repeatMode == .off ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 Spacer()
             }
             .labelStyle(.iconOnly)
@@ -55,6 +60,14 @@ struct TransportControls: View {
             .disabled(engine.queue.isEmpty)
         }
         .padding(.vertical, 4)
+    }
+
+    private var repeatLabel: String {
+        switch engine.repeatMode {
+        case .off: "Repeat Off"
+        case .all: "Repeat All"
+        case .one: "Repeat One"
+        }
     }
 
     private var statusText: String {

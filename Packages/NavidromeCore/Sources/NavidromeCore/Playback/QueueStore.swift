@@ -7,10 +7,22 @@ public struct QueueSnapshot: Sendable, Equatable, Codable {
     public var queue: PlaybackQueue
     /// Seconds into the current entry.
     public var position: TimeInterval
+    public var repeatMode: RepeatMode
 
-    public init(queue: PlaybackQueue, position: TimeInterval) {
+    public init(queue: PlaybackQueue, position: TimeInterval, repeatMode: RepeatMode = .off) {
         self.queue = queue
         self.position = position
+        self.repeatMode = repeatMode
+    }
+
+    private enum CodingKeys: String, CodingKey { case queue, position, repeatMode }
+
+    /// Queues saved before repeat existed have no mode: off.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        queue = try c.decode(PlaybackQueue.self, forKey: .queue)
+        position = try c.decode(TimeInterval.self, forKey: .position)
+        repeatMode = (try? c.decodeIfPresent(RepeatMode.self, forKey: .repeatMode)) ?? .off
     }
 }
 

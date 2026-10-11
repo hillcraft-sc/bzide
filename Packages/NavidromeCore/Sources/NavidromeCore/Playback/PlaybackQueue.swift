@@ -117,6 +117,24 @@ extension PlaybackQueue {
     }
 }
 
+/// What happens when a track or the queue ends.
+public enum RepeatMode: String, Sendable, Codable, CaseIterable {
+    case off
+    /// The queue starts again from the first entry.
+    case all
+    /// The current track plays again.
+    case one
+
+    /// The order the repeat button steps through.
+    public var next: RepeatMode {
+        switch self {
+        case .off: .all
+        case .all: .one
+        case .one: .off
+        }
+    }
+}
+
 /// What the previous button does, given how far into the current track we are.
 public enum PreviousAction: Sendable, Equatable {
     case restartCurrent

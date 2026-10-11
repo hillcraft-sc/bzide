@@ -34,6 +34,7 @@ public final class PlaybackEngine {
     public private(set) var position: TimeInterval
     /// Seconds. From the server's metadata until the player knows better.
     public private(set) var duration: TimeInterval?
+    public private(set) var repeatMode: RepeatMode
 
     @ObservationIgnored private let player: any AudioPlayer
     @ObservationIgnored private let session: any AudioSessionControlling
@@ -115,6 +116,7 @@ public final class PlaybackEngine {
         position = snapshot?.position ?? 0
         lastSavedPosition = snapshot?.position ?? 0
         status = restoredQueue.isEmpty ? .idle : .paused
+        repeatMode = snapshot?.repeatMode ?? .off
         duration = restoredQueue.current?.song.duration.map(TimeInterval.init)
 
         player.onEvent = { [weak self] event in self?.handle(event) }
@@ -184,17 +186,30 @@ public final class PlaybackEngine {
     public func next() {
         defer { publishNowPlaying() }
         cancelRecovery()
-        guard queue.hasNext else { return }
-        if isPlayerLoaded {
+        guard let target = nextEntry else { return }
+        if isPlayerLoaded, preloadEntry?.id == target.id {
             // The player already holds the next track; the resulting
             // `currentItemChanged` event advances the queue (one code path for
             // manual and automatic advance).
             player.skipToNextItem()
         } else {
-            queue.advance()
-            resetForNewTrack()
-            saveSnapshot()
+            // Not preloaded: nothing loaded yet, or repeat one (which preloads nothing).
+            queue.jump(to: target.id)
+            reloadCurrentTrack()
         }
+    }
+
+    /// Off, then repeat all, then repeat one.
+    public func cycleRepeatMode() {
+        setRepeatMode(repeatMode.next)
+    }
+
+    public func setRepeatMode(_ mode: RepeatMode) {
+        defer { publishNowPlaying() }
+        guard mode != repeatMode else { return }
+        repeatMode = mode
+        refreshUpcoming()
+        saveSnapshot()
     }
 
     public func previous() {
@@ -229,9 +244,9 @@ public final class PlaybackEngine {
         if wasEmpty {
             resetForNewTrack()
             status = .paused
-        } else if isPlayerLoaded, !hadNext, let next = queue.upNext.first, let item = makeItem(for: next) {
+        } else if !hadNext {
             // The player was on the last track; give it the new next one for gapless.
-            player.append(item)
+            refreshUpcoming()
         }
         saveSnapshot()
     }
@@ -247,9 +262,7 @@ public final class PlaybackEngine {
             return
         }
         queue.insertNext(songs)
-        if isPlayerLoaded, let next = queue.upNext.first, let item = makeItem(for: next) {
-            player.replaceUpcoming(with: item)
-        }
+        refreshUpcoming()
         saveSnapshot()
     }
 
@@ -259,11 +272,7 @@ public final class PlaybackEngine {
         defer { publishNowPlaying() }
         guard queue.hasNext else { return }
         queue.removeUpcoming()
-        pendingNextRebuild?.cancel()
-        pendingNextRebuild = nil
-        if isPlayerLoaded {
-            player.removeUpcoming()
-        }
+        refreshUpcoming()
         saveSnapshot()
     }
 
@@ -426,14 +435,14 @@ public final class PlaybackEngine {
         case .reachedEnd:
             cancelRecovery()
             isPlayerLoaded = false
-            if queue.hasNext {
-                // The player ran out early because the next track couldn't be
-                // loaded in time; carry on with it.
-                queue.advance()
-                resetForNewTrack()
-                loadPlayer(startPosition: 0)
-                startPlayback()
-                saveSnapshot()
+            if repeatMode == .one || (repeatMode == .all && queue.entries.count == 1) {
+                // Nothing was preloaded; play the same track again, as a new play.
+                restartCurrentTrack()
+            } else if let next = nextEntry {
+                // The player ran out early (the next track couldn't be loaded in
+                // time, or repeat all's first track wasn't preloaded); carry on.
+                queue.jump(to: next.id)
+                restartCurrentTrack()
             } else {
                 endQueue()
             }
@@ -441,7 +450,7 @@ public final class PlaybackEngine {
             if entryID == queue.current?.id {
                 Self.logger.error("Current item failed: \(message, privacy: .public)")
                 currentTrackFailed(message: message)
-            } else if entryID == queue.upNext.first?.id {
+            } else if entryID == preloadEntry?.id {
                 Self.logger.error("Preloaded item failed: \(message, privacy: .public)")
                 scheduleNextRebuild(entryID: entryID)
             }
@@ -463,7 +472,7 @@ public final class PlaybackEngine {
         resetForNewTrack()
         // A new track: its own recovery budget, and the old next-track rebuild is moot.
         cancelRecovery()
-        if let next = queue.upNext.first, let item = makeItem(for: next) {
+        if let next = preloadEntry, let item = makeItem(for: next) {
             player.append(item)
         }
         saveSnapshot()
@@ -527,7 +536,7 @@ public final class PlaybackEngine {
             guard let self else { return }
             self.pendingNextRebuild = nil
             // Only if that entry is still next and the player is still running.
-            guard self.isPlayerLoaded, let next = self.queue.upNext.first, next.id == entryID,
+            guard self.isPlayerLoaded, let next = self.preloadEntry, next.id == entryID,
                   let item = self.makeItem(for: next) else { return }
             self.player.replaceUpcoming(with: item)
         }
@@ -579,7 +588,7 @@ public final class PlaybackEngine {
                 duration: duration,
                 elapsed: position,
                 isPlaying: status == .playing,
-                hasNext: queue.hasNext,
+                hasNext: nextEntry != nil,
                 hasPrevious: queue.hasPrevious
             )
         }
@@ -606,6 +615,42 @@ public final class PlaybackEngine {
         player.play()
     }
 
+    /// Where next goes: the following entry, or with repeat all the first one
+    /// after the last. Repeat one doesn't change this; next still moves on.
+    private var nextEntry: QueueEntry? {
+        if let following = queue.upNext.first { return following }
+        guard repeatMode == .all, queue.entries.count > 1 else { return nil }
+        return queue.entries.first
+    }
+
+    /// The entry the player holds after the current one, for a gapless handover.
+    /// Repeat one holds nothing: the track is restarted when it ends.
+    private var preloadEntry: QueueEntry? {
+        repeatMode == .one ? nil : nextEntry
+    }
+
+    /// Makes the player's preloaded next track match `preloadEntry`, after
+    /// anything that may have changed it.
+    private func refreshUpcoming() {
+        pendingNextRebuild?.cancel()
+        pendingNextRebuild = nil
+        nextRebuildAttempts = 0
+        guard isPlayerLoaded else { return }
+        if let next = preloadEntry, let item = makeItem(for: next) {
+            player.replaceUpcoming(with: item)
+        } else {
+            player.removeUpcoming()
+        }
+    }
+
+    /// Plays the current entry from the start: a new play.
+    private func restartCurrentTrack() {
+        resetForNewTrack()
+        loadPlayer(startPosition: 0)
+        startPlayback()
+        saveSnapshot()
+    }
+
     /// After the current entry changed by user action: load it from the start,
     /// keeping playing or paused as it was.
     private func reloadCurrentTrack() {
@@ -627,7 +672,7 @@ public final class PlaybackEngine {
             return
         }
         var items = [currentItem]
-        if let next = queue.upNext.first, let nextItem = makeItem(for: next) {
+        if let next = preloadEntry, let nextItem = makeItem(for: next) {
             items.append(nextItem)
         }
         player.setItems(items, startPosition: startPosition)
@@ -666,7 +711,7 @@ public final class PlaybackEngine {
 
     private func saveSnapshot() {
         do {
-            try store.save(QueueSnapshot(queue: queue, position: position))
+            try store.save(QueueSnapshot(queue: queue, position: position, repeatMode: repeatMode))
             lastSavedPosition = position
         } catch {
             // Losing a save is better than interrupting playback; the next save retries.

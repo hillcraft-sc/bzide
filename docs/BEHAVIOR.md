@@ -38,7 +38,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Gapless: the player always holds the current track and the one after it, so the next track is buffered before the current one ends. When a track ends, the player moves on by itself and the engine loads the track after that.
 - Next uses the already-buffered next track. On the last track it does nothing.
 - Previous, jump, and starting a new queue load the chosen track from the start, keeping the play/pause state.
-- When the last track ends, the queue is done: it is emptied, status becomes idle, and Now Playing (lock screen, Control Center) is cleared. If the player runs out while the queue still has a next track (it couldn't be loaded in time), playback carries on with that track instead.
+- When the last track ends with repeat off, the queue is done: it is emptied, status becomes idle, and Now Playing (lock screen, Control Center) is cleared. If the player runs out while the queue still has a next track (it couldn't be loaded in time), playback carries on with that track instead.
 - Seek is clamped to the track's length.
 - Duration comes from the server's metadata until the player knows the real duration.
 - Stream URLs contain auth tokens, so they are built only when a track is loaded and are never saved.
@@ -97,7 +97,12 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Clear up next removes every entry after the current one. The current track keeps playing (the player drops its buffered next track), and when it ends the queue is done, as at the end of any queue.
 - The queue as shown is the current entry and what's after it. Entries already played are kept out of sight, so previous can still go back to them, until the queue ends or is replaced.
 - Play next inserts songs right after the current entry, ahead of everything else upcoming; the most recent play next goes first. The current track keeps playing; the track the player had buffered as next is swapped for the first inserted song, so the handover stays gapless. On an empty queue it behaves like appending (queued, not started). A queue restored after relaunch and not yet played isn't loaded just to insert.
-- Shuffle play shuffles the chosen songs once and plays them as an ordinary queue starting at the first. There is no shuffle mode that stays on, and repeat is not implemented yet.
+- Shuffle play shuffles the chosen songs once and plays them as an ordinary queue starting at the first. There is no shuffle mode that stays on.
+- Repeat has three modes, stepped through by one button: off, repeat all, repeat one. It's saved with the queue (a queue saved before repeat existed has it off) and stays as set when a new queue starts.
+  - **Off:** when the last track ends, the queue is done (see Playback).
+  - **Repeat all:** after the last track the queue starts again from the first entry, including entries already played. On the last track the player preloads the first, so the wrap is gapless, and next wraps too. A queue of one track plays it again.
+  - **Repeat one:** the current track plays again when it ends, as a new play (scrobbled and added to history each time). Nothing is preloaded, so there is a brief gap at the restart. Next and previous still move between tracks, and repeat one stays on.
+  - Changing the mode while playing swaps the preloaded next track to match, without interrupting the current one.
 
 ### Persistence
 
@@ -220,6 +225,9 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Random Mix in Airplane Mode with downloads: a shuffled mix of downloaded songs plays, with a note under the button. Turn Airplane Mode off and tap again: a server mix plays and the note goes away. With no downloads, Airplane Mode shows an error instead.
 - [ ] Tap a track in an album: the album plays from that track. Play and Shuffle buttons work. Add to Queue appends without interrupting.
 - [ ] While a track plays, Play Next on another song: the current track carries on, and when it ends the chosen song follows with no gap. Play Next on an album: its songs come next, in order, before the rest of the queue.
+- [ ] Repeat All: let the last song of an album end. The first starts with no gap. Next on the last song also goes to the first.
+- [ ] Repeat One: the song plays again when it ends (it shows twice in History, combined as "2 plays"). Next still goes to the following song, and repeat one stays on.
+- [ ] Switch repeat modes while a song plays: no interruption. Relaunch the app: the mode is kept.
 - [ ] In Now Playing, Clear Up Next: the queue shows only the current song, which keeps playing without a hiccup; when it ends the queue empties. The button is hidden when nothing is up next.
 - [ ] Play an album and let a few tracks pass: the queue in Now Playing starts at the current song, but Previous still goes back through the earlier ones.
 - [ ] Star an album, go back and reopen it: still starred. Check in Navidrome's web UI that it's starred there too.

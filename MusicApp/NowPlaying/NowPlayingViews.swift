@@ -30,7 +30,7 @@ struct MiniPlayer: View {
             }
             .disabled(engine.queue.isEmpty)
             Button("Next", systemImage: "forward.fill") { engine.next() }
-                .disabled(!engine.queue.hasNext)
+                .disabled(!engine.queue.hasNext && engine.repeatMode != .all)
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.borderless)
