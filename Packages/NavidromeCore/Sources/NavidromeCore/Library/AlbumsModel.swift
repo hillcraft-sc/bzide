@@ -19,7 +19,7 @@ public enum AlbumSort: String, CaseIterable, Sendable {
         case .name: "Name"
         case .artist: "Artist"
         case .random: "Random"
-        case .starred: "Starred"
+        case .starred: "Favorites"
         }
     }
 

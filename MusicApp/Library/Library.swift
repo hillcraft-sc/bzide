@@ -5,6 +5,7 @@ import NavidromeCore
 final class Library {
     let engine: PlaybackEngine
     let stars: StarModel
+    let ratings: RatingModel
     let artwork: ArtworkCache
     let settings: StreamingSettingsModel
     let downloads: DownloadManager
@@ -27,6 +28,9 @@ final class Library {
             } else {
                 try await client.unstar(target)
             }
+        }
+        self.ratings = RatingModel { [client] target, stars async throws(SubsonicError) in
+            try await client.setRating(target, stars: stars)
         }
     }
 

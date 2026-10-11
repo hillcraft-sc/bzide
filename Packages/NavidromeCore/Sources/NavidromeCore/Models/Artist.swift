@@ -5,22 +5,25 @@ public struct Artist: Sendable, Equatable, Identifiable, Decodable {
     public var albumCount: Int?
     public var coverArtID: String?
     public var isStarred: Bool
+    /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
+    public var userRating: Int?
     public var albums: [Album]
 
     public init(
         id: String, name: String, albumCount: Int? = nil, coverArtID: String? = nil,
-        isStarred: Bool = false, albums: [Album] = []
+        isStarred: Bool = false, userRating: Int? = nil, albums: [Album] = []
     ) {
         self.id = id
         self.name = name
         self.albumCount = albumCount
         self.coverArtID = coverArtID
         self.isStarred = isStarred
+        self.userRating = userRating
         self.albums = albums
     }
 
     private enum ServerKeys: String, CodingKey {
-        case id, name, albumCount, coverArt, starred, album
+        case id, name, albumCount, coverArt, starred, userRating, album
     }
 
     public init(from decoder: any Decoder) throws {
@@ -31,6 +34,7 @@ public struct Artist: Sendable, Equatable, Identifiable, Decodable {
             albumCount: c.lenientInt(.albumCount),
             coverArtID: c.lenientString(.coverArt),
             isStarred: c.contains(.starred),
+            userRating: c.rating(.userRating),
             albums: c.lossyArray(Album.self, forKey: .album)
         )
     }

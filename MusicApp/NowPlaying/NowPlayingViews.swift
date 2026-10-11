@@ -55,8 +55,8 @@ struct NowPlayingView: View {
                         .listRowSeparator(.hidden)
                     TransportControls(engine: engine)
                     if let song = engine.queue.current?.song {
-                        HStack {
-                            StarButton(stars: library.stars, target: .song(id: song.id), fromServer: song.isStarred)
+                        HStack(spacing: 32) {
+                            MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
                         }
                         .labelStyle(.iconOnly)
                         .font(.title3)

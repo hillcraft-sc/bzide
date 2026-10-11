@@ -28,14 +28,23 @@ struct RootView: View {
         .sheet(isPresented: $isNowPlayingOpen) {
             NowPlayingView(library: library)
         }
-        .alert("Couldn't Change Star", isPresented: starErrorShown) {
+        .alert("Couldn't Change Favorite", isPresented: favoriteErrorShown) {
             Button("OK") { library.stars.dismissError() }
         } message: {
             Text(library.stars.error ?? "")
         }
+        .alert("Couldn't Change Rating", isPresented: ratingErrorShown) {
+            Button("OK") { library.ratings.dismissError() }
+        } message: {
+            Text(library.ratings.error ?? "")
+        }
     }
 
-    private var starErrorShown: Binding<Bool> {
+    private var favoriteErrorShown: Binding<Bool> {
         Binding(get: { library.stars.error != nil }, set: { if !$0 { library.stars.dismissError() } })
+    }
+
+    private var ratingErrorShown: Binding<Bool> {
+        Binding(get: { library.ratings.error != nil }, set: { if !$0 { library.ratings.dismissError() } })
     }
 }

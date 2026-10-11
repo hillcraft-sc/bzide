@@ -34,6 +34,21 @@ struct LibraryRequestTests {
         #expect(artist.queryParameters["artistId"] == "ar-1")
     }
 
+    @Test func setRatingSendsThePlainIDForEveryKind() async throws {
+        let song = try await sentURL { try await $0.setRating(.song(id: "so-1"), stars: 5) }
+        #expect(song.path() == "/rest/setRating")
+        #expect(song.queryParameters["id"] == "so-1")
+        #expect(song.queryParameters["rating"] == "5")
+
+        let album = try await sentURL { try await $0.setRating(.album(id: "al-1"), stars: 2) }
+        #expect(album.queryParameters["id"] == "al-1")
+        #expect(album.queryParameters["albumId"] == nil)
+
+        let artist = try await sentURL { try await $0.setRating(.artist(id: "ar-1"), stars: nil) }
+        #expect(artist.queryParameters["id"] == "ar-1")
+        #expect(artist.queryParameters["rating"] == "0")
+    }
+
     @Test func scrobbleSendsSubmissionFlagAndTimeInMilliseconds() async throws {
         let playedAt = Date(timeIntervalSince1970: 1_700_000_000.5)
         let url = try await sentURL { try await $0.scrobble(songID: "so-1", playedAt: playedAt, submission: true) }

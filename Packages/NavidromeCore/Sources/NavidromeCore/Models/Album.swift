@@ -11,12 +11,14 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
     public var year: Int?
     public var genre: String?
     public var isStarred: Bool
+    /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
+    public var userRating: Int?
     public var songs: [Song]
 
     public init(
         id: String, name: String, artist: String? = nil, artistID: String? = nil,
         coverArtID: String? = nil, songCount: Int? = nil, duration: Int? = nil,
-        year: Int? = nil, genre: String? = nil, isStarred: Bool = false, songs: [Song] = []
+        year: Int? = nil, genre: String? = nil, isStarred: Bool = false, userRating: Int? = nil, songs: [Song] = []
     ) {
         self.id = id
         self.name = name
@@ -28,11 +30,12 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
         self.year = year
         self.genre = genre
         self.isStarred = isStarred
+        self.userRating = userRating
         self.songs = songs
     }
 
     private enum ServerKeys: String, CodingKey {
-        case id, name, title, artist, artistId, coverArt, songCount, duration, year, genre, starred, song
+        case id, name, title, artist, artistId, coverArt, songCount, duration, year, genre, starred, userRating, song
     }
 
     public init(from decoder: any Decoder) throws {
@@ -49,6 +52,7 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
             year: c.lenientInt(.year),
             genre: c.lenientString(.genre),
             isStarred: c.contains(.starred),
+            userRating: c.rating(.userRating),
             songs: c.lossyArray(Song.self, forKey: .song)
         )
     }

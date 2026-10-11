@@ -60,6 +60,15 @@ extension SubsonicClient {
         _ = try await request("unstar", parameters: [target.queryItem], as: EmptyPayload.self)
     }
 
+    /// 1–5 stars, or `nil` to clear the rating (sent as 0).
+    public func setRating(_ target: StarTarget, stars: Int?) async throws(SubsonicError) {
+        let parameters: [URLQueryItem] = [
+            .init(name: "id", value: target.id),
+            .init(name: "rating", value: String(stars ?? 0)),
+        ]
+        _ = try await request("setRating", parameters: parameters, as: EmptyPayload.self)
+    }
+
     /// `submission: false` only updates "now playing"; `true` records a play.
     /// When the play threshold is reached is the playback engine's decision.
     public func scrobble(songID: String, playedAt: Date? = nil, submission: Bool) async throws(SubsonicError) {

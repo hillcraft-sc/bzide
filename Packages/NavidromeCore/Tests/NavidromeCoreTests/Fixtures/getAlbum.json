@@ -1,6 +1,6 @@
 {"subsonic-response":{"status":"ok","version":"1.16.1","type":"navidrome","serverVersion":"0.58.0","openSubsonic":true,
-"album":{"id":"al-1","name":"First Light","artist":"Aurora Lines","artistId":"ar-1","coverArt":"al-al-1","songCount":3,"duration":612,"year":2019,"genre":"Ambient","starred":"2026-02-01T00:00:00Z","song":[
-  {"id":"so-1","parent":"al-1","isDir":false,"title":"Dawn","album":"First Light","albumId":"al-1","artist":"Aurora Lines","artistId":"ar-1","track":1,"discNumber":1,"year":2019,"genre":"Ambient","coverArt":"mf-so-1","size":4800000,"contentType":"audio/flac","suffix":"flac","duration":201,"bitRate":900,"type":"music"},
+"album":{"id":"al-1","name":"First Light","artist":"Aurora Lines","artistId":"ar-1","coverArt":"al-al-1","songCount":3,"duration":612,"year":2019,"genre":"Ambient","starred":"2026-02-01T00:00:00Z","userRating":3,"song":[
+  {"id":"so-1","parent":"al-1","isDir":false,"title":"Dawn","album":"First Light","albumId":"al-1","artist":"Aurora Lines","artistId":"ar-1","track":1,"discNumber":1,"year":2019,"genre":"Ambient","coverArt":"mf-so-1","size":4800000,"contentType":"audio/flac","suffix":"flac","duration":201,"bitRate":900,"type":"music","userRating":5},
   {"id":"so-2","parent":"al-1","isDir":false,"title":"Noon","album":"First Light","albumId":"al-1","artist":"Aurora Lines","artistId":"ar-1","track":2,"discNumber":1,"duration":205,"bitRate":900,"suffix":"flac","contentType":"audio/flac","starred":"2026-03-01T00:00:00Z"},
-  {"id":"so-3","parent":"al-1","isDir":false,"title":"Dusk","album":"First Light","albumId":"al-1","artist":"Aurora Lines","artistId":"ar-1","track":3,"discNumber":1,"duration":206,"bitRate":900,"suffix":"flac","contentType":"audio/flac"}
+  {"id":"so-3","parent":"al-1","isDir":false,"title":"Dusk","album":"First Light","albumId":"al-1","artist":"Aurora Lines","artistId":"ar-1","track":3,"discNumber":1,"duration":206,"bitRate":900,"suffix":"flac","contentType":"audio/flac","userRating":0}
 ]}}}

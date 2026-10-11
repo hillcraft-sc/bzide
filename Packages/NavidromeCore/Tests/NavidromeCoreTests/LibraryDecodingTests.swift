@@ -7,8 +7,10 @@ struct LibraryDecodingTests {
         let sections = try await TestServer.client(FakeTransport(fixture: "getArtists")).artists()
         #expect(sections.map(\.name) == ["A", "#"])
         #expect(sections[0].artists.map(\.id) == ["ar-1", "ar-2"])
-        #expect(sections[0].artists[0] == Artist(id: "ar-1", name: "Aurora Lines", albumCount: 2, coverArtID: "ar-ar-1", isStarred: true))
+        #expect(sections[0].artists[0] == Artist(id: "ar-1", name: "Aurora Lines", albumCount: 2, coverArtID: "ar-ar-1", isStarred: true, userRating: 4))
         #expect(sections[0].artists[1].isStarred == false)
+        // Out of range: treated as unrated, not an error.
+        #expect(sections[0].artists[1].userRating == nil)
     }
 
     @Test func artistIncludesAlbums() async throws {
@@ -22,14 +24,18 @@ struct LibraryDecodingTests {
         let album = try await TestServer.client(FakeTransport(fixture: "getAlbum")).album(id: "al-1")
         #expect(album.name == "First Light")
         #expect(album.isStarred)
+        #expect(album.userRating == 3)
         #expect(album.songs.count == 3)
         #expect(album.songs[0] == Song(
             id: "so-1", title: "Dawn", album: "First Light", albumID: "al-1",
             artist: "Aurora Lines", artistID: "ar-1", track: 1, discNumber: 1, year: 2019,
             genre: "Ambient", coverArtID: "mf-so-1", duration: 201, bitRate: 900,
-            suffix: "flac", contentType: "audio/flac", isStarred: false
+            suffix: "flac", contentType: "audio/flac", isStarred: false, userRating: 5
         ))
         #expect(album.songs[1].isStarred)
+        #expect(album.songs[1].userRating == nil)
+        // Subsonic sends 0 for "unrated".
+        #expect(album.songs[2].userRating == nil)
     }
 
     @Test func messyAlbumKeepsEverythingUsable() async throws {

@@ -26,6 +26,12 @@ extension KeyedDecodingContainer {
         return nil
     }
 
+    /// A 1–5 star rating; 0 (how Subsonic says "unrated") or anything out of
+    /// range is `nil`.
+    func rating(_ key: Key) -> Int? {
+        lenientInt(key).flatMap { (1...5).contains($0) ? $0 : nil }
+    }
+
     func lenientBool(_ key: Key) -> Bool? {
         if let value = try? decodeIfPresent(Bool.self, forKey: key) { return value }
         if let value = try? decodeIfPresent(String.self, forKey: key) { return Bool(value.lowercased()) }

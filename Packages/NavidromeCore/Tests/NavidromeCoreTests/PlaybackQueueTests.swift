@@ -79,7 +79,7 @@ struct QueuePersistenceTests {
     private let song = Song(
         id: "so-1", title: "Dawn", album: "First Light", albumID: "al-1", artist: "Aurora Lines",
         artistID: "ar-1", track: 1, discNumber: 1, year: 2019, genre: "Ambient", coverArtID: "mf-so-1",
-        duration: 201, bitRate: 900, suffix: "flac", contentType: "audio/flac", isStarred: true
+        duration: 201, bitRate: 900, suffix: "flac", contentType: "audio/flac", isStarred: true, userRating: 3
     )
 
     private func temporaryFile() -> URL {

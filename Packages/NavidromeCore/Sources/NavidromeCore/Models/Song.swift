@@ -18,12 +18,15 @@ public struct Song: Sendable, Equatable, Identifiable, Codable {
     public var suffix: String?
     public var contentType: String?
     public var isStarred: Bool
+    /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
+    public var userRating: Int?
 
     public init(
         id: String, title: String, album: String? = nil, albumID: String? = nil,
         artist: String? = nil, artistID: String? = nil, track: Int? = nil, discNumber: Int? = nil,
         year: Int? = nil, genre: String? = nil, coverArtID: String? = nil, duration: Int? = nil,
-        bitRate: Int? = nil, suffix: String? = nil, contentType: String? = nil, isStarred: Bool = false
+        bitRate: Int? = nil, suffix: String? = nil, contentType: String? = nil, isStarred: Bool = false,
+        userRating: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -41,13 +44,14 @@ public struct Song: Sendable, Equatable, Identifiable, Codable {
         self.suffix = suffix
         self.contentType = contentType
         self.isStarred = isStarred
+        self.userRating = userRating
     }
 }
 
 extension Song {
     private enum ServerKeys: String, CodingKey {
         case id, title, album, albumId, artist, artistId, track, discNumber, year, genre
-        case coverArt, duration, bitRate, suffix, contentType, starred
+        case coverArt, duration, bitRate, suffix, contentType, starred, userRating
     }
 
     // Encoding writes the same shape the server sends, so a saved queue decodes through
@@ -71,6 +75,7 @@ extension Song {
         try c.encodeIfPresent(contentType, forKey: .contentType)
         // The server signals "starred" by the key being present, so write it only when true.
         if isStarred { try c.encode(true, forKey: .starred) }
+        try c.encodeIfPresent(userRating, forKey: .userRating)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -91,7 +96,8 @@ extension Song {
             bitRate: c.lenientInt(.bitRate),
             suffix: c.lenientString(.suffix),
             contentType: c.lenientString(.contentType),
-            isStarred: c.contains(.starred)
+            isStarred: c.contains(.starred),
+            userRating: c.rating(.userRating)
         )
     }
 }

@@ -110,21 +110,59 @@ struct AlbumRow: View {
     }
 }
 
-/// Star toggle for anything starrable. Reads and writes through the shared `StarModel`.
-struct StarButton: View {
+/// Favourite toggle (a Subsonic star). Reads and writes through the shared `StarModel`.
+struct FavoriteButton: View {
     let stars: StarModel
     let target: StarTarget
     let fromServer: Bool
 
     var body: some View {
-        let starred = stars.isStarred(target, fromServer: fromServer)
-        Button(starred ? "Unstar" : "Star", systemImage: starred ? "star.fill" : "star") {
+        let favorite = stars.isStarred(target, fromServer: fromServer)
+        Button(favorite ? "Unfavorite" : "Favorite", systemImage: favorite ? "heart.fill" : "heart") {
             Task { await stars.toggle(target, fromServer: fromServer) }
         }
     }
 }
 
-/// Song context menu: queue and star.
+/// Meh, Good or Great, with a checkmark on the current one; choosing it again
+/// clears it. Reads and writes through the shared `RatingModel`.
+struct RateMenu: View {
+    let ratings: RatingModel
+    let target: StarTarget
+    let fromServer: Int?
+
+    var body: some View {
+        let current = ratings.rating(target, fromServer: fromServer)
+        Menu(current.map { "Rated \($0.title)" } ?? "Rate", systemImage: current == nil ? "star" : "star.fill") {
+            ForEach(Rating.allCases.reversed(), id: \.self) { rating in
+                Button {
+                    Task { await ratings.choose(rating, for: target, fromServer: fromServer) }
+                } label: {
+                    if rating == current {
+                        Label(rating.title, systemImage: "checkmark")
+                    } else {
+                        Text(rating.title)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Favourite and rate: the same pair everywhere an item can be marked.
+struct MarkActions: View {
+    let library: Library
+    let target: StarTarget
+    let isStarred: Bool
+    let userRating: Int?
+
+    var body: some View {
+        FavoriteButton(stars: library.stars, target: target, fromServer: isStarred)
+        RateMenu(ratings: library.ratings, target: target, fromServer: userRating)
+    }
+}
+
+/// Song context menu: queue, favourite and rate.
 struct SongActions: View {
     let library: Library
     let song: Song
@@ -132,7 +170,7 @@ struct SongActions: View {
     var body: some View {
         Button("Play Next", systemImage: "text.insert") { library.engine.playNext([song]) }
         Button("Add to Queue", systemImage: "text.append") { library.engine.append([song]) }
-        StarButton(stars: library.stars, target: .song(id: song.id), fromServer: song.isStarred)
+        MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
     }
 }
 
