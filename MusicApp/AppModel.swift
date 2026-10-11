@@ -21,10 +21,15 @@ final class AppModel {
     private(set) var albums: [Album] = []
     private(set) var playlists: [Playlist] = []
     private(set) var libraryError: String?
+    /// Who is signed in, for Settings.
+    private(set) var account: AccountSummary?
 
     @ObservationIgnored private var client: SubsonicClient?
     @ObservationIgnored private var scrobbler: Scrobbler?
     @ObservationIgnored private let credentialStore = KeychainCredentialStore()
+    @ObservationIgnored private lazy var system = SystemServices { [weak self] id in
+        await self?.library?.artwork.image(for: id, pixels: 600)
+    }
     private static let logger = Logger(subsystem: "MusicApp", category: "AppModel")
 
     private init() {
@@ -60,7 +65,10 @@ final class AppModel {
         }
     }
 
+    /// Builds everything that belongs to the signed-in account on top of the
+    /// app-lifetime system services.
     private func start(with credentials: ServerCredentials) {
+        removeOtherAccountsData(for: credentials)
         let client = SubsonicClient(credentials: credentials)
         let scrobbler = Scrobbler(sender: client, store: FileScrobbleStore.applicationSupport() ?? InMemoryScrobbleStore())
         let queueStore: any QueueStore
@@ -70,30 +78,73 @@ final class AppModel {
             Self.logger.error("Queue won't persist: \(String(describing: error), privacy: .public)")
             queueStore = InMemoryQueueStore()
         }
-        let downloadsDirectory = Self.downloadsDirectory()
-        let artwork = ArtworkCache(client: client, store: Self.coverArtStore(downloadsDirectory: downloadsDirectory))
-        let settings = StreamingSettingsModel()
+        let artwork = ArtworkCache(client: client, store: Self.coverArtStore(downloadsDirectory: system.downloadsDirectory))
         let history = Self.makeHistory()
-        let network = SystemNetworkMonitor()
-        let downloads = Self.makeDownloads(directory: downloadsDirectory, client: client, settings: settings, artwork: artwork)
-        let resolver = TrackResolver(client: client, settings: settings, network: network, downloads: downloads)
+        let downloads = makeDownloads(client: client, artwork: artwork)
+        let resolver = TrackResolver(client: client, settings: system.settings, network: system.network, downloads: downloads)
         let engine = PlaybackEngine(
-            player: AVQueueAudioPlayer(),
-            session: SystemAudioSession(),
-            nowPlaying: SystemNowPlaying(loadArtwork: { id in await artwork.image(for: id, pixels: 600) }),
+            player: system.player,
+            session: system.session,
+            nowPlaying: system.nowPlaying,
             urls: resolver,
             store: queueStore,
             scheduler: TaskScheduler(),
-            network: network,
+            network: system.network,
             scrobbler: scrobbler,
             history: history
         )
         self.engine = engine
-        library = Library(client: client, engine: engine, artwork: artwork, settings: settings, downloads: downloads, history: history)
+        library = Library(client: client, engine: engine, artwork: artwork, settings: system.settings, downloads: downloads, history: history)
+        account = AccountSummary(credentials: credentials)
         self.client = client
         self.scrobbler = scrobbler
         // Send anything left over from a previous run.
         Task { await scrobbler.flush() }
+    }
+
+    /// Downloads, queue, history, unsent scrobbles and cached artwork belong to
+    /// one account; signing in to another removes them first.
+    private func removeOtherAccountsData(for credentials: ServerCredentials) {
+        do {
+            let scope = AccountScope(dataLocations: try AccountScope.standardDataLocations())
+            if scope.prepare(for: credentials) {
+                Self.logger.notice("Signed in to a different account; removed the previous account's data")
+                // Recreated with its backup exclusion, which went with the old folder.
+                _ = try DownloadManager.applicationSupportDirectory()
+            }
+        } catch {
+            // Leaves the owner unchanged, so the check runs again next sign-in.
+            Self.logger.error("Couldn't check which account owns the data: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    // MARK: - Sign out
+
+    /// Removes the login and stops playback. The account's data stays on the
+    /// device for when the same account signs in again.
+    func signOut() {
+        if let engine {
+            engine.pause()
+        }
+        system.player.setItems([], startPosition: 0)
+        // The lock screen would otherwise keep controls for an engine that's gone.
+        system.nowPlaying.update(nil)
+        if let scrobbler {
+            Task { await scrobbler.flush() }
+        }
+        do {
+            try credentialStore.delete()
+        } catch {
+            Self.logger.error("Couldn't remove the saved login: \(error.localizedDescription, privacy: .public)")
+        }
+        library = nil
+        engine = nil
+        client = nil
+        scrobbler = nil
+        account = nil
+        albums = []
+        playlists = []
+        libraryError = nil
     }
 
     // MARK: - Library
@@ -144,17 +195,6 @@ final class AppModel {
 
     // MARK: - Downloads
 
-    private static func downloadsDirectory() -> URL {
-        do {
-            return try DownloadManager.applicationSupportDirectory()
-        } catch {
-            // Without a place to keep files, downloads can't persist; use temporary
-            // storage so the rest of the app still works.
-            logger.error("Downloads won't persist: \(String(describing: error), privacy: .public)")
-            return URL.temporaryDirectory.appending(path: "Downloads")
-        }
-    }
-
     private static func coverArtStore(downloadsDirectory: URL) -> CoverArtStore {
         do {
             return try CoverArtStore.standard(downloadsDirectory: downloadsDirectory)
@@ -165,17 +205,27 @@ final class AppModel {
         }
     }
 
-    private static func makeDownloads(
-        directory: URL, client: SubsonicClient, settings: StreamingSettingsModel, artwork: ArtworkCache
-    ) -> DownloadManager {
+    private func makeDownloads(client: SubsonicClient, artwork: ArtworkCache) -> DownloadManager {
+        let settings = system.settings
         let manager = DownloadManager(
-            directory: directory,
-            transport: BackgroundDownloadTransport(stagingDirectory: directory.appending(path: "Incoming")),
+            directory: system.downloadsDirectory,
+            transport: system.downloadTransport,
             downloadURL: { songID in try client.downloadURL(songID: songID) },
             allowsCellular: { settings.settings.downloadOverCellular },
             artwork: artwork
         )
         Task { await manager.resume() }
         return manager
+    }
+}
+
+/// The signed-in account as shown in Settings. No password.
+struct AccountSummary: Equatable {
+    let server: String
+    let username: String
+
+    init(credentials: ServerCredentials) {
+        server = credentials.baseURL.host(percentEncoded: false) ?? credentials.baseURL.absoluteString
+        username = credentials.username
     }
 }

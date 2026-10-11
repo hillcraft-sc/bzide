@@ -22,6 +22,12 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
     }
 
     func start() {
+        // Rebuild on sign-in and sign-out, whichever screen CarPlay is on.
+        withObservationTracking {
+            _ = model.library
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.start() }
+        }
         guard let library = model.library else {
             showSignIn()
             return
@@ -37,10 +43,6 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
     // MARK: - CPInterfaceControllerDelegate
 
     func templateWillAppear(_ aTemplate: CPTemplate, animated: Bool) {
-        // Signed in on the phone since CarPlay connected.
-        if interfaceController.rootTemplate is CPListTemplate, model.library != nil {
-            start()
-        }
         // Downloads change while browsing; the list is local, so rebuilding is cheap.
         if aTemplate === downloadsTab, let library = model.library {
             fillDownloads(aTemplate as? CPListTemplate, library)

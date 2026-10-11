@@ -21,6 +21,16 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Scrobble times are sent in milliseconds since the Unix epoch. `submission=false` updates "now playing" only.
 - OpenSubsonic: `getOpenSubsonicExtensions` returning a server error or HTTP 404 means "no extensions", not a failure. Network failures are still reported.
 
+## Account
+
+- One account (server address and user) is signed in at a time. Its login is in the Keychain only.
+- Settings shows the server's host name and the user, and Sign Out (after confirmation).
+- Sign out pauses playback (saving the position), unloads the player, clears the lock screen and Control Center, tries once to send unsent scrobbles, and removes the login. It does not delete anything else.
+- Downloads, the saved queue, unsent scrobbles, play history and cached cover art belong to the account they came from. Signing back in to the same account keeps them all. Signing in to a different server or user deletes them before anything loads, so nothing from one account (in particular, scrobbles) reaches another.
+- The owning account is recorded as a SHA-256 fingerprint of the server address and username, never in plain text. The same server written differently (letter case, trailing slash) is the same account; the username must match exactly. Data from before this check existed is assumed to belong to whoever signs in next.
+- Device settings (streaming quality, downloads over cellular) and how long history is kept are not account data and stay as they are.
+- CarPlay switches to "Sign in on your iPhone" on sign-out and back to the library on sign-in.
+
 ## Playback
 
 - One engine owns the queue and playback state. The UI shows that state and sends commands; it never changes playback itself.
@@ -152,6 +162,12 @@ How the app behaves, written so the web and Android clients can be ported from t
 ## Manual test checklist
 
 Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.md`.
+
+### Account
+- [ ] Settings shows the server and user. Sign Out (confirm): playback stops, the sign-in screen appears, and the lock screen no longer shows the app.
+- [ ] Sign back in to the same account: downloads, history and the queue (paused where it was) are all still there.
+- [ ] Sign in to a different user or server (if available): downloads, history and the queue are gone, and Storage Used is zero. Sign back in to the first account: its downloads are gone too (they were removed when the account changed).
+- [ ] Sign out and in again several times in one session: playback, lock screen controls and downloads keep working each time.
 
 ### Basics
 - [ ] Play an album, lock the phone, and leave it for several tracks. Playback continues track to track with the screen off.

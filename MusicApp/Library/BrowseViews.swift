@@ -18,7 +18,10 @@ struct LibraryView: View {
         .toolbar {
             ToolbarItem {
                 NavigationLink {
-                    SettingsView(settings: library.settings, downloads: library.downloads, history: library.history)
+                    SettingsView(
+                        settings: library.settings, downloads: library.downloads, history: library.history,
+                        account: model.account, signOut: model.signOut
+                    )
                 } label: {
                     Label("Settings", systemImage: "gear")
                 }

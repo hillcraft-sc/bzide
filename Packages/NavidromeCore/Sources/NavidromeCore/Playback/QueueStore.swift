@@ -31,6 +31,7 @@ public enum QueueStoreError: Error, Equatable, Sendable {
 /// mid-write never leaves a half-written queue behind.
 public struct FileQueueStore: QueueStore {
     private let fileURL: URL
+    static let fileName = "PlaybackQueue.json"
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
@@ -42,7 +43,7 @@ public struct FileQueueStore: QueueStore {
             let directory = try FileManager.default.url(
                 for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
             )
-            return FileQueueStore(fileURL: directory.appending(path: "PlaybackQueue.json"))
+            return FileQueueStore(fileURL: directory.appending(path: fileName))
         } catch {
             throw .io(String(describing: error))
         }

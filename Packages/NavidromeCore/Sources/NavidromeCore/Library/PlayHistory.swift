@@ -125,6 +125,7 @@ public final class PlayHistory: PlayRecording {
     @ObservationIgnored private let calendar: Calendar
 
     static let retentionKey = "historyRetention"
+    nonisolated static let fileName = "PlayHistory.json"
     private static let logger = Logger(subsystem: "MusicApp", category: "PlayHistory")
 
     public init(
@@ -145,7 +146,7 @@ public final class PlayHistory: PlayRecording {
     /// `Application Support/PlayHistory.json`.
     public static func applicationSupportFile() throws -> URL {
         try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            .appending(path: "PlayHistory.json")
+            .appending(path: fileName)
     }
 
     public func record(_ song: Song, playedAt: Date) {

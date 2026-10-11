@@ -102,6 +102,7 @@ public final class Scrobbler: ScrobbleSubmitting {
 public struct FileScrobbleStore: ScrobbleStore {
     private let fileURL: URL
     private static let logger = Logger(subsystem: "MusicApp", category: "FileScrobbleStore")
+    static let fileName = "PendingScrobbles.json"
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
@@ -112,7 +113,7 @@ public struct FileScrobbleStore: ScrobbleStore {
         guard let directory = try? FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
         ) else { return nil }
-        return FileScrobbleStore(fileURL: directory.appending(path: "PendingScrobbles.json"))
+        return FileScrobbleStore(fileURL: directory.appending(path: fileName))
     }
 
     public func load() -> [PendingScrobble] {

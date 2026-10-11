@@ -25,6 +25,7 @@ public final class DownloadManager: DownloadedTrackLookup {
     @ObservationIgnored private let artwork: (any ArtworkPinning)?
 
     static let maxConcurrent = 3
+    nonisolated static let directoryName = "Downloads"
     private static let logger = Logger(subsystem: "MusicApp", category: "Downloads")
 
     /// `directory` holds the index and the song files. Call `resume()` once after
@@ -304,7 +305,7 @@ public final class DownloadManager: DownloadedTrackLookup {
     public static func applicationSupportDirectory() throws -> URL {
         var directory = try FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
-        ).appending(path: "Downloads")
+        ).appending(path: directoryName)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var values = URLResourceValues()
         values.isExcludedFromBackup = true

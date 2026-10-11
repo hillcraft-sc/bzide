@@ -5,11 +5,25 @@ struct SettingsView: View {
     @Bindable var settings: StreamingSettingsModel
     let downloads: DownloadManager
     @Bindable var history: PlayHistory
+    let account: AccountSummary?
+    let signOut: () -> Void
     @State private var isConfirmingRemoveAll = false
+    @State private var isConfirmingSignOut = false
     @State private var isConfirmingClearHistory = false
 
     var body: some View {
         Form {
+            if let account {
+                Section {
+                    LabeledContent("Server", value: account.server)
+                    LabeledContent("User", value: account.username)
+                    Button("Sign Out", role: .destructive) { isConfirmingSignOut = true }
+                } header: {
+                    Text("Account")
+                } footer: {
+                    Text("Downloads, history and the queue stay on this iPhone for when you sign back in. Signing in to a different server or user removes them.")
+                }
+            }
             Section {
                 qualityPicker("Wi-Fi", selection: $settings.settings.wifiQuality)
                 qualityPicker("Cellular", selection: $settings.settings.cellularQuality)
@@ -43,6 +57,11 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .confirmationDialog("Sign out?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
+            Button("Sign Out", role: .destructive) { signOut() }
+        } message: {
+            Text("Playback stops. Your downloads and history stay unless you sign in to a different account.")
+        }
         .confirmationDialog("Clear all play history?", isPresented: $isConfirmingClearHistory, titleVisibility: .visible) {
             Button("Clear History", role: .destructive) { history.clear() }
         }

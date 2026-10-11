@@ -12,6 +12,7 @@ import Foundation
 public struct CoverArtStore: Sendable {
     let cacheDirectory: URL
     let pinnedDirectory: URL
+    static let directoryName = "CoverArt"
 
     public init(cacheDirectory: URL, pinnedDirectory: URL) {
         self.cacheDirectory = cacheDirectory
@@ -23,8 +24,8 @@ public struct CoverArtStore: Sendable {
     public static func standard(downloadsDirectory: URL) throws -> CoverArtStore {
         let caches = try FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         return CoverArtStore(
-            cacheDirectory: caches.appending(path: "CoverArt"),
-            pinnedDirectory: downloadsDirectory.appending(path: "CoverArt")
+            cacheDirectory: caches.appending(path: directoryName),
+            pinnedDirectory: downloadsDirectory.appending(path: directoryName)
         )
     }
 
