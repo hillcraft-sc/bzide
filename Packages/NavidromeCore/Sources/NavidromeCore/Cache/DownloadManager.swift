@@ -63,6 +63,11 @@ public final class DownloadManager: DownloadedTrackLookup {
         return isWanted(songID) ? .waiting : .notDownloaded
     }
 
+    /// Newest download first, filtered by `DownloadCollection.matches(_:)`.
+    public func collections(matching query: String) -> [DownloadCollection] {
+        collections.filter { $0.matches(query) }.sorted { $0.addedAt > $1.addedAt }
+    }
+
     public func collection(id: String) -> DownloadCollection? {
         collections.first { $0.id == id }
     }

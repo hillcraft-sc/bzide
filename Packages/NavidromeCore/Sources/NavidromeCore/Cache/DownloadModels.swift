@@ -29,6 +29,15 @@ public struct DownloadCollection: Sendable, Equatable, Codable, Identifiable {
         self.addedAt = addedAt
     }
 
+    /// Whether the name, artist, or any song title or artist contains `query`,
+    /// ignoring case and accents. An empty query matches everything.
+    public func matches(_ query: String) -> Bool {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+        let fields: [String?] = [name, artist] + songs.flatMap { [$0.title, $0.artist] }
+        return fields.contains { $0?.localizedStandardContains(query) == true }
+    }
+
     public init(album: Album) {
         self.init(kind: .album, serverID: album.id, name: album.name, artist: album.artist, coverArtID: album.coverArtID, songs: album.songs)
     }

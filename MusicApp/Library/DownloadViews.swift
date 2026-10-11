@@ -42,12 +42,13 @@ struct DownloadButton: View {
 /// Everything stored on the phone. Built from the saved records, so it works offline.
 struct DownloadsView: View {
     let library: Library
+    @State private var query = ""
 
     private var downloads: DownloadManager { library.downloads }
 
     var body: some View {
         List {
-            ForEach(downloads.collections.sorted { $0.addedAt > $1.addedAt }) { collection in
+            ForEach(downloads.collections(matching: query)) { collection in
                 NavigationLink {
                     DownloadedCollectionView(library: library, collectionID: collection.id)
                 } label: {
@@ -68,9 +69,12 @@ struct DownloadsView: View {
                     systemImage: "arrow.down.circle",
                     description: Text("Download albums and playlists to play them without a connection.")
                 )
+            } else if downloads.collections(matching: query).isEmpty {
+                ContentUnavailableView.search(text: query)
             }
         }
         .navigationTitle("Downloaded")
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Albums, playlists, songs")
     }
 }
 
