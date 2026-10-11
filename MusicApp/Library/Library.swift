@@ -56,6 +56,13 @@ final class Library {
         }
     }
 
+    func randomMixModel() -> RandomMixModel {
+        RandomMixModel(
+            fetch: { [client] count async throws(SubsonicError) in try await client.randomSongs(size: count) },
+            play: { [engine] songs in engine.play(songs: songs) }
+        )
+    }
+
     func searchModel() -> SearchModel {
         SearchModel(scheduler: TaskScheduler()) { [client] query async throws(SubsonicError) in
             try await client.search(query)

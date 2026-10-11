@@ -5,9 +5,32 @@ import SwiftUI
 struct LibraryView: View {
     let model: AppModel
     let library: Library
+    @State private var randomMix: RandomMixModel
+
+    init(model: AppModel, library: Library) {
+        self.model = model
+        self.library = library
+        _randomMix = State(initialValue: library.randomMixModel())
+    }
 
     var body: some View {
         List {
+            Section {
+                Button {
+                    Task { await randomMix.start() }
+                } label: {
+                    HStack {
+                        Label("Random Mix", systemImage: "shuffle")
+                        Spacer()
+                        if randomMix.isLoading { ProgressView() }
+                    }
+                }
+                .disabled(randomMix.isLoading)
+            } footer: {
+                if let error = randomMix.error {
+                    Text(error).foregroundStyle(.red)
+                }
+            }
             NavigationLink(value: LibraryRoute.artists) { Label("Artists", systemImage: "music.microphone") }
             NavigationLink(value: LibraryRoute.albums) { Label("Albums", systemImage: "square.stack") }
             NavigationLink(value: LibraryRoute.playlists) { Label("Playlists", systemImage: "music.note.list") }
