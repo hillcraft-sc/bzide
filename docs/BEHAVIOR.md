@@ -28,7 +28,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Gapless: the player always holds the current track and the one after it, so the next track is buffered before the current one ends. When a track ends, the player moves on by itself and the engine loads the track after that.
 - Next uses the already-buffered next track. On the last track it does nothing.
 - Previous, jump, and starting a new queue load the chosen track from the start, keeping the play/pause state.
-- When the last track ends, playback stops on that track, rewound to the start. Play starts it again.
+- When the last track ends, the queue is done: it is emptied, status becomes idle, and Now Playing (lock screen, Control Center) is cleared. If the player runs out while the queue still has a next track (it couldn't be loaded in time), playback carries on with that track instead.
 - Seek is clamped to the track's length.
 - Duration comes from the server's metadata until the player knows the real duration.
 - Stream URLs contain auth tokens, so they are built only when a track is loaded and are never saved.
@@ -70,7 +70,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 - A track is scrobbled once it has played for 50% of its duration or 4 minutes, whichever comes first. If the duration is unknown, 4 minutes.
 - Only time actually listened counts toward the threshold. Seeking forward does not add to it; seeking back does not remove from it. Listening is counted from the player's time ticks (about every half second); any forward jump over 2 seconds counts as a seek.
-- A play begins when a track becomes current (natural advance, next, previous, jump, new queue), when previous restarts the current track, and when the last track ends (so playing it again is a new play). Seeking within a track does not start a new play. A queue restored after relaunch starts a fresh play at the saved position; listening from before the relaunch is not counted.
+- A play begins when a track becomes current (natural advance, next, previous, jump, new queue), when previous restarts the current track. Seeking within a track does not start a new play. A queue restored after relaunch starts a fresh play at the saved position; listening from before the relaunch is not counted.
 - Each play is scrobbled at most once, with the time the play began.
 - "Now playing" is sent once per play, when it first plays (including when one track flows straight into the next). It is best effort and never retried.
 - Scrobbles are saved to `Application Support/PendingScrobbles.json` before sending and removed only once the server accepts them. They are sent oldest first, never in parallel, stopping at the first failure. Pending ones are retried at the next scrobble and at launch.
@@ -84,6 +84,8 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Previous: if the current track has played more than 3 seconds, restart it. Otherwise go to the previous track. On the first track, restart it.
 - Jumping to an entry that isn't in the queue does nothing.
 - Appending adds to the end. Appending to an empty queue makes the first added song current.
+- Clear up next removes every entry after the current one. The current track keeps playing (the player drops its buffered next track), and when it ends the queue is done, as at the end of any queue.
+- The queue as shown is the current entry and what's after it. Entries already played are kept out of sight, so previous can still go back to them, until the queue ends or is replaced.
 - Play next inserts songs right after the current entry, ahead of everything else upcoming; the most recent play next goes first. The current track keeps playing; the track the player had buffered as next is swapped for the first inserted song, so the handover stays gapless. On an empty queue it behaves like appending (queued, not started). A queue restored after relaunch and not yet played isn't loaded just to insert.
 - Shuffle play shuffles the chosen songs once and plays them as an ordinary queue starting at the first. There is no shuffle mode that stays on, and repeat is not implemented yet.
 
@@ -98,6 +100,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Loading.** Each screen fetches what it shows when it appears. Until that arrives it shows loading; if it fails with nothing to show, the error and a retry. A refresh keeps the current content on screen; if the refresh fails, the content stays and the error is reported alongside it. A load that's still running when the screen goes away is dropped, and runs again when the screen comes back.
 - **Album lists** come in these orders: recently added, recently played, most played, name, artist, random, starred. They load 40 albums at a time; the next page is requested when the user scrolls within 10 albums of the end, and a page shorter than 40 means there are no more. An album already shown is never shown twice, even if the library changed between pages; the next request still starts where the server's previous page ended. If a page fails, scrolling doesn't retry it; an explicit retry does. Random shows a single page, and a refresh picks again, because paging a random list would repeat albums. Changing the order replaces the list, and a late reply for the old order is ignored.
 - **Search** runs 300 ms after the user stops typing, with surrounding spaces ignored. An empty query clears the results. While a new search runs, the previous results stay on screen. A reply for an older query is ignored, so results never jump back to something the user has already typed past.
+- **Downloaded** can be filtered (the search field is always shown at the top of the list): a download matches when its name or artist, or any of its songs' titles or artists, contains the search text, ignoring case and accents. Newest download first.
 - **Starring** shows the change immediately, then tells the server. If the server call fails, the star goes back to how it was and the error is shown. A second tap on the same item while its first change is still being sent is ignored. A change made in this session wins over the flag in lists fetched earlier, so every screen agrees.
 - **Playing from the library.** Tapping a track plays its album or playlist from that track. Play starts at the first track; shuffle plays the same songs in a shuffled order (see Queue). Play Next (songs, albums, playlists) puts them right after the current track; Add to Queue appends them to the end. Neither interrupts playback. In search results, tapping a song plays the listed songs starting from it.
 - **Layout.** Two tabs, Library (artists, albums, playlists) and Search, with a mini player above the tab bar showing the current track, play/pause and next. Tapping the mini player opens Now Playing: artwork, controls, star, and the queue.
@@ -148,7 +151,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Skip quickly with next several times in a row. Each skip lands on the right track and the queue view agrees.
 - [ ] Play a few tracks into an album, pause mid-track, force-quit the app (swipe it away), relaunch. The same track is shown, paused at roughly the same position. Press play: it resumes there.
 - [ ] Same, but force-quit while playing. Relaunch: same track, paused, position within about 10 seconds of where it was.
-- [ ] Let the last track of a queue finish. Playback stops on it, rewound. Pressing play starts it again.
+- [ ] Let the last track of a queue finish. The queue empties, the mini player shows Not Playing, and the lock screen and Control Center no longer show the app's track.
 
 ### Audio session
 - [ ] Play, then receive a phone call. Music pauses. Decline or end the call: music resumes.
@@ -188,6 +191,8 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Search: type quickly. Results settle on what you typed last, without flicker back to older results. Clear the field: results clear.
 - [ ] Tap a track in an album: the album plays from that track. Play and Shuffle buttons work. Add to Queue appends without interrupting.
 - [ ] While a track plays, Play Next on another song: the current track carries on, and when it ends the chosen song follows with no gap. Play Next on an album: its songs come next, in order, before the rest of the queue.
+- [ ] In Now Playing, Clear Up Next: the queue shows only the current song, which keeps playing without a hiccup; when it ends the queue empties.
+- [ ] Play an album and let a few tracks pass: the queue in Now Playing starts at the current song, but Previous still goes back through the earlier ones. The button is hidden when nothing is up next.
 - [ ] Star an album, go back and reopen it: still starred. Check in Navidrome's web UI that it's starred there too.
 - [ ] The mini player always shows the current track and its play/pause and next work. Tapping it opens Now Playing, which matches the lock screen.
 - [ ] Artwork appears in lists and on Now Playing, and scrolling back up doesn't reload it.
@@ -205,6 +210,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] With "Download over cellular" off, turn Wi-Fi off and download something: it waits, and finishes when Wi-Fi is back.
 - [ ] Download a playlist that shares songs with a downloaded album. Remove the album: the playlist's songs still play offline.
 - [ ] Remove All Downloads in Settings: Storage Used goes to zero.
+- [ ] Search Downloaded by album name, artist and a song title: each finds the right download; a search with no match says so.
 - [ ] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork.
 
 ### CarPlay (simulator)

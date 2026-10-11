@@ -62,6 +62,14 @@ struct NowPlayingTests {
         #expect(nowPlaying.latest?.hasPrevious == true)
     }
 
+    @Test func theQueueEndingClearsNowPlaying() {
+        let engine = makeEngine()
+        engine.play(songs: songs, startIndex: 1)
+        player.finishCurrentItem()
+        #expect(engine.queue.isEmpty)
+        #expect(nowPlaying.updates.last == .some(nil))
+    }
+
     @Test func seekSendsTheNewPosition() {
         let engine = makeEngine()
         engine.play(songs: songs)

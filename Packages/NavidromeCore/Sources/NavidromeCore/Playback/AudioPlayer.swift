@@ -49,6 +49,8 @@ public protocol AudioPlayer: AnyObject {
     /// Replaces every loaded item after the current one, leaving the current one
     /// playing undisturbed.
     func replaceUpcoming(with item: PlayerItem)
+    /// Drops every loaded item after the current one; the current one plays on.
+    func removeUpcoming()
     /// Drops the current item and starts the next loaded one.
     func skipToNextItem()
     func play()

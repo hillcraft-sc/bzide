@@ -64,8 +64,18 @@ struct NowPlayingView: View {
                         .listRowSeparator(.hidden)
                     }
                 }
-                Section("Queue") {
+                Section {
                     QueueList(engine: engine)
+                } header: {
+                    HStack {
+                        Text("Queue")
+                        Spacer()
+                        if engine.queue.hasNext {
+                            Button("Clear Up Next") { engine.clearUpNext() }
+                                .font(.subheadline)
+                                .textCase(nil)
+                        }
+                    }
                 }
             }
             .listStyle(.plain)

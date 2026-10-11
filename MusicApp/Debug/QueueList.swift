@@ -8,7 +8,7 @@ struct QueueList: View {
         if engine.queue.isEmpty {
             Text("Empty").foregroundStyle(.secondary)
         }
-        ForEach(engine.queue.entries) { entry in
+        ForEach(engine.queue.fromCurrent) { entry in
             Button {
                 engine.jump(to: entry.id)
             } label: {

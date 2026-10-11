@@ -30,6 +30,10 @@ final class FakeAudioPlayer: AudioPlayer {
         replacedUpcoming.append(item)
     }
 
+    func removeUpcoming() {
+        loaded = Array(loaded.prefix(1))
+    }
+
     func skipToNextItem() {
         finishCurrentItem()
     }

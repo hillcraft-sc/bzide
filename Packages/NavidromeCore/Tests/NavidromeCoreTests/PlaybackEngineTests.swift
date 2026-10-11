@@ -66,20 +66,35 @@ struct PlaybackEngineTests {
         #expect(store.load()?.queue.currentIndex == 1)
     }
 
-    @Test func lastTrackEndingStopsOnItRewound() {
+    @Test func lastTrackEndingEmptiesTheQueue() {
         let engine = makeEngine()
         engine.play(songs: songs, startIndex: 3)
         player.report(.timeChanged(199))
 
         player.finishCurrentItem()
 
-        #expect(engine.queue.current?.song.id == "so-4")
-        #expect(engine.status == .paused)
+        #expect(engine.queue.isEmpty)
+        #expect(engine.status == .idle)
         #expect(engine.position == 0)
+        #expect(engine.duration == nil)
+        #expect(player.loadedEntryIDs.isEmpty)
+        #expect(store.load()?.queue.isEmpty == true)
 
-        // Play starts the last track again from the top.
+        // Nothing to play until something new is chosen.
         engine.play()
-        #expect(player.setItemsCalls.last?.startPosition == 0)
+        #expect(engine.status == .idle)
+    }
+
+    @Test func playerRunningOutBeforeTheQueueCarriesOn() {
+        let engine = makeEngine()
+        engine.play(songs: songs, startIndex: 2)
+        // The next track never made it into the player.
+        player.removeUpcoming()
+
+        player.finishCurrentItem()
+
+        #expect(engine.queue.current?.song.id == "so-4")
+        #expect(engine.status == .playing)
         #expect(player.loadedEntryIDs == ids(engine, 3))
     }
 

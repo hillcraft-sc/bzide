@@ -46,6 +46,13 @@ public struct PlaybackQueue: Sendable, Equatable, Codable {
 
     public var hasNext: Bool { !upNext.isEmpty }
 
+    /// The current entry and everything after it: what the queue shows. Earlier
+    /// entries are kept, out of sight, so previous can go back to them.
+    public var fromCurrent: ArraySlice<QueueEntry> {
+        guard let currentIndex else { return [] }
+        return entries[currentIndex...]
+    }
+
     public var hasPrevious: Bool { (currentIndex ?? 0) > 0 }
 
     /// Moves to the next entry. Returns `false` (and stays put) at the end.
@@ -80,6 +87,12 @@ public struct PlaybackQueue: Sendable, Equatable, Codable {
             return
         }
         entries.insert(contentsOf: songs.map { QueueEntry(song: $0) }, at: currentIndex + 1)
+    }
+
+    /// Removes everything after the current entry.
+    public mutating func removeUpcoming() {
+        guard let currentIndex else { return }
+        entries.removeSubrange((currentIndex + 1)...)
     }
 
     /// Adds songs to the end. If the queue was empty, the first added song becomes current.

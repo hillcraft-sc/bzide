@@ -99,3 +99,59 @@ struct EnginePlayNextTests {
         #expect(engine.status == .paused)
     }
 }
+
+@MainActor
+struct ClearUpNextTests {
+    private let songs = (1...4).map { Song(id: "so-\($0)", title: "Song \($0)", duration: 200) }
+    private let player = FakeAudioPlayer()
+    private let nowPlaying = FakeNowPlaying()
+    private let store = InMemoryQueueStore()
+
+    private func makeEngine() -> PlaybackEngine {
+        PlaybackEngine(
+            player: player, session: FakeAudioSession(), nowPlaying: nowPlaying, urls: FakeStreamURLs(),
+            store: store, scheduler: FakeScheduler(), network: FakeNetworkMonitor(), scrobbler: FakeScrobbler()
+        )
+    }
+
+    @Test func queueKeepsOnlyTheCurrentEntry() {
+        var queue = PlaybackQueue(songs: songs, startIndex: 1)
+        queue.removeUpcoming()
+        #expect(queue.entries.map(\.song.id) == ["so-1", "so-2"])
+        #expect(queue.current?.song.id == "so-2")
+        #expect(!queue.hasNext)
+    }
+
+    @Test func theCurrentTrackPlaysOnAndThenPlaybackStops() {
+        let engine = makeEngine()
+        engine.play(songs: songs, startIndex: 1)
+        let loadsBefore = player.setItemsCalls.count
+
+        engine.clearUpNext()
+        #expect(player.isPlaying)
+        #expect(player.setItemsCalls.count == loadsBefore)
+        #expect(player.loadedEntryIDs == [engine.queue.current?.id])
+        #expect(nowPlaying.latest?.hasNext == false)
+        // Previous still has somewhere to go.
+        #expect(engine.queue.hasPrevious)
+
+        player.finishCurrentItem()
+        #expect(engine.status == .idle)
+        #expect(engine.queue.isEmpty)
+    }
+
+    @Test func theClearedQueueIsSaved() throws {
+        let engine = makeEngine()
+        engine.play(songs: songs)
+        engine.clearUpNext()
+        #expect(try #require(store.load()).queue.entries.count == 1)
+    }
+
+    @Test func aRestoredQueueIsClearedWithoutLoading() {
+        store.save(QueueSnapshot(queue: PlaybackQueue(songs: songs), position: 30))
+        let engine = makeEngine()
+        engine.clearUpNext()
+        #expect(player.setItemsCalls.isEmpty)
+        #expect(engine.queue.entries.count == 1)
+    }
+}

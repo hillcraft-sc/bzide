@@ -250,6 +250,20 @@ public final class PlaybackEngine {
         saveSnapshot()
     }
 
+    /// Removes everything after the current track. The current track plays on;
+    /// when it ends, playback stops as at the end of any queue.
+    public func clearUpNext() {
+        defer { publishNowPlaying() }
+        guard queue.hasNext else { return }
+        queue.removeUpcoming()
+        pendingNextRebuild?.cancel()
+        pendingNextRebuild = nil
+        if isPlayerLoaded {
+            player.removeUpcoming()
+        }
+        saveSnapshot()
+    }
+
     public func seek(to target: TimeInterval) {
         defer { publishNowPlaying() }
         guard !queue.isEmpty else { return }
@@ -334,6 +348,18 @@ public final class PlaybackEngine {
         if wasActive { play() }
     }
 
+    /// The last track finished: the queue is done and is emptied, which also
+    /// clears Now Playing.
+    private func endQueue() {
+        queue = PlaybackQueue()
+        player.setItems([], startPosition: 0)
+        status = .idle
+        position = 0
+        duration = nil
+        beginPlay()
+        saveSnapshot()
+    }
+
     /// Pauses because of something outside the user's control.
     private func stopForSystem() {
         cancelRecovery()
@@ -388,13 +414,19 @@ public final class PlaybackEngine {
             duration = seconds
             scrobbleTracker.updateDuration(seconds)
         case .reachedEnd:
-            // Stay on the last track, rewound, so play starts it again.
             cancelRecovery()
             isPlayerLoaded = false
-            status = .paused
-            position = 0
-            beginPlay()
-            saveSnapshot()
+            if queue.hasNext {
+                // The player ran out early because the next track couldn't be
+                // loaded in time; carry on with it.
+                queue.advance()
+                resetForNewTrack()
+                loadPlayer(startPosition: 0)
+                startPlayback()
+                saveSnapshot()
+            } else {
+                endQueue()
+            }
         case .itemFailed(let entryID, let message):
             if entryID == queue.current?.id {
                 Self.logger.error("Current item failed: \(message, privacy: .public)")
