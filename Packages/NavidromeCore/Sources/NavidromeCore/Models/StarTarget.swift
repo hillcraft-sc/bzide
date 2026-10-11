@@ -1,7 +1,7 @@
 import Foundation
 
 /// What to star or unstar. Subsonic uses a different parameter name for each kind.
-public enum StarTarget: Sendable, Equatable {
+public enum StarTarget: Sendable, Hashable {
     case song(id: String)
     case album(id: String)
     case artist(id: String)

@@ -141,6 +141,11 @@ public final class PlaybackEngine {
         startPlayback()
     }
 
+    /// Shuffles the songs once and plays them as an ordinary queue.
+    public func playShuffled(_ songs: [Song]) {
+        play(songs: songs.shuffled())
+    }
+
     public func play() {
         defer { publishNowPlaying() }
         cancelRecovery()

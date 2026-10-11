@@ -84,13 +84,21 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Previous: if the current track has played more than 3 seconds, restart it. Otherwise go to the previous track. On the first track, restart it.
 - Jumping to an entry that isn't in the queue does nothing.
 - Appending adds to the end. Appending to an empty queue makes the first added song current.
-- Shuffle and repeat are not implemented yet.
+- Shuffle play shuffles the chosen songs once and plays them as an ordinary queue starting at the first. There is no shuffle mode that stays on, and repeat is not implemented yet.
 
 ### Persistence
 
 - The queue and the position within the current entry are saved as JSON to `Application Support/PlaybackQueue.json`, replaced atomically so a crash never leaves a half-written file.
 - The file stays writable while the device is locked (after the first unlock since boot), because saves happen during locked-screen playback.
 - A saved file that can't be read is reported, not crashed on; the app starts with an empty queue. A saved current index outside the entries is clamped into range.
+
+## Library
+
+- **Loading.** Each screen fetches what it shows when it appears. Until that arrives it shows loading; if it fails with nothing to show, the error and a retry. A refresh keeps the current content on screen; if the refresh fails, the content stays and the error is reported alongside it. A load that's still running when the screen goes away is dropped, and runs again when the screen comes back.
+- **Album lists** come in these orders: recently added, recently played, most played, name, artist, random, starred. They load 40 albums at a time; the next page is requested when the user scrolls within 10 albums of the end, and a page shorter than 40 means there are no more. An album already shown is never shown twice, even if the library changed between pages; the next request still starts where the server's previous page ended. If a page fails, scrolling doesn't retry it; an explicit retry does. Random shows a single page, and a refresh picks again, because paging a random list would repeat albums. Changing the order replaces the list, and a late reply for the old order is ignored.
+- **Search** runs 300 ms after the user stops typing, with surrounding spaces ignored. An empty query clears the results. While a new search runs, the previous results stay on screen. A reply for an older query is ignored, so results never jump back to something the user has already typed past.
+- **Starring** shows the change immediately, then tells the server. If the server call fails, the star goes back to how it was and the error is shown. A second tap on the same item while its first change is still being sent is ignored. A change made in this session wins over the flag in lists fetched earlier, so every screen agrees.
+- **Playing from the library.** Tapping a track plays its album or playlist from that track. Play starts at the first track; shuffle plays the same songs in a shuffled order (see Queue). Add to queue appends the songs to the end of the current queue without interrupting playback.
 
 ## Caching and offline
 
