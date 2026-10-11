@@ -144,6 +144,7 @@ Design goals: fast, uncluttered, large readable controls, minimal taps to play s
   - *Done 2026-10-11:* per-connection streaming quality, background downloads of albums and playlists (originals, no storage cap), cover art disk cache with covers kept for downloads. 266 package + 3 app tests pass. On device: the Downloads checklist, offline artwork, Wi-Fi to cellular handoff, and seeking within a transcoded stream on cellular all passed. Not separately confirmed: hearing the 96 kbps drop, changing quality mid-track, and searching Downloaded (added later).
 - [ ] **M5: CarPlay (simulator) and widgets.**
   - *Status (2026-10-11):* paused. The CarPlay scene is written and committed but has never run: Xcode 27's Device Hub has no CarPlay window (see `docs/ISSUES.md`). A Now Playing widget needs an App Group, which the free account can't use. A standalone Control Center button was skipped as redundant with iOS's own Now Playing panel, which the app already feeds. Resume with a newer Xcode beta or the paid account.
+  - *Deferred (2026-10-11):* the owner chose to leave CarPlay and widgets until last, after M6. Perfecting the core iOS app comes first; don't pick M5 back up unless the owner asks.
 - [ ] **M6: Daily-drive period.** Fix issues from `docs/ISSUES.md`. Only after this: paid Apple Developer account and CarPlay entitlement request.
 - [ ] **Later:** web client, then Android client, ported from `docs/BEHAVIOR.md`.
 
