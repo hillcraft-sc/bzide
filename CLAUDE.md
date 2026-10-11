@@ -139,6 +139,7 @@ Design goals: fast, uncluttered, large readable controls, minimal taps to play s
 - [x] **M2: Playback engine.** Background audio, lock screen controls, interruptions, route changes, gapless, queue persistence, tested through a bare debug screen. Stress-test on a real device before moving on.
   - *Done 2026-10-11:* 144 package + 3 app tests pass; device checklist (`docs/BEHAVIOR.md`) passed, including media services reset. Still open: a real phone call (tested only with a Clock alarm as a stand-in), wired headphones (owner has none), and async audio session activation (deferred to M6, see `docs/ISSUES.md`).
 - [ ] **M3: Library UI.** Artists, albums, playlists, search, now playing.
+  - *Status (2026-10-11):* code complete with plain, system-styled screens: Library and Search tabs, mini player, Now Playing. 173 package + 3 app tests pass. The owner gave a first look on device ("looks good so far"); the Library section of the device checklist in `docs/BEHAVIOR.md` hasn't been run in full. The owner will give design direction after using it.
 - [ ] **M4: Offline and caching.** Downloads, cover art cache, cellular transcoding settings.
 - [ ] **M5: CarPlay (simulator) and widgets.**
 - [ ] **M6: Daily-drive period.** Fix issues from `docs/ISSUES.md`. Only after this: paid Apple Developer account and CarPlay entitlement request.
