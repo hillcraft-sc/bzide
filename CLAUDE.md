@@ -35,6 +35,7 @@ A native iOS music player for a self-hosted Navidrome server. The owner finds ex
 │       ├── API/           # Subsonic/OpenSubsonic client
 │       ├── Models/        # Artist, Album, Song, Playlist, etc.
 │       ├── Auth/          # Credentials, Keychain storage
+│       ├── Library/       # Screen logic for browsing: loading, paging, search, starring
 │       ├── Playback/      # Audio engine, queue, session handling, Now Playing
 │       └── Cache/         # Cover art cache, offline downloads
 └── MusicApp/              # iOS app target (SwiftUI), thin layer over NavidromeCore
