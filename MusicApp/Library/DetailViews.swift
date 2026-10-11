@@ -54,6 +54,7 @@ struct AlbumView: View {
                 }
                 ToolbarItem {
                     Menu("More", systemImage: "ellipsis") {
+                        Button("Play Next", systemImage: "text.insert") { library.engine.playNext(album.songs) }
                         Button("Add to Queue", systemImage: "text.append") { library.engine.append(album.songs) }
                         StarButton(stars: library.stars, target: .album(id: album.id), fromServer: album.isStarred)
                         if let artistID = album.artistID {
@@ -94,7 +95,10 @@ struct PlaylistView: View {
                     DownloadButton(downloads: library.downloads, collection: DownloadCollection(playlist: playlist))
                 }
                 ToolbarItem {
-                    Button("Add to Queue", systemImage: "text.append") { library.engine.append(playlist.songs) }
+                    Menu("More", systemImage: "ellipsis") {
+                        Button("Play Next", systemImage: "text.insert") { library.engine.playNext(playlist.songs) }
+                        Button("Add to Queue", systemImage: "text.append") { library.engine.append(playlist.songs) }
+                    }
                 }
             }
         }

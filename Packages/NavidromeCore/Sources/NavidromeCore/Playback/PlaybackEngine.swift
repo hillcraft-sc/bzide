@@ -233,6 +233,23 @@ public final class PlaybackEngine {
         saveSnapshot()
     }
 
+    /// Puts songs right after the current track without interrupting it. The
+    /// track the player had buffered as next is swapped for the first of these,
+    /// so the handover stays gapless.
+    public func playNext(_ songs: [Song]) {
+        defer { publishNowPlaying() }
+        guard !songs.isEmpty else { return }
+        guard !queue.isEmpty else {
+            append(songs)
+            return
+        }
+        queue.insertNext(songs)
+        if isPlayerLoaded, let next = queue.upNext.first, let item = makeItem(for: next) {
+            player.replaceUpcoming(with: item)
+        }
+        saveSnapshot()
+    }
+
     public func seek(to target: TimeInterval) {
         defer { publishNowPlaying() }
         guard !queue.isEmpty else { return }

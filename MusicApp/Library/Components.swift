@@ -130,6 +130,7 @@ struct SongActions: View {
     let song: Song
 
     var body: some View {
+        Button("Play Next", systemImage: "text.insert") { library.engine.playNext([song]) }
         Button("Add to Queue", systemImage: "text.append") { library.engine.append([song]) }
         StarButton(stars: library.stars, target: .song(id: song.id), fromServer: song.isStarred)
     }

@@ -72,6 +72,16 @@ public struct PlaybackQueue: Sendable, Equatable, Codable {
         return true
     }
 
+    /// Inserts songs right after the current entry, ahead of everything else
+    /// upcoming. An empty queue behaves like `append`.
+    public mutating func insertNext(_ songs: [Song]) {
+        guard let currentIndex else {
+            append(songs)
+            return
+        }
+        entries.insert(contentsOf: songs.map { QueueEntry(song: $0) }, at: currentIndex + 1)
+    }
+
     /// Adds songs to the end. If the queue was empty, the first added song becomes current.
     public mutating func append(_ songs: [Song]) {
         entries.append(contentsOf: songs.map { QueueEntry(song: $0) })
