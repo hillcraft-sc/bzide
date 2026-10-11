@@ -11,12 +11,13 @@ struct LibraryView: View {
             NavigationLink(value: LibraryRoute.artists) { Label("Artists", systemImage: "music.microphone") }
             NavigationLink(value: LibraryRoute.albums) { Label("Albums", systemImage: "square.stack") }
             NavigationLink(value: LibraryRoute.playlists) { Label("Playlists", systemImage: "music.note.list") }
+            NavigationLink(value: LibraryRoute.downloads) { Label("Downloaded", systemImage: "arrow.down.circle") }
         }
         .navigationTitle("Library")
         .toolbar {
             ToolbarItem {
                 NavigationLink {
-                    SettingsView(settings: library.settings)
+                    SettingsView(settings: library.settings, downloads: library.downloads)
                 } label: {
                     Label("Settings", systemImage: "gear")
                 }

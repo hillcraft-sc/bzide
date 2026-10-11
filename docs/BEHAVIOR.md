@@ -111,7 +111,19 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Original streams the file as stored. Any bitrate asks the server to transcode to MP3 at that bitrate (`maxBitRate`, `format=mp3`); the server may send the original when it is already at or below that.
 - The quality is chosen each time a track is loaded. A change of network or setting applies from the next track loaded; a track already playing, or already buffered as the next one, keeps its quality.
 - A downloaded song always plays from its file, whatever the connection.
-- Settings are saved on the device (not secret). Saved settings that can't be read fall back to the defaults.
+- Settings are saved on the device (not secret). Saved settings that can't be read fall back to the defaults; a setting missing from what was saved (added in a later version) takes its default and the others are kept.
+
+### Downloads
+
+- The user downloads a whole album or playlist. Its song list is saved as it was at that moment, so it can be listed and played with no server. Downloading it again updates the list: new songs are fetched, songs no longer in it are dropped.
+- Songs are downloaded in their original format (`download` endpoint, never transcoded) to `Application Support/Downloads/Files/<song id>.<suffix>`, excluded from iCloud backup. The suffix comes from the song's metadata, else from the server's file name.
+- Each song is stored once, however many downloaded albums or playlists contain it. Removing an album or playlist deletes only files no other download still uses, and stops their running downloads.
+- Three songs download at a time; the rest wait in the order the user asked for them (oldest download first, album order within). Downloads run in a background `URLSession`, so they carry on while the app is suspended or terminated. On the next launch the app reconnects to them, restarts whatever was waiting, and cancels system downloads nothing wants any more.
+- A failed song stays failed until the user retries; after a relaunch, failed songs are tried again. A response that isn't 2xx, or is JSON/XML (how Subsonic reports errors, even with HTTP 200), is a failure, never saved as a song.
+- "Download over cellular" is off by default: downloads then wait for Wi-Fi. The setting applies to downloads started after changing it.
+- Any song with a downloaded file plays from it, on any connection and with the server unreachable. If the file has gone missing, the song streams instead.
+- No storage limit; the user removes downloads, one at a time or all at once in Settings, which also shows the space used.
+- The download URL carries an auth token and is handed to iOS's download service. Subsonic has no other way to authenticate a download.
 
 ## Manual test checklist
 
@@ -171,6 +183,15 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Set cellular to 96 kbps, turn Wi-Fi off, and start an album. It sounds noticeably lower quality (or check Navidrome's activity view for the transcoding). Turn Wi-Fi back on: the next track is back to original.
 - [ ] On cellular at a low bitrate, drag the progress bar forward and back within a track. Playback jumps there. (Transcoded streams are a known weak spot for seeking in Subsonic servers; note anything odd.)
 - [ ] Change the setting while playing: the current track carries on uninterrupted.
+
+### Downloads
+- [ ] Download an album on Wi-Fi. Progress shows on the album and in Library > Downloaded, and it completes.
+- [ ] Start a large download, lock the phone (or switch apps) for a few minutes. It keeps going; reopen the app and it shows the right progress.
+- [ ] Start a download and force-quit the app. Relaunch: it carries on or restarts, and finishes.
+- [ ] Turn on Airplane Mode. Library > Downloaded lists it and it plays from start to end, including on the lock screen.
+- [ ] With "Download over cellular" off, turn Wi-Fi off and download something: it waits, and finishes when Wi-Fi is back.
+- [ ] Download a playlist that shares songs with a downloaded album. Remove the album: the playlist's songs still play offline.
+- [ ] Remove All Downloads in Settings: Storage Used goes to zero.
 
 ### Scrobbling
 - [ ] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it.

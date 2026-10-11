@@ -7,6 +7,7 @@ enum LibraryRoute: Hashable {
     case artists
     case albums
     case playlists
+    case downloads
     case artist(id: String)
     case album(id: String)
     case playlist(id: String)
@@ -19,6 +20,7 @@ extension View {
             case .artists: ArtistsView(library: library)
             case .albums: AlbumsView(library: library)
             case .playlists: PlaylistsView(library: library)
+            case .downloads: DownloadsView(library: library)
             case .artist(let id): ArtistView(library: library, id: id)
             case .album(let id): AlbumView(library: library, id: id)
             case .playlist(let id): PlaylistView(library: library, id: id)
@@ -47,6 +49,9 @@ struct AlbumView: View {
                 )
             }
             .toolbar {
+                ToolbarItem {
+                    DownloadButton(downloads: library.downloads, collection: DownloadCollection(album: album))
+                }
                 ToolbarItem {
                     Menu("More", systemImage: "ellipsis") {
                         Button("Add to Queue", systemImage: "text.append") { library.engine.append(album.songs) }
@@ -85,6 +90,9 @@ struct PlaylistView: View {
                 )
             }
             .toolbar {
+                ToolbarItem {
+                    DownloadButton(downloads: library.downloads, collection: DownloadCollection(playlist: playlist))
+                }
                 ToolbarItem {
                     Button("Add to Queue", systemImage: "text.append") { library.engine.append(playlist.songs) }
                 }
