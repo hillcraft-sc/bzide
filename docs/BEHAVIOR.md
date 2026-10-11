@@ -218,22 +218,22 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Lock the phone during all of the above. Recovery works the same with the screen off.
 
 ### Library
-- [ ] Artists: the A–Z index scrolls and jumps by letter; an artist shows their albums; an album shows its tracks in order with numbers.
-- [ ] Albums: scroll a long list to the end. More albums load without a visible stop and none repeat. Switch sort orders; each shows the right list.
-- [ ] Turn on Airplane Mode and open a screen that hasn't loaded yet: it shows the error and Try Again. Turn it off and press Try Again: it loads. Pull to refresh with Airplane Mode on: the content stays.
-- [ ] Search: type quickly. Results settle on what you typed last, without flicker back to older results. Clear the field: results clear.
-- [ ] Random Mix: 50 random songs start playing; tap again for a different mix.
-- [ ] Random Mix in Airplane Mode with downloads: a shuffled mix of downloaded songs plays, with a note under the button. Turn Airplane Mode off and tap again: a server mix plays and the note goes away. With no downloads, Airplane Mode shows an error instead.
-- [ ] Tap a track in an album: the album plays from that track. Play and Shuffle buttons work. Add to Queue appends without interrupting.
-- [ ] While a track plays, Play Next on another song: the current track carries on, and when it ends the chosen song follows with no gap. Play Next on an album: its songs come next, in order, before the rest of the queue.
-- [ ] Repeat All: let the last song of an album end. The first starts with no gap. Next on the last song also goes to the first.
-- [ ] Repeat One: the song plays again when it ends (it shows twice in History, combined as "2 plays"). Next still goes to the following song, and repeat one stays on.
-- [ ] Switch repeat modes while a song plays: no interruption. Relaunch the app: the mode is kept.
-- [ ] In Now Playing, Clear Up Next: the queue shows only the current song, which keeps playing without a hiccup; when it ends the queue empties. The button is hidden when nothing is up next.
-- [ ] Play an album and let a few tracks pass: the queue in Now Playing starts at the current song, but Previous still goes back through the earlier ones.
-- [ ] Star an album, go back and reopen it: still starred. Check in Navidrome's web UI that it's starred there too.
-- [ ] The mini player always shows the current track and its play/pause and next work. Tapping it opens Now Playing, which matches the lock screen.
-- [ ] Artwork appears in lists and on Now Playing, and scrolling back up doesn't reload it.
+- [x] Artists: the A–Z index scrolls and jumps by letter; an artist shows their albums; an album shows its tracks in order with numbers. (2026-10-11)
+- [x] Albums: scroll a long list to the end. More albums load without a visible stop and none repeat. Switch sort orders; each shows the right list. (2026-10-11)
+- [x] Turn on Airplane Mode and open a screen that hasn't loaded yet: it shows the error and Try Again. Turn it off and press Try Again: it loads. Pull to refresh with Airplane Mode on: the content stays. (2026-10-11)
+- [x] Search: type quickly. Results settle on what you typed last, without flicker back to older results. Clear the field: results clear. (2026-10-11)
+- [x] Random Mix: 50 random songs start playing; tap again for a different mix. (2026-10-11)
+- [x] Random Mix in Airplane Mode with downloads: a shuffled mix of downloaded songs plays, with a note under the button. Turn Airplane Mode off and tap again: a server mix plays and the note goes away. With no downloads, Airplane Mode shows an error instead. (2026-10-11)
+- [x] Tap a track in an album: the album plays from that track. Play and Shuffle buttons work. Add to Queue appends without interrupting. (2026-10-11)
+- [x] While a track plays, Play Next on another song: the current track carries on, and when it ends the chosen song follows with no gap. Play Next on an album: its songs come next, in order, before the rest of the queue. (2026-10-11)
+- [x] Repeat All: let the last song of an album end. The first starts with no gap. Next on the last song also goes to the first. (2026-10-11)
+- [x] Repeat One: the song plays again when it ends (it shows twice in History, combined as "2 plays"). Next still goes to the following song, and repeat one stays on. (2026-10-11)
+- [x] Switch repeat modes while a song plays: no interruption. Relaunch the app: the mode is kept. (2026-10-11)
+- [x] In Now Playing, Clear Up Next: the queue shows only the current song, which keeps playing without a hiccup; when it ends the queue empties. The button is hidden when nothing is up next. (2026-10-11)
+- [x] Play an album and let a few tracks pass: the queue in Now Playing starts at the current song, but Previous still goes back through the earlier ones. (2026-10-11)
+- [x] Star an album, go back and reopen it: still starred. Check in Navidrome's web UI that it's starred there too. (2026-10-11)
+- [x] The mini player always shows the current track and its play/pause and next work. Tapping it opens Now Playing, which matches the lock screen. (2026-10-11)
+- [x] Artwork appears in lists and on Now Playing, and scrolling back up doesn't reload it. (2026-10-11)
 
 ### Streaming quality
 - [ ] Set cellular to 96 kbps, turn Wi-Fi off, and start an album. It sounds noticeably lower quality (or check Navidrome's activity view for the transcoding). Turn Wi-Fi back on: the next track is back to original.
