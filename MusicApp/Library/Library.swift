@@ -59,6 +59,7 @@ final class Library {
     func randomMixModel() -> RandomMixModel {
         RandomMixModel(
             fetch: { [client] count async throws(SubsonicError) in try await client.randomSongs(size: count) },
+            downloadedSongs: { [downloads] in downloads.downloadedSongs() },
             play: { [engine] songs in engine.play(songs: songs) }
         )
     }

@@ -285,4 +285,14 @@ struct DownloadManagerTests {
         await manager.resume()
         #expect(artwork.requests.count == 5)
     }
+
+    @Test func downloadedSongsListsEachFinishedSongOnce() {
+        let manager = makeManager()
+        let shared = songs(1...1)
+        manager.download(album("al-1", shared + songs(2...3)))
+        manager.download(DownloadCollection(kind: .playlist, serverID: "pl-1", name: "Mix", songs: shared))
+        transport.finish("so-1")
+        transport.finish("so-2")
+        #expect(manager.downloadedSongs().map(\.id) == ["so-1", "so-2"])
+    }
 }

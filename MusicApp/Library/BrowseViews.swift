@@ -29,6 +29,8 @@ struct LibraryView: View {
             } footer: {
                 if let error = randomMix.error {
                     Text(error).foregroundStyle(.red)
+                } else if let notice = randomMix.notice {
+                    Text(notice)
                 }
             }
             NavigationLink(value: LibraryRoute.artists) { Label("Artists", systemImage: "music.microphone") }

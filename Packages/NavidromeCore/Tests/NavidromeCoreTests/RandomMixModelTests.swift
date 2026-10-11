@@ -10,9 +10,10 @@ struct RandomMixModelTests {
         var queues: [[Song]] = []
     }
 
-    private func makeModel(_ played: Played) -> RandomMixModel {
+    private func makeModel(_ played: Played, downloaded: [Song] = []) -> RandomMixModel {
         RandomMixModel(
             fetch: { [server] count async throws(SubsonicError) in try await server.fetch(count) },
+            downloadedSongs: { downloaded },
             play: { played.queues.append($0) }
         )
     }
@@ -67,5 +68,48 @@ struct RandomMixModelTests {
         await task.value
         #expect(model.error == "The server returned no songs.")
         #expect(played.queues.isEmpty)
+    }
+
+    @Test func offlineItMixesTheDownloads() async {
+        let played = Played()
+        let downloaded = (1...80).map { Song(id: "dl-\($0)", title: "Downloaded \($0)") }
+        let model = makeModel(played, downloaded: downloaded)
+        let task = Task { @MainActor in await model.start() }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .failure(.network(.notConnectedToInternet)))
+        await task.value
+
+        let queue = played.queues.first ?? []
+        #expect(queue.count == RandomMixModel.songCount)
+        #expect(Set(queue.map(\.id)).count == queue.count)
+        #expect(Set(queue.map(\.id)).isSubset(of: Set(downloaded.map(\.id))))
+        #expect(model.error == nil)
+        #expect(model.notice == RandomMixModel.offlineNotice)
+    }
+
+    @Test func aSmallDownloadLibraryIsPlayedWhole() async {
+        let played = Played()
+        let model = makeModel(played, downloaded: songs)
+        let task = Task { @MainActor in await model.start() }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .failure(.httpStatus(502)))
+        await task.value
+        #expect(Set((played.queues.first ?? []).map(\.id)) == Set(songs.map(\.id)))
+    }
+
+    @Test func theOfflineNoticeClearsWhenTheServerIsBack() async {
+        let played = Played()
+        let model = makeModel(played, downloaded: songs)
+        let first = Task { @MainActor in await model.start() }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .failure(.network(.notConnectedToInternet)))
+        await first.value
+
+        let second = Task { @MainActor in await model.start() }
+        await server.waitForCalls(2)
+        server.reply(to: 1, with: .success(songs))
+        await second.value
+        #expect(model.notice == nil)
+        #expect(played.queues.count == 2)
     }
 }

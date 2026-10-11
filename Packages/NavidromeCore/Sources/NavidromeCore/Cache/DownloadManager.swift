@@ -94,6 +94,19 @@ public final class DownloadManager: DownloadedTrackLookup {
         return status
     }
 
+    /// Every song whose file is on the device, once each, however many
+    /// downloads contain it.
+    public func downloadedSongs() -> [Song] {
+        var seen = Set<String>()
+        var songs: [Song] = []
+        for collection in collections {
+            for song in collection.songs where seen.insert(song.id).inserted && localFile(forSongID: song.id) != nil {
+                songs.append(song)
+            }
+        }
+        return songs
+    }
+
     /// Bytes used by downloaded songs.
     public var totalBytes: Int64 {
         files.values.reduce(0) { $0 + $1.bytes }
