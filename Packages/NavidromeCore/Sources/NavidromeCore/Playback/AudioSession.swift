@@ -1,4 +1,5 @@
 import AVFoundation
+import os
 
 /// System audio events the engine reacts to.
 public enum AudioSessionEvent: Sendable, Equatable {
@@ -10,6 +11,12 @@ public enum AudioSessionEvent: Sendable, Equatable {
     /// The device we were playing through went away (headphones unplugged,
     /// Bluetooth disconnected).
     case outputDeviceLost
+    /// The system's audio services went down. The player is dead until
+    /// `mediaServicesReset` arrives.
+    case mediaServicesLost
+    /// The system restarted its audio services. Every player is now dead and
+    /// must be rebuilt, and the session set up again.
+    case mediaServicesReset
 }
 
 public struct AudioSessionError: Error, Equatable, Sendable {
@@ -37,6 +44,8 @@ public final class SystemAudioSession: AudioSessionControlling {
     private let session = AVAudioSession.sharedInstance()
     private var notificationTokens: [any NSObjectProtocol] = []
 
+    private static let logger = Logger(subsystem: "MusicApp", category: "AudioSession")
+
     public init() {
         observeNotifications()
     }
@@ -48,6 +57,8 @@ public final class SystemAudioSession: AudioSessionControlling {
             try session.setCategory(.playback, mode: .default, policy: .longFormAudio)
             try session.setActive(true)
         } catch {
+            let nsError = error as NSError
+            Self.logger.error("Activation failed: \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public)")
             throw AudioSessionError(message: error.localizedDescription)
         }
     }
@@ -60,7 +71,7 @@ public final class SystemAudioSession: AudioSessionControlling {
             let context = notification.userInfo?[AVAudioSession.deactivationContextKey] as? AVAudioSession.DeactivationContext
             let event = context.flatMap { Self.deactivationEvent(source: $0.source) }
             MainActor.assumeIsolated {
-                if let event { self?.onEvent?(event) }
+                if let event { self?.deliver(event) }
             }
         })
         notificationTokens.append(center.addObserver(
@@ -68,16 +79,34 @@ public final class SystemAudioSession: AudioSessionControlling {
         ) { [weak self] notification in
             let context = notification.userInfo?[AVAudioSession.resumptionContextKey] as? AVAudioSession.ResumptionContext
             let event = Self.resumptionEvent(recommendation: context?.recommendation)
-            MainActor.assumeIsolated { self?.onEvent?(event) }
+            MainActor.assumeIsolated { self?.deliver(event) }
         })
         notificationTokens.append(center.addObserver(
             forName: AVAudioSession.routeChangeNotification, object: session, queue: .main
         ) { [weak self] notification in
             let event = Self.routeChangeEvent(from: notification.userInfo)
             MainActor.assumeIsolated {
-                if let event { self?.onEvent?(event) }
+                if let event { self?.deliver(event) }
             }
         })
+        // Apple's docs say observers stay registered across a reset, so this
+        // object survives it; only the player needs rebuilding. Filtered to our
+        // session: with no filter, each notification arrived twice on device.
+        notificationTokens.append(center.addObserver(
+            forName: AVAudioSession.mediaServicesWereLostNotification, object: session, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.deliver(.mediaServicesLost) }
+        })
+        notificationTokens.append(center.addObserver(
+            forName: AVAudioSession.mediaServicesWereResetNotification, object: session, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.deliver(.mediaServicesReset) }
+        })
+    }
+
+    private func deliver(_ event: AudioSessionEvent) {
+        Self.logger.notice("Session event: \(String(describing: event), privacy: .public)")
+        onEvent?(event)
     }
 
     /// Only the system taking the session away is an interruption; our own

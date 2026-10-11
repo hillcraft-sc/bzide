@@ -43,7 +43,8 @@ How the app behaves, written so the web and Android clients can be ported from t
 - When the system later sends its resumption recommendation, playback resumes only if music was playing before the interruption **and** the system recommends resuming. A missing recommendation means don't resume.
 - If the user presses play or pause during an interruption, their choice wins and the app won't auto-resume.
 - When the output device goes away (headphones unplugged, Bluetooth disconnected), playback pauses and stays paused. It never continues through the speaker, and reconnecting does not auto-resume.
-- Not handled yet: "media services were reset" (see `docs/ISSUES.md`).
+- When the system restarts its audio services ("media services were reset"), the app throws away its player and builds a new one. If music was playing (or buffering, or reconnecting), it reloads the current track at the same position and keeps playing; the user didn't stop it and the output route hasn't changed. If it was paused, it stays paused, and play picks up at the same position.
+- Before a full audio reset the system first reports that media services were lost, and the audio system can stay down for many seconds (about 18 on device). During that outage the app shows paused, ignores the player's failure reports (they aren't real track failures), and doesn't retry anything. The tracks can fail a moment before the loss is announced; that failure starts reconnecting, which still counts as music on, so the resume still happens. While the outage lasts the app isn't playing, so iOS may suspend it and remove it from Control Center; it resumes once the reset arrives, which in practice can be when the user returns to the app. Pressing play during the outage shows reconnecting and starts once audio is back; pressing pause cancels the automatic resume. The queue is unchanged, Now Playing is sent again in full, and it counts as the same play for scrobbling.
 
 ### Lock screen, Control Center and remote commands
 
@@ -117,6 +118,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Play through wired or USB headphones, unplug them. Music pauses and does not play through the speaker. Plug back in: still paused.
 - [ ] Play through Bluetooth headphones, turn them off. Music pauses, no speaker output. Turn them back on: still paused.
 - [ ] Play, switch output to AirPlay or a Bluetooth speaker from Control Center. Music continues on the new device.
+- [ ] Play, then Settings > Developer > Reset Media Services (iOS 27 lists each service separately; try each, especially Reset Audio Services). Music resumes by itself within a few seconds, at about the same point, and the lock screen shows the track with working controls. Repeat while paused: it stays paused, and play resumes at the same point.
 
 ### Lock screen and Control Center
 - [ ] Play, lock the phone. Lock screen shows title, artist, album, artwork and a moving progress bar.

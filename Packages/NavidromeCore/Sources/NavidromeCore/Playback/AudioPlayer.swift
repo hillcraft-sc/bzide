@@ -54,6 +54,10 @@ public protocol AudioPlayer: AnyObject {
     func play()
     func pause()
     func seek(to position: TimeInterval)
+    /// Throws away the underlying player and everything loaded, and starts a
+    /// fresh one. For after the system's audio services reset. Reports nothing
+    /// about the old player.
+    func rebuild()
 }
 
 /// Turns a song into a URL the player can load. URLs contain auth tokens, so they

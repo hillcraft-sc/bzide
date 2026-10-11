@@ -48,6 +48,14 @@ final class FakeAudioPlayer: AudioPlayer {
         seeks.append(position)
     }
 
+    private(set) var rebuildCount = 0
+
+    func rebuild() {
+        rebuildCount += 1
+        loaded = []
+        isPlaying = false
+    }
+
     // MARK: - Simulating the real player
 
     /// What AVQueuePlayer does when a track ends or is skipped.

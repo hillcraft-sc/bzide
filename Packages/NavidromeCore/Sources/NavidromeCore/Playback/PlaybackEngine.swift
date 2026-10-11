@@ -52,6 +52,12 @@ public final class PlaybackEngine {
     /// Set when an interruption stopped active playback; cleared by any user
     /// play/pause so the user's latest choice wins over the system's resume hint.
     @ObservationIgnored private var resumeAfterInterruption = false
+    /// Between "media services lost" and "reset": the player is dead, and what
+    /// it reports is noise.
+    @ObservationIgnored private var isAwaitingMediaServicesReset = false
+    /// Music was on when media services went down (or the user pressed play
+    /// while they were down); resume once they're back.
+    @ObservationIgnored private var resumeAfterMediaServicesReset = false
 
     @ObservationIgnored private let scheduler: any Scheduling
     @ObservationIgnored private let network: any NetworkMonitoring
@@ -140,6 +146,12 @@ public final class PlaybackEngine {
         cancelRecovery()
         guard !queue.isEmpty else { return }
         resumeAfterInterruption = false
+        if isAwaitingMediaServicesReset {
+            // Nothing can play until the system's audio is back; start then.
+            resumeAfterMediaServicesReset = true
+            status = .reconnecting
+            return
+        }
         if !isPlayerLoaded {
             loadPlayer(startPosition: position)
         }
@@ -151,6 +163,7 @@ public final class PlaybackEngine {
         cancelRecovery()
         guard !queue.isEmpty else { return }
         resumeAfterInterruption = false
+        resumeAfterMediaServicesReset = false
         player.pause()
         status = .paused
         saveSnapshot()
@@ -259,7 +272,44 @@ public final class PlaybackEngine {
             guard status.isActive else { return }
             resumeAfterInterruption = false
             stopForSystem()
+        case .mediaServicesLost:
+            mediaServicesLost()
+        case .mediaServicesReset:
+            mediaServicesReset()
         }
+    }
+
+    /// The system's audio services went down; the player and its tracks fail
+    /// with them. Stop and wait for the reset, remembering if music was on.
+    private func mediaServicesLost() {
+        Self.logger.notice("Media services were lost")
+        isAwaitingMediaServicesReset = true
+        if status.isActive {
+            resumeAfterMediaServicesReset = true
+            status = .paused
+        }
+        cancelRecovery()
+        saveSnapshot()
+    }
+
+    /// The system's audio services restarted and took the player with them.
+    /// Rebuild it, and if music was on, carry on where it was: the user didn't
+    /// stop it, and the output route is unchanged.
+    private func mediaServicesReset() {
+        Self.logger.notice("Media services were reset")
+        let wasActive = status.isActive || resumeAfterMediaServicesReset
+        isAwaitingMediaServicesReset = false
+        resumeAfterMediaServicesReset = false
+        cancelRecovery()
+        player.rebuild()
+        isPlayerLoaded = false
+        if wasActive { status = .paused }
+        // The system's copy of Now Playing went with the reset; send it all again.
+        hasPublishedNowPlaying = false
+        saveSnapshot()
+        // `play()` reloads at the saved position and sets the session up again.
+        // It's the same listen continuing, so the scrobble count carries on.
+        if wasActive { play() }
     }
 
     /// Pauses because of something outside the user's control.
@@ -273,6 +323,7 @@ public final class PlaybackEngine {
     // MARK: - Player events
 
     private func handle(_ event: PlayerEvent) {
+        guard !isAwaitingMediaServicesReset else { return }
         defer {
             // Time ticks are left to the system's own extrapolation.
             if case .timeChanged = event {} else { publishNowPlaying() }
@@ -419,6 +470,7 @@ public final class PlaybackEngine {
     }
 
     private func networkBecameAvailable() {
+        guard !isAwaitingMediaServicesReset else { return }
         defer { publishNowPlaying() }
         if status == .reconnecting {
             pendingRecovery?.cancel()

@@ -9,7 +9,8 @@ import AVFoundation
 public final class AVQueueAudioPlayer: AudioPlayer {
     public var onEvent: (@MainActor (PlayerEvent) -> Void)?
 
-    private let player = AVQueuePlayer()
+    /// Replaced by `rebuild()` after the system's audio services reset.
+    private var player = AVQueuePlayer()
     private var entryIDs: [ObjectIdentifier: QueueEntry.ID] = [:]
     private var itemObservations: [ObjectIdentifier: NSKeyValueObservation] = [:]
     private var playerObservations: [NSKeyValueObservation] = []
@@ -64,6 +65,17 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     public func seek(to position: TimeInterval) {
         guard let current = player.currentItem else { return }
         seek(current, to: position)
+    }
+
+    public func rebuild() {
+        // Stop listening first, so tearing down the old player reports nothing.
+        stopObservingPlayer()
+        player.pause()
+        player.removeAllItems()
+        forgetItems(except: [])
+        pendingSeek = nil
+        player = AVQueuePlayer()
+        observePlayer()
     }
 
     // MARK: - Items
@@ -130,11 +142,21 @@ public final class AVQueueAudioPlayer: AudioPlayer {
 
     private func observePlayer() {
         // KVO handlers are @Sendable for the same reason as in `enqueue`.
-        playerObservations.append(player.observe(\.currentItem, options: [.new]) { @Sendable [weak self] _, _ in
-            Task { @MainActor in self?.currentItemChanged() }
+        // Each report carries which player it came from: one queued just before
+        // a rebuild must not be read as news about the new player.
+        playerObservations.append(player.observe(\.currentItem, options: [.new]) { @Sendable [weak self] observed, _ in
+            let source = ObjectIdentifier(observed)
+            Task { @MainActor in
+                guard let self, source == ObjectIdentifier(self.player) else { return }
+                self.currentItemChanged()
+            }
         })
-        playerObservations.append(player.observe(\.timeControlStatus, options: [.new]) { @Sendable [weak self] _, _ in
-            Task { @MainActor in self?.timeControlStatusChanged() }
+        playerObservations.append(player.observe(\.timeControlStatus, options: [.new]) { @Sendable [weak self] observed, _ in
+            let source = ObjectIdentifier(observed)
+            Task { @MainActor in
+                guard let self, source == ObjectIdentifier(self.player) else { return }
+                self.timeControlStatusChanged()
+            }
         })
         let interval = CMTime(seconds: 0.5, preferredTimescale: 600)
         timeObserver = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
@@ -143,6 +165,15 @@ public final class AVQueueAudioPlayer: AudioPlayer {
                 self.onEvent?(.timeChanged(time.seconds))
             }
         }
+    }
+
+    private func stopObservingPlayer() {
+        playerObservations.forEach { $0.invalidate() }
+        playerObservations = []
+        if let timeObserver {
+            player.removeTimeObserver(timeObserver)
+        }
+        timeObserver = nil
     }
 
     private func currentItemChanged() {
