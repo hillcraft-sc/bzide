@@ -53,6 +53,15 @@ final class FakeDownloadTransport: DownloadTransport {
 }
 
 @MainActor
+final class FakeArtworkPinning: ArtworkPinning {
+    private(set) var requests: [Set<String>] = []
+
+    func keepOffline(coverArtIDs: Set<String>) {
+        requests.append(coverArtIDs)
+    }
+}
+
+@MainActor
 struct DownloadManagerTests {
     private let root = URL.temporaryDirectory.appending(path: "DownloadManagerTests-\(UUID().uuidString)")
     private let transport: FakeDownloadTransport
@@ -63,12 +72,15 @@ struct DownloadManagerTests {
 
     private var directory: URL { root.appending(path: "Downloads") }
 
+    private let artwork = FakeArtworkPinning()
+
     private func makeManager(transport: FakeDownloadTransport? = nil, allowsCellular: Bool = false) -> DownloadManager {
         DownloadManager(
             directory: directory,
             transport: transport ?? self.transport,
             downloadURL: { URL(string: "https://music.example.test/rest/download?id=\($0)")! },
-            allowsCellular: { allowsCellular }
+            allowsCellular: { allowsCellular },
+            artwork: artwork
         )
     }
 
@@ -249,5 +261,28 @@ struct DownloadManagerTests {
         #expect(manager.collections.isEmpty)
         #expect(manager.localFile(forSongID: "so-1") == nil)
         #expect(transport.cancelled == ["so-2"])
+    }
+
+    @Test func coversOfDownloadedMusicAreKeptOffline() async {
+        let manager = makeManager()
+        let compilation = [
+            Song(id: "so-1", title: "One", coverArtID: "al-1"),
+            Song(id: "so-2", title: "Two", coverArtID: "mf-2"),
+        ]
+        manager.download(DownloadCollection(kind: .album, serverID: "al-1", name: "Mix", coverArtID: "al-1", songs: compilation))
+        #expect(artwork.requests.last == ["al-1", "mf-2"])
+
+        manager.download(DownloadCollection(kind: .playlist, serverID: "pl-1", name: "List", coverArtID: "pl-1", songs: []))
+        #expect(artwork.requests.last == ["al-1", "mf-2", "pl-1"])
+
+        manager.remove(collectionID: "album:al-1")
+        #expect(artwork.requests.last == ["pl-1"])
+
+        manager.removeAll()
+        #expect(artwork.requests.last == [])
+
+        // Launch retries covers that couldn't be fetched last time.
+        await manager.resume()
+        #expect(artwork.requests.count == 5)
     }
 }

@@ -65,10 +65,11 @@ final class AppModel {
             Self.logger.error("Queue won't persist: \(String(describing: error), privacy: .public)")
             queueStore = InMemoryQueueStore()
         }
-        let artwork = ArtworkCache(client: client)
+        let downloadsDirectory = Self.downloadsDirectory()
+        let artwork = ArtworkCache(client: client, store: Self.coverArtStore(downloadsDirectory: downloadsDirectory))
         let settings = StreamingSettingsModel()
         let network = SystemNetworkMonitor()
-        let downloads = Self.makeDownloads(client: client, settings: settings)
+        let downloads = Self.makeDownloads(directory: downloadsDirectory, client: client, settings: settings, artwork: artwork)
         let resolver = TrackResolver(client: client, settings: settings, network: network, downloads: downloads)
         let engine = PlaybackEngine(
             player: AVQueueAudioPlayer(),
@@ -125,21 +126,36 @@ final class AppModel {
 
     // MARK: - Downloads
 
-    private static func makeDownloads(client: SubsonicClient, settings: StreamingSettingsModel) -> DownloadManager {
-        let directory: URL
+    private static func downloadsDirectory() -> URL {
         do {
-            directory = try DownloadManager.applicationSupportDirectory()
+            return try DownloadManager.applicationSupportDirectory()
         } catch {
             // Without a place to keep files, downloads can't persist; use temporary
             // storage so the rest of the app still works.
             logger.error("Downloads won't persist: \(String(describing: error), privacy: .public)")
-            directory = URL.temporaryDirectory.appending(path: "Downloads")
+            return URL.temporaryDirectory.appending(path: "Downloads")
         }
+    }
+
+    private static func coverArtStore(downloadsDirectory: URL) -> CoverArtStore {
+        do {
+            return try CoverArtStore.standard(downloadsDirectory: downloadsDirectory)
+        } catch {
+            logger.error("Cover art won't be cached on disk: \(String(describing: error), privacy: .public)")
+            let temporary = URL.temporaryDirectory
+            return CoverArtStore(cacheDirectory: temporary.appending(path: "CoverArt"), pinnedDirectory: downloadsDirectory.appending(path: "CoverArt"))
+        }
+    }
+
+    private static func makeDownloads(
+        directory: URL, client: SubsonicClient, settings: StreamingSettingsModel, artwork: ArtworkCache
+    ) -> DownloadManager {
         let manager = DownloadManager(
             directory: directory,
             transport: BackgroundDownloadTransport(stagingDirectory: directory.appending(path: "Incoming")),
             downloadURL: { songID in try client.downloadURL(songID: songID) },
-            allowsCellular: { settings.settings.downloadOverCellular }
+            allowsCellular: { settings.settings.downloadOverCellular },
+            artwork: artwork
         )
         Task { await manager.resume() }
         return manager

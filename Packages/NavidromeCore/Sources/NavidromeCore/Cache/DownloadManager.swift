@@ -22,6 +22,7 @@ public final class DownloadManager: DownloadedTrackLookup {
     @ObservationIgnored private let directory: URL
     @ObservationIgnored private let downloadURL: (String) throws -> URL
     @ObservationIgnored private let allowsCellular: () -> Bool
+    @ObservationIgnored private let artwork: (any ArtworkPinning)?
 
     static let maxConcurrent = 3
     private static let logger = Logger(subsystem: "MusicApp", category: "Downloads")
@@ -32,12 +33,14 @@ public final class DownloadManager: DownloadedTrackLookup {
         directory: URL,
         transport: any DownloadTransport,
         downloadURL: @escaping (String) throws -> URL,
-        allowsCellular: @escaping () -> Bool
+        allowsCellular: @escaping () -> Bool,
+        artwork: (any ArtworkPinning)? = nil
     ) {
         self.directory = directory
         self.transport = transport
         self.downloadURL = downloadURL
         self.allowsCellular = allowsCellular
+        self.artwork = artwork
         let index = Self.loadIndex(from: directory)
         collections = index.collections
         files = index.files
@@ -103,21 +106,21 @@ public final class DownloadManager: DownloadedTrackLookup {
         } else {
             collections.append(collection)
         }
-        saveIndex()
+        collectionsChanged()
         startWaitingDownloads()
     }
 
     public func remove(collectionID: String) {
         collections.removeAll { $0.id == collectionID }
         deleteUnusedFiles()
-        saveIndex()
+        collectionsChanged()
         startWaitingDownloads()
     }
 
     public func removeAll() {
         collections = []
         deleteUnusedFiles()
-        saveIndex()
+        collectionsChanged()
     }
 
     /// Tries the failed songs of a collection again.
@@ -138,6 +141,8 @@ public final class DownloadManager: DownloadedTrackLookup {
                 transport.cancel(songID: songID)
             }
         }
+        // Covers that failed to fetch last time are tried again.
+        artwork?.keepOffline(coverArtIDs: wantedCoverArtIDs())
         startWaitingDownloads()
     }
 
@@ -216,6 +221,24 @@ public final class DownloadManager: DownloadedTrackLookup {
     }
 
     // MARK: - Housekeeping
+
+    private func collectionsChanged() {
+        saveIndex()
+        artwork?.keepOffline(coverArtIDs: wantedCoverArtIDs())
+    }
+
+    /// The album or playlist cover and every song's cover, which can differ
+    /// (compilations, playlists).
+    private func wantedCoverArtIDs() -> Set<String> {
+        var ids = Set<String>()
+        for collection in collections {
+            if let id = collection.coverArtID { ids.insert(id) }
+            for song in collection.songs {
+                if let id = song.coverArtID { ids.insert(id) }
+            }
+        }
+        return ids
+    }
 
     private func isWanted(_ songID: String) -> Bool {
         collections.contains { $0.songs.contains { $0.id == songID } }

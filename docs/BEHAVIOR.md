@@ -100,7 +100,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Starring** shows the change immediately, then tells the server. If the server call fails, the star goes back to how it was and the error is shown. A second tap on the same item while its first change is still being sent is ignored. A change made in this session wins over the flag in lists fetched earlier, so every screen agrees.
 - **Playing from the library.** Tapping a track plays its album or playlist from that track. Play starts at the first track; shuffle plays the same songs in a shuffled order (see Queue). Add to queue appends the songs to the end of the current queue without interrupting playback. In search results, tapping a song plays the listed songs starting from it.
 - **Layout.** Two tabs, Library (artists, albums, playlists) and Search, with a mini player above the tab bar showing the current track, play/pause and next. Tapping the mini player opens Now Playing: artwork, controls, star, and the queue.
-- **Cover art** is kept in memory by cover art id and size, and each image is downloaded once however many rows show it. Artwork responses never go into the shared on-disk URL cache, because their URLs carry a reusable auth token.
+- **Cover art** is looked up by cover art id and size (never by URL, which carries a fresh auth salt each time): memory first, then disk, then the server. Each image is fetched once however many rows show it. Fetched images are saved in `Caches/CoverArt`, which iOS may clear when space runs low. If the server can't be reached, any size of that cover already on disk is shown rather than nothing. Artwork responses never go into the shared on-disk URL cache, because their URLs carry a reusable auth token; only image responses (HTTP 200, `image/*`) are kept.
 
 ## Caching and offline
 
@@ -122,6 +122,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - A failed song stays failed until the user retries; after a relaunch, failed songs are tried again. A response that isn't 2xx, or is JSON/XML (how Subsonic reports errors, even with HTTP 200), is a failure, never saved as a song.
 - "Download over cellular" is off by default: downloads then wait for Wi-Fi. The setting applies to downloads started after changing it.
 - Any song with a downloaded file plays from it, on any connection and with the server unreachable. If the file has gone missing, the song streams instead.
+- Downloaded albums and playlists keep their covers offline: the collection's cover and every song's cover (they can differ, e.g. compilations) are stored once each at 900 px in `Downloads/CoverArt`, and serve every size. A cover no remaining download uses is deleted. Covers that couldn't be fetched are retried when downloads change and at launch.
 - No storage limit; the user removes downloads, one at a time or all at once in Settings, which also shows the space used.
 - The download URL carries an auth token and is handed to iOS's download service. Subsonic has no other way to authenticate a download.
 
@@ -192,6 +193,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] With "Download over cellular" off, turn Wi-Fi off and download something: it waits, and finishes when Wi-Fi is back.
 - [ ] Download a playlist that shares songs with a downloaded album. Remove the album: the playlist's songs still play offline.
 - [ ] Remove All Downloads in Settings: Storage Used goes to zero.
+- [ ] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork.
 
 ### Scrobbling
 - [ ] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it.
