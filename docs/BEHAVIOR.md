@@ -237,19 +237,19 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 
 ### Streaming quality
 - [ ] Set cellular to 96 kbps, turn Wi-Fi off, and start an album. It sounds noticeably lower quality (or check Navidrome's activity view for the transcoding). Turn Wi-Fi back on: the next track is back to original.
-- [ ] On cellular at a low bitrate, drag the progress bar forward and back within a track. Playback jumps there. (Transcoded streams are a known weak spot for seeking in Subsonic servers; note anything odd.)
+- [x] On cellular at a low bitrate, drag the progress bar forward and back within a track. Playback jumps there. (Transcoded streams are a known weak spot for seeking in Subsonic servers; note anything odd.) (2026-10-11)
 - [ ] Change the setting while playing: the current track carries on uninterrupted.
 
 ### Downloads
-- [ ] Download an album on Wi-Fi. Progress shows on the album and in Library > Downloaded, and it completes.
-- [ ] Start a large download, lock the phone (or switch apps) for a few minutes. It keeps going; reopen the app and it shows the right progress.
-- [ ] Start a download and force-quit the app. Relaunch: it carries on or restarts, and finishes.
-- [ ] Turn on Airplane Mode. Library > Downloaded lists it and it plays from start to end, including on the lock screen.
-- [ ] With "Download over cellular" off, turn Wi-Fi off and download something: it waits, and finishes when Wi-Fi is back.
-- [ ] Download a playlist that shares songs with a downloaded album. Remove the album: the playlist's songs still play offline.
-- [ ] Remove All Downloads in Settings: Storage Used goes to zero.
+- [x] Download an album on Wi-Fi. Progress shows on the album and in Library > Downloaded, and it completes. (2026-10-11)
+- [x] Start a large download, lock the phone (or switch apps) for a few minutes. It keeps going; reopen the app and it shows the right progress. (2026-10-11)
+- [x] Start a download and force-quit the app. Relaunch: it carries on or restarts, and finishes. (2026-10-11)
+- [x] Turn on Airplane Mode. Library > Downloaded lists it and it plays from start to end, including on the lock screen. (2026-10-11)
+- [x] With "Download over cellular" off, turn Wi-Fi off and download something: it waits, and finishes when Wi-Fi is back. (2026-10-11)
+- [x] Download a playlist that shares songs with a downloaded album. Remove the album: the playlist's songs still play offline. (2026-10-11)
+- [x] Remove All Downloads in Settings: Storage Used goes to zero. (2026-10-11)
 - [ ] Search Downloaded by album name, artist and a song title: each finds the right download; a search with no match says so.
-- [ ] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork.
+- [x] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork. (2026-10-11)
 
 ### Play history
 - [ ] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear.
