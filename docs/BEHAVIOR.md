@@ -104,7 +104,14 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 ## Caching and offline
 
-_Filled in during M4._
+### Streaming quality
+
+- The user picks a quality for Wi-Fi and one for cellular: Original, or 320, 256, 192, 128 or 96 kbps. Defaults: Original on Wi-Fi, 192 kbps on cellular.
+- "Cellular" means any connection iOS marks as expensive (cellular, a personal hotspot) or constrained (Low Data Mode).
+- Original streams the file as stored. Any bitrate asks the server to transcode to MP3 at that bitrate (`maxBitRate`, `format=mp3`); the server may send the original when it is already at or below that.
+- The quality is chosen each time a track is loaded. A change of network or setting applies from the next track loaded; a track already playing, or already buffered as the next one, keeps its quality.
+- A downloaded song always plays from its file, whatever the connection.
+- Settings are saved on the device (not secret). Saved settings that can't be read fall back to the defaults.
 
 ## Manual test checklist
 
@@ -159,6 +166,11 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Star an album, go back and reopen it: still starred. Check in Navidrome's web UI that it's starred there too.
 - [ ] The mini player always shows the current track and its play/pause and next work. Tapping it opens Now Playing, which matches the lock screen.
 - [ ] Artwork appears in lists and on Now Playing, and scrolling back up doesn't reload it.
+
+### Streaming quality
+- [ ] Set cellular to 96 kbps, turn Wi-Fi off, and start an album. It sounds noticeably lower quality (or check Navidrome's activity view for the transcoding). Turn Wi-Fi back on: the next track is back to original.
+- [ ] On cellular at a low bitrate, drag the progress bar forward and back within a track. Playback jumps there. (Transcoded streams are a known weak spot for seeking in Subsonic servers; note anything odd.)
+- [ ] Change the setting while playing: the current track carries on uninterrupted.
 
 ### Scrobbling
 - [ ] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it.

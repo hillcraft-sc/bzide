@@ -63,12 +63,20 @@ public protocol NetworkMonitoring: AnyObject {
     var onNetworkAvailable: (@MainActor () -> Void)? { get set }
 }
 
+/// Whether the current connection costs the user: cellular, a personal hotspot,
+/// or Low Data Mode. Streaming quality follows it.
+@MainActor
+public protocol NetworkCostMonitoring: AnyObject {
+    var isExpensive: Bool { get }
+}
+
 /// `NetworkMonitoring` backed by `NWPathMonitor`. Reports both "back online" and
 /// "switched interface while online" (e.g. Wi-Fi to cellular), since either can
 /// leave a broken stream that is worth retrying right away.
 @MainActor
-public final class SystemNetworkMonitor: NetworkMonitoring {
+public final class SystemNetworkMonitor: NetworkMonitoring, NetworkCostMonitoring {
     public var onNetworkAvailable: (@MainActor () -> Void)?
+    public private(set) var isExpensive = false
 
     private let monitor = NWPathMonitor()
     private var lastPath: (satisfied: Bool, interfaces: [NWInterface.InterfaceType])?
@@ -77,7 +85,11 @@ public final class SystemNetworkMonitor: NetworkMonitoring {
         monitor.pathUpdateHandler = { [weak self] path in
             let satisfied = path.status == .satisfied
             let interfaces = path.availableInterfaces.map(\.type)
-            Task { @MainActor in self?.pathChanged(satisfied: satisfied, interfaces: interfaces) }
+            let expensive = path.isExpensive || path.isConstrained
+            Task { @MainActor in
+                self?.isExpensive = expensive
+                self?.pathChanged(satisfied: satisfied, interfaces: interfaces)
+            }
         }
         monitor.start(queue: DispatchQueue(label: "MusicApp.NetworkMonitor"))
     }

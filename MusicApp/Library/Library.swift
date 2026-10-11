@@ -6,12 +6,14 @@ final class Library {
     let engine: PlaybackEngine
     let stars: StarModel
     let artwork: ArtworkCache
+    let settings: StreamingSettingsModel
     private let client: SubsonicClient
 
-    init(client: SubsonicClient, engine: PlaybackEngine, artwork: ArtworkCache) {
+    init(client: SubsonicClient, engine: PlaybackEngine, artwork: ArtworkCache, settings: StreamingSettingsModel) {
         self.client = client
         self.engine = engine
         self.artwork = artwork
+        self.settings = settings
         self.stars = StarModel { [client] target, starred async throws(SubsonicError) in
             if starred {
                 try await client.star(target)

@@ -61,8 +61,11 @@ public protocol AudioPlayer: AnyObject {
 }
 
 /// Turns a song into a URL the player can load. URLs contain auth tokens, so they
-/// are built when needed and never stored.
-public protocol StreamURLProviding: Sendable {
+/// are built when needed and never stored. Main-actor bound because the engine is
+/// its only caller and the choice can depend on main-actor state (settings,
+/// network type, downloads).
+@MainActor
+public protocol StreamURLProviding {
     func streamURL(for song: Song) throws -> URL
 }
 

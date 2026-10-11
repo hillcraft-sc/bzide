@@ -66,18 +66,21 @@ final class AppModel {
             queueStore = InMemoryQueueStore()
         }
         let artwork = ArtworkCache(client: client)
+        let settings = StreamingSettingsModel()
+        let network = SystemNetworkMonitor()
+        let resolver = TrackResolver(client: client, settings: settings, network: network, downloads: NoDownloads())
         let engine = PlaybackEngine(
             player: AVQueueAudioPlayer(),
             session: SystemAudioSession(),
             nowPlaying: SystemNowPlaying(loadArtwork: { id in await artwork.image(for: id, pixels: 600) }),
-            urls: client,
+            urls: resolver,
             store: queueStore,
             scheduler: TaskScheduler(),
-            network: SystemNetworkMonitor(),
+            network: network,
             scrobbler: scrobbler
         )
         self.engine = engine
-        library = Library(client: client, engine: engine, artwork: artwork)
+        library = Library(client: client, engine: engine, artwork: artwork, settings: settings)
         self.client = client
         self.scrobbler = scrobbler
         // Send anything left over from a previous run.
@@ -118,4 +121,9 @@ final class AppModel {
             libraryError = error.localizedDescription
         }
     }
+}
+
+/// Stands in until downloads exist (M4 step 2).
+private final class NoDownloads: DownloadedTrackLookup {
+    func localFile(forSongID songID: String) -> URL? { nil }
 }

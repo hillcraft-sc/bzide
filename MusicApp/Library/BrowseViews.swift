@@ -15,6 +15,13 @@ struct LibraryView: View {
         .navigationTitle("Library")
         .toolbar {
             ToolbarItem {
+                NavigationLink {
+                    SettingsView(settings: library.settings)
+                } label: {
+                    Label("Settings", systemImage: "gear")
+                }
+            }
+            ToolbarItem {
                 // Kept for exercising playback during development.
                 NavigationLink {
                     DebugPlayerView(model: model, engine: library.engine)
