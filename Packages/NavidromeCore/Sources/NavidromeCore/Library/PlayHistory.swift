@@ -90,11 +90,40 @@ public enum HistoryPeriod: Sendable, Equatable, Hashable {
     }
 }
 
+/// One row of the history: a play, or a song's plays combined.
+public struct HistoryItem: Sendable, Equatable, Identifiable {
+    /// The latest of the plays this row stands for.
+    public let entry: PlayHistoryEntry
+    /// 1 unless repeat plays are combined.
+    public let playCount: Int
+    public var id: UUID { entry.id }
+}
+
 /// The plays of one calendar day, newest first.
 public struct HistoryDay: Sendable, Equatable, Identifiable {
     public let day: Date
-    public let entries: [PlayHistoryEntry]
+    public let items: [HistoryItem]
     public var id: Date { day }
+
+    public var entries: [PlayHistoryEntry] { items.map(\.entry) }
+
+    /// Each song once, at its latest play, counting its plays that day.
+    func combiningRepeats() -> HistoryDay {
+        var order: [String] = []
+        var latest: [String: PlayHistoryEntry] = [:]
+        var counts: [String: Int] = [:]
+        for item in items {
+            let songID = item.entry.song.id
+            if latest[songID] == nil {
+                order.append(songID)
+                latest[songID] = item.entry
+            }
+            counts[songID, default: 0] += item.playCount
+        }
+        return HistoryDay(day: day, items: order.compactMap { songID in
+            latest[songID].map { HistoryItem(entry: $0, playCount: counts[songID] ?? 1) }
+        })
+    }
 }
 
 /// Receives each counted play from the engine.
@@ -118,6 +147,10 @@ public final class PlayHistory: PlayRecording {
             prune()
         }
     }
+    /// Show a song once per day with a play count, instead of every play. On by default.
+    public var combinesRepeats: Bool {
+        didSet { defaults.set(combinesRepeats, forKey: Self.combineKey) }
+    }
 
     @ObservationIgnored private let fileURL: URL
     @ObservationIgnored private let defaults: UserDefaults
@@ -125,6 +158,7 @@ public final class PlayHistory: PlayRecording {
     @ObservationIgnored private let calendar: Calendar
 
     static let retentionKey = "historyRetention"
+    static let combineKey = "historyCombinesRepeats"
     nonisolated static let fileName = "PlayHistory.json"
     private static let logger = Logger(subsystem: "MusicApp", category: "PlayHistory")
 
@@ -139,6 +173,7 @@ public final class PlayHistory: PlayRecording {
         self.calendar = calendar
         self.now = now
         retention = defaults.object(forKey: Self.retentionKey).flatMap { $0 as? Int }.flatMap(HistoryRetention.init) ?? .month
+        combinesRepeats = defaults.object(forKey: Self.combineKey) as? Bool ?? true
         entries = Self.load(from: fileURL)
         prune()
     }
@@ -162,8 +197,14 @@ public final class PlayHistory: PlayRecording {
         save()
     }
 
-    /// The plays in `period` that match `query`, grouped by day, newest first.
+    /// The plays in `period` that match `query`, grouped by day, newest first,
+    /// with repeats combined if `combinesRepeats` is on.
     public func days(matching query: String, in period: HistoryPeriod) -> [HistoryDay] {
+        let days = everyPlay(matching: query, in: period)
+        return combinesRepeats ? days.map { $0.combiningRepeats() } : days
+    }
+
+    private func everyPlay(matching query: String, in period: HistoryPeriod) -> [HistoryDay] {
         let interval = period.interval(now: now(), calendar: calendar)
         var days: [HistoryDay] = []
         var currentDay: Date?
@@ -173,14 +214,14 @@ public final class PlayHistory: PlayRecording {
             guard entry.matches(query) else { continue }
             let day = calendar.startOfDay(for: entry.playedAt)
             if day != currentDay, let finished = currentDay {
-                days.append(HistoryDay(day: finished, entries: currentEntries))
+                days.append(HistoryDay(day: finished, items: currentEntries.map { HistoryItem(entry: $0, playCount: 1) }))
                 currentEntries = []
             }
             currentDay = day
             currentEntries.append(entry)
         }
         if let currentDay {
-            days.append(HistoryDay(day: currentDay, entries: currentEntries))
+            days.append(HistoryDay(day: currentDay, items: currentEntries.map { HistoryItem(entry: $0, playCount: 1) }))
         }
         return days
     }

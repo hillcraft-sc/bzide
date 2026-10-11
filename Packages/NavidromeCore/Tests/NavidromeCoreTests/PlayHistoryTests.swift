@@ -20,8 +20,11 @@ struct PlayHistoryTests {
     /// 2026-10-11 15:00 UTC.
     private let clock = TestClock(Date(timeIntervalSince1970: 1_791_730_800))
 
+    /// Every play listed, unless a test turns combining back on.
     private func makeHistory() -> PlayHistory {
-        PlayHistory(fileURL: file, defaults: defaults, calendar: calendar, now: { [clock] in clock.now })
+        let history = PlayHistory(fileURL: file, defaults: defaults, calendar: calendar, now: { [clock] in clock.now })
+        history.combinesRepeats = false
+        return history
     }
 
     private func song(_ id: String, title: String = "Song", artist: String? = "Artist", album: String? = "Album") -> Song {
@@ -148,5 +151,51 @@ struct PlayHistoryTests {
         player.report(.timeChanged(5))
         player.finishCurrentItem()
         #expect(history.entries.count == 1)
+    }
+
+    @Test func repeatsAreCombinedByDefault() {
+        #expect(PlayHistory(fileURL: file, defaults: UserDefaults(suiteName: "PlayHistoryTests-\(UUID().uuidString)")!).combinesRepeats)
+    }
+
+    @Test func combiningShowsEachSongOncePerDayAtItsLatestPlay() {
+        let history = makeHistory()
+        history.retention = .forever
+        history.record(song("so-1", title: "Dawn"), playedAt: daysAgo(0, hours: 3))
+        history.record(song("so-2", title: "Noon"), playedAt: daysAgo(0, hours: 2))
+        history.record(song("so-1", title: "Dawn"), playedAt: daysAgo(0, hours: 1))
+        history.record(song("so-1", title: "Dawn"), playedAt: daysAgo(1))
+        history.combinesRepeats = true
+
+        let days = history.days(matching: "", in: .all)
+        #expect(days.count == 2)
+        let today = days[0].items
+        #expect(today.map(\.entry.song.id) == ["so-1", "so-2"])
+        #expect(today.map(\.playCount) == [2, 1])
+        #expect(today.first?.entry.playedAt == daysAgo(0, hours: 1))
+        // Another day keeps its own row.
+        #expect(days[1].items.map(\.playCount) == [1])
+    }
+
+    @Test func showingEveryPlayListsRepeatsSeparately() {
+        let history = makeHistory()
+        history.record(song("so-1"), playedAt: daysAgo(0, hours: 2))
+        history.record(song("so-1"), playedAt: daysAgo(0, hours: 1))
+        #expect(history.days(matching: "", in: .all).first?.items.map(\.playCount) == [1, 1])
+    }
+
+    @Test func combiningCountsOnlyPlaysThatMatchTheFilters() {
+        let history = makeHistory()
+        history.record(song("so-1", title: "Dawn"), playedAt: daysAgo(0, hours: 2))
+        history.record(song("so-1", title: "Dawn"), playedAt: daysAgo(0, hours: 1))
+        history.record(song("so-2", title: "Noon"), playedAt: daysAgo(0, hours: 1))
+        history.combinesRepeats = true
+        let items = history.days(matching: "dawn", in: .today).flatMap(\.items)
+        #expect(items.map(\.playCount) == [2])
+    }
+
+    @Test func theChoiceIsRemembered() {
+        makeHistory().combinesRepeats = false
+        let reopened = PlayHistory(fileURL: file, defaults: defaults, calendar: calendar, now: { [clock] in clock.now })
+        #expect(!reopened.combinesRepeats)
     }
 }

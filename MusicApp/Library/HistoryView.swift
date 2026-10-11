@@ -13,14 +13,14 @@ struct HistoryView: View {
         List {
             ForEach(days) { day in
                 Section(Self.dayTitle(day.day)) {
-                    ForEach(day.entries) { entry in
+                    ForEach(day.items) { item in
                         Button {
-                            library.engine.play(songs: [entry.song])
+                            library.engine.play(songs: [item.entry.song])
                         } label: {
-                            HistoryRow(entry: entry, isCurrent: entry.song.id == library.engine.queue.current?.song.id)
+                            HistoryRow(item: item, isCurrent: item.entry.song.id == library.engine.queue.current?.song.id)
                         }
                         .foregroundStyle(.primary)
-                        .contextMenu { SongActions(library: library, song: entry.song) }
+                        .contextMenu { SongActions(library: library, song: item.entry.song) }
                     }
                 }
             }
@@ -51,6 +51,8 @@ struct HistoryView: View {
                         }
                     }
                     Button("Choose Dates…", systemImage: "calendar") { isPickingRange = true }
+                    Divider()
+                    Toggle("Show Every Play", isOn: showsEveryPlay)
                 } label: {
                     Label(period.title, systemImage: "line.3.horizontal.decrease.circle")
                 }
@@ -59,6 +61,11 @@ struct HistoryView: View {
         .sheet(isPresented: $isPickingRange) {
             DateRangePicker(period: $period)
         }
+    }
+
+    /// Off by default: a song played several times in a day shows once, with a count.
+    private var showsEveryPlay: Binding<Bool> {
+        Binding(get: { !library.history.combinesRepeats }, set: { library.history.combinesRepeats = !$0 })
     }
 
     private static func dayTitle(_ day: Date) -> String {
@@ -76,8 +83,10 @@ struct HistoryView: View {
 }
 
 private struct HistoryRow: View {
-    let entry: PlayHistoryEntry
+    let item: HistoryItem
     let isCurrent: Bool
+
+    private var entry: PlayHistoryEntry { item.entry }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -91,9 +100,14 @@ private struct HistoryRow: View {
                     .lineLimit(1)
             }
             Spacer()
-            Text(entry.playedAt.formatted(date: .omitted, time: .shortened))
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(entry.playedAt.formatted(date: .omitted, time: .shortened))
+                if item.playCount > 1 {
+                    Text("\(item.playCount) plays")
+                }
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
         }
         .contentShape(.rect)
     }

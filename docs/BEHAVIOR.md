@@ -121,6 +121,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - A play is added to the history at the moment it counts for scrobbling (half the track or 4 minutes, whichever comes first), recorded with the song as it was and the time the play started. Skipped plays aren't recorded. Works offline.
 - Kept on this device only, in `Application Support/PlayHistory.json`; the Subsonic API has no list of plays to sync with. Each client (iOS, later web and Android) keeps its own.
 - Shown newest first, grouped by day (Today, Yesterday, then dates).
+- Repeat plays are combined by default: within a day, a song appears once, at the time of its latest play that day, with its number of plays that day ("3 plays") when more than one. Only plays that match the current filters are counted. "Show Every Play" in the filter menu lists each play separately; the choice is remembered.
 - Filters combine: text matching the track, artist or album (ignoring case and accents), and a period: Today, Last 7 Days, Last 30 Days, All (the default), or a custom range of whole days, in either order.
 - Tapping a play plays just that song. Long-press offers Play Next, Add to Queue and Star.
 - Retention: 7 days, 30 days (default), 90 days, 1 year, or forever. Older plays are dropped at launch, on every new play, and when the setting changes. Clear History removes everything, after confirmation.
@@ -241,6 +242,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 ### Play history
 - [ ] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear.
 - [ ] Search History by track, artist and album name. Switch the period between Today, Last 7 Days and a custom range.
+- [ ] Play the same song twice in a day: History shows it once with "2 plays" at the later time. Turn on Show Every Play in the filter menu: both plays are listed. The choice is kept after relaunch.
 - [ ] Tap a play: just that song plays.
 - [ ] Settings > Keep History For: shorten it and check older plays disappear. Clear History empties the list.
 - [ ] Force-quit and relaunch: the history is still there.
