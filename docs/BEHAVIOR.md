@@ -200,8 +200,8 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Search: type quickly. Results settle on what you typed last, without flicker back to older results. Clear the field: results clear.
 - [ ] Tap a track in an album: the album plays from that track. Play and Shuffle buttons work. Add to Queue appends without interrupting.
 - [ ] While a track plays, Play Next on another song: the current track carries on, and when it ends the chosen song follows with no gap. Play Next on an album: its songs come next, in order, before the rest of the queue.
-- [ ] In Now Playing, Clear Up Next: the queue shows only the current song, which keeps playing without a hiccup; when it ends the queue empties.
-- [ ] Play an album and let a few tracks pass: the queue in Now Playing starts at the current song, but Previous still goes back through the earlier ones. The button is hidden when nothing is up next.
+- [ ] In Now Playing, Clear Up Next: the queue shows only the current song, which keeps playing without a hiccup; when it ends the queue empties. The button is hidden when nothing is up next.
+- [ ] Play an album and let a few tracks pass: the queue in Now Playing starts at the current song, but Previous still goes back through the earlier ones.
 - [ ] Star an album, go back and reopen it: still starred. Check in Navidrome's web UI that it's starred there too.
 - [ ] The mini player always shows the current track and its play/pause and next work. Tapping it opens Now Playing, which matches the lock screen.
 - [ ] Artwork appears in lists and on Now Playing, and scrolling back up doesn't reload it.
