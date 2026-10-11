@@ -98,7 +98,9 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Album lists** come in these orders: recently added, recently played, most played, name, artist, random, starred. They load 40 albums at a time; the next page is requested when the user scrolls within 10 albums of the end, and a page shorter than 40 means there are no more. An album already shown is never shown twice, even if the library changed between pages; the next request still starts where the server's previous page ended. If a page fails, scrolling doesn't retry it; an explicit retry does. Random shows a single page, and a refresh picks again, because paging a random list would repeat albums. Changing the order replaces the list, and a late reply for the old order is ignored.
 - **Search** runs 300 ms after the user stops typing, with surrounding spaces ignored. An empty query clears the results. While a new search runs, the previous results stay on screen. A reply for an older query is ignored, so results never jump back to something the user has already typed past.
 - **Starring** shows the change immediately, then tells the server. If the server call fails, the star goes back to how it was and the error is shown. A second tap on the same item while its first change is still being sent is ignored. A change made in this session wins over the flag in lists fetched earlier, so every screen agrees.
-- **Playing from the library.** Tapping a track plays its album or playlist from that track. Play starts at the first track; shuffle plays the same songs in a shuffled order (see Queue). Add to queue appends the songs to the end of the current queue without interrupting playback.
+- **Playing from the library.** Tapping a track plays its album or playlist from that track. Play starts at the first track; shuffle plays the same songs in a shuffled order (see Queue). Add to queue appends the songs to the end of the current queue without interrupting playback. In search results, tapping a song plays the listed songs starting from it.
+- **Layout.** Two tabs, Library (artists, albums, playlists) and Search, with a mini player above the tab bar showing the current track, play/pause and next. Tapping the mini player opens Now Playing: artwork, controls, star, and the queue.
+- **Cover art** is kept in memory by cover art id and size, and each image is downloaded once however many rows show it. Artwork responses never go into the shared on-disk URL cache, because their URLs carry a reusable auth token.
 
 ## Caching and offline
 
@@ -147,6 +149,16 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Play, turn on Airplane Mode, then press pause while it shows reconnecting. Turn Airplane Mode off. The app stays paused.
 - [ ] Play near the end of a track on a weak connection. The next track still starts without a gap, or with only a short one.
 - [ ] Lock the phone during all of the above. Recovery works the same with the screen off.
+
+### Library
+- [ ] Artists: the A–Z index scrolls and jumps by letter; an artist shows their albums; an album shows its tracks in order with numbers.
+- [ ] Albums: scroll a long list to the end. More albums load without a visible stop and none repeat. Switch sort orders; each shows the right list.
+- [ ] Turn on Airplane Mode and open a screen that hasn't loaded yet: it shows the error and Try Again. Turn it off and press Try Again: it loads. Pull to refresh with Airplane Mode on: the content stays.
+- [ ] Search: type quickly. Results settle on what you typed last, without flicker back to older results. Clear the field: results clear.
+- [ ] Tap a track in an album: the album plays from that track. Play and Shuffle buttons work. Add to Queue appends without interrupting.
+- [ ] Star an album, go back and reopen it: still starred. Check in Navidrome's web UI that it's starred there too.
+- [ ] The mini player always shows the current track and its play/pause and next work. Tapping it opens Now Playing, which matches the lock screen.
+- [ ] Artwork appears in lists and on Now Playing, and scrolling back up doesn't reload it.
 
 ### Scrobbling
 - [ ] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it.

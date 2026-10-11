@@ -59,6 +59,25 @@ struct IntegrationTests {
         #expect(!songs.isEmpty)
     }
 
+    /// Pages through the real album list the way the Albums screen does.
+    @Test @MainActor func albumPagingMatchesTheServerOrder() async throws {
+        let model = AlbumsModel(sort: .name) { [client] type, size, offset async throws(SubsonicError) in
+            try await client.albumList(type, size: size, offset: offset)
+        }
+        await model.load()
+        let firstPage = try #require(model.albums)
+        try #require(firstPage.count == AlbumsModel.pageSize, "Library needs more than one page of albums")
+
+        await model.loadMore()
+        let both = try #require(model.albums)
+        #expect(both.count > firstPage.count)
+        #expect(Set(both.map(\.id)).count == both.count)
+
+        // The same albums, in the same order, as one request for both pages.
+        let direct = try await client.albumList(.alphabeticalByName, size: both.count, offset: 0)
+        #expect(direct.map(\.id) == both.map(\.id))
+    }
+
     @Test func playlistsLoad() async throws {
         // An empty playlist list is valid; just check each listed one opens.
         for summary in try await client.playlists().prefix(3) {

@@ -57,6 +57,9 @@ struct StarModelTests {
         await toggle.value
         #expect(!model.isStarred(album, fromServer: false))
         #expect(model.error == offline.localizedDescription)
+
+        model.dismissError()
+        #expect(model.error == nil)
     }
 
     @Test func tapWhileSendingIsIgnored() async {

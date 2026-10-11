@@ -1,12 +1,12 @@
 import SwiftUI
 
-/// Signed out: the sign-in form. Signed in: the debug player.
+/// Signed out: the sign-in form. Signed in: the library.
 struct ContentView: View {
     let model: AppModel
 
     var body: some View {
-        if let engine = model.engine {
-            DebugPlayerView(model: model, engine: engine)
+        if let library = model.library {
+            RootView(model: model, library: library)
         } else {
             SignInView(model: model)
         }

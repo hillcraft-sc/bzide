@@ -1,6 +1,7 @@
+import Foundation
 import NavidromeCore
+import Observation
 import os
-import UIKit
 
 /// Builds the app's long-lived objects and runs the few server calls the screens
 /// need. Views read its state and call its methods; they never talk to the
@@ -9,6 +10,7 @@ import UIKit
 @Observable
 final class AppModel {
     private(set) var engine: PlaybackEngine?
+    private(set) var library: Library?
     private(set) var isSigningIn = false
     private(set) var signInError: String?
     private(set) var albums: [Album] = []
@@ -63,16 +65,19 @@ final class AppModel {
             Self.logger.error("Queue won't persist: \(String(describing: error), privacy: .public)")
             queueStore = InMemoryQueueStore()
         }
-        engine = PlaybackEngine(
+        let artwork = ArtworkCache(client: client)
+        let engine = PlaybackEngine(
             player: AVQueueAudioPlayer(),
             session: SystemAudioSession(),
-            nowPlaying: SystemNowPlaying(loadArtwork: { id in await Self.loadImage(client: client, coverArtID: id) }),
+            nowPlaying: SystemNowPlaying(loadArtwork: { id in await artwork.image(for: id, pixels: 600) }),
             urls: client,
             store: queueStore,
             scheduler: TaskScheduler(),
             network: SystemNetworkMonitor(),
             scrobbler: scrobbler
         )
+        self.engine = engine
+        library = Library(client: client, engine: engine, artwork: artwork)
         self.client = client
         self.scrobbler = scrobbler
         // Send anything left over from a previous run.
@@ -112,13 +117,5 @@ final class AppModel {
         } catch {
             libraryError = error.localizedDescription
         }
-    }
-
-    // MARK: - Artwork
-
-    private static func loadImage(client: SubsonicClient, coverArtID: String) async -> UIImage? {
-        guard let url = try? client.coverArtURL(id: coverArtID, size: 600),
-              let (data, _) = try? await URLSession.shared.data(from: url) else { return nil }
-        return UIImage(data: data)
     }
 }

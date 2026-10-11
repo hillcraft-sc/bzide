@@ -28,6 +28,11 @@ public final class StarModel {
         overrides[target] ?? fromServer
     }
 
+    /// The user has seen the error.
+    public func dismissError() {
+        error = nil
+    }
+
     public func toggle(_ target: StarTarget, fromServer: Bool) async {
         // A second tap while the first is still on its way is ignored, so the
         // server never receives the two out of order.
