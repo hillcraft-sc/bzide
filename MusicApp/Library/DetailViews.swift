@@ -8,6 +8,7 @@ enum LibraryRoute: Hashable {
     case albums
     case playlists
     case downloads
+    case history
     case artist(id: String)
     case album(id: String)
     case playlist(id: String)
@@ -21,6 +22,7 @@ extension View {
             case .albums: AlbumsView(library: library)
             case .playlists: PlaylistsView(library: library)
             case .downloads: DownloadsView(library: library)
+            case .history: HistoryView(library: library)
             case .artist(let id): ArtistView(library: library, id: id)
             case .album(let id): AlbumView(library: library, id: id)
             case .playlist(let id): PlaylistView(library: library, id: id)

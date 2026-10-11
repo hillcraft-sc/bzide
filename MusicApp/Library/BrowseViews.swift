@@ -12,12 +12,13 @@ struct LibraryView: View {
             NavigationLink(value: LibraryRoute.albums) { Label("Albums", systemImage: "square.stack") }
             NavigationLink(value: LibraryRoute.playlists) { Label("Playlists", systemImage: "music.note.list") }
             NavigationLink(value: LibraryRoute.downloads) { Label("Downloaded", systemImage: "arrow.down.circle") }
+            NavigationLink(value: LibraryRoute.history) { Label("History", systemImage: "clock.arrow.circlepath") }
         }
         .navigationTitle("Library")
         .toolbar {
             ToolbarItem {
                 NavigationLink {
-                    SettingsView(settings: library.settings, downloads: library.downloads)
+                    SettingsView(settings: library.settings, downloads: library.downloads, history: library.history)
                 } label: {
                     Label("Settings", systemImage: "gear")
                 }

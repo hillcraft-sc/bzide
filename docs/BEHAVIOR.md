@@ -106,6 +106,15 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Layout.** Two tabs, Library (artists, albums, playlists) and Search, with a mini player above the tab bar showing the current track, play/pause and next. Tapping the mini player opens Now Playing: artwork, controls, star, and the queue.
 - **Cover art** is looked up by cover art id and size (never by URL, which carries a fresh auth salt each time): memory first, then disk, then the server. Each image is fetched once however many rows show it. Fetched images are saved in `Caches/CoverArt`, which iOS may clear when space runs low. If the server can't be reached, any size of that cover already on disk is shown rather than nothing. Artwork responses never go into the shared on-disk URL cache, because their URLs carry a reusable auth token; only image responses (HTTP 200, `image/*`) are kept.
 
+## Play history
+
+- A play is added to the history at the moment it counts for scrobbling (half the track or 4 minutes, whichever comes first), recorded with the song as it was and the time the play started. Skipped plays aren't recorded. Works offline.
+- Kept on this device only, in `Application Support/PlayHistory.json`; the Subsonic API has no list of plays to sync with. Each client (iOS, later web and Android) keeps its own.
+- Shown newest first, grouped by day (Today, Yesterday, then dates).
+- Filters combine: text matching the track, artist or album (ignoring case and accents), and a period: Today, Last 7 Days, Last 30 Days, All (the default), or a custom range of whole days, in either order.
+- Tapping a play plays just that song. Long-press offers Play Next, Add to Queue and Star.
+- Retention: 7 days, 30 days (default), 90 days, 1 year, or forever. Older plays are dropped at launch, on every new play, and when the setting changes. Clear History removes everything, after confirmation.
+
 ## CarPlay
 
 - Tabs: Recently Played and Albums (recently added) show the first page of those album lists; Playlists; Downloaded, built from the saved downloads so it works with no connection and refreshed each time it's shown.
@@ -212,6 +221,13 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Remove All Downloads in Settings: Storage Used goes to zero.
 - [ ] Search Downloaded by album name, artist and a song title: each finds the right download; a search with no match says so.
 - [ ] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork.
+
+### Play history
+- [ ] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear.
+- [ ] Search History by track, artist and album name. Switch the period between Today, Last 7 Days and a custom range.
+- [ ] Tap a play: just that song plays.
+- [ ] Settings > Keep History For: shorten it and check older plays disappear. Clear History empties the list.
+- [ ] Force-quit and relaunch: the history is still there.
 
 ### CarPlay (simulator)
 - [ ] Open the CarPlay window. The four tabs appear with artwork; each list loads.

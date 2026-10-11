@@ -8,10 +8,15 @@ final class Library {
     let artwork: ArtworkCache
     let settings: StreamingSettingsModel
     let downloads: DownloadManager
+    let history: PlayHistory
     private let client: SubsonicClient
 
-    init(client: SubsonicClient, engine: PlaybackEngine, artwork: ArtworkCache, settings: StreamingSettingsModel, downloads: DownloadManager) {
+    init(
+        client: SubsonicClient, engine: PlaybackEngine, artwork: ArtworkCache,
+        settings: StreamingSettingsModel, downloads: DownloadManager, history: PlayHistory
+    ) {
         self.downloads = downloads
+        self.history = history
         self.client = client
         self.engine = engine
         self.artwork = artwork

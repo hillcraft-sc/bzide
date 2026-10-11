@@ -73,6 +73,7 @@ final class AppModel {
         let downloadsDirectory = Self.downloadsDirectory()
         let artwork = ArtworkCache(client: client, store: Self.coverArtStore(downloadsDirectory: downloadsDirectory))
         let settings = StreamingSettingsModel()
+        let history = Self.makeHistory()
         let network = SystemNetworkMonitor()
         let downloads = Self.makeDownloads(directory: downloadsDirectory, client: client, settings: settings, artwork: artwork)
         let resolver = TrackResolver(client: client, settings: settings, network: network, downloads: downloads)
@@ -84,10 +85,11 @@ final class AppModel {
             store: queueStore,
             scheduler: TaskScheduler(),
             network: network,
-            scrobbler: scrobbler
+            scrobbler: scrobbler,
+            history: history
         )
         self.engine = engine
-        library = Library(client: client, engine: engine, artwork: artwork, settings: settings, downloads: downloads)
+        library = Library(client: client, engine: engine, artwork: artwork, settings: settings, downloads: downloads, history: history)
         self.client = client
         self.scrobbler = scrobbler
         // Send anything left over from a previous run.
@@ -126,6 +128,17 @@ final class AppModel {
             engine.play(songs: try await fetchSongs(client))
         } catch {
             libraryError = error.localizedDescription
+        }
+    }
+
+    // MARK: - History
+
+    private static func makeHistory() -> PlayHistory {
+        do {
+            return PlayHistory(fileURL: try PlayHistory.applicationSupportFile())
+        } catch {
+            logger.error("Play history won't persist: \(String(describing: error), privacy: .public)")
+            return PlayHistory(fileURL: URL.temporaryDirectory.appending(path: "PlayHistory.json"))
         }
     }
 

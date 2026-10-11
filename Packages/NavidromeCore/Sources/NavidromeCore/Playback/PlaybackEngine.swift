@@ -75,6 +75,7 @@ public final class PlaybackEngine {
     @ObservationIgnored private var retryWhenNetworkReturns = false
 
     @ObservationIgnored private let scrobbler: any ScrobbleSubmitting
+    @ObservationIgnored private let history: (any PlayRecording)?
     @ObservationIgnored private var scrobbleTracker = ScrobbleTracker()
     @ObservationIgnored private let now: @MainActor () -> Date
 
@@ -93,6 +94,7 @@ public final class PlaybackEngine {
         network: any NetworkMonitoring,
         scrobbler: any ScrobbleSubmitting,
         recoveryPolicy: RecoveryPolicy = RecoveryPolicy(),
+        history: (any PlayRecording)? = nil,
         now: @escaping @MainActor () -> Date = { Date() }
     ) {
         self.player = player
@@ -104,6 +106,7 @@ public final class PlaybackEngine {
         self.network = network
         self.recoveryPolicy = recoveryPolicy
         self.scrobbler = scrobbler
+        self.history = history
         self.now = now
 
         let snapshot = Self.restore(from: store)
@@ -406,6 +409,10 @@ public final class PlaybackEngine {
             }
             if scrobbleTracker.observe(time: time), let play = scrobbleTracker.play {
                 scrobbler.submit(PendingScrobble(songID: play.songID, playedAt: play.startedAt))
+                // Play history counts by the same rule as scrobbling.
+                if let song = queue.current?.song, song.id == play.songID {
+                    history?.record(song, playedAt: play.startedAt)
+                }
             }
             if abs(time - lastSavedPosition) >= Self.positionSaveInterval {
                 saveSnapshot()
