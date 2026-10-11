@@ -41,7 +41,7 @@ A native iOS music player for a self-hosted Navidrome server. The owner finds ex
 └── MusicApp/              # iOS app target (SwiftUI), thin layer over NavidromeCore
 ```
 
-Later additions (not yet): a CarPlay scene, a WidgetKit extension. Both depend on `NavidromeCore` and must not duplicate logic.
+CarPlay lives in `MusicApp/CarPlay/` (a template scene declared in `Info.plist`) and fills Apple's templates from the same `Library` models as the phone. The CarPlay audio entitlement is in `Config/MusicApp-Simulator.entitlements` and applied to **simulator builds only** (`CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]`), because the owner's free account can't sign it for devices; don't move it to device builds until Apple grants it. Later: a WidgetKit extension, which needs an App Group (not available on the free account). Both depend on `NavidromeCore` and must not duplicate logic.
 
 ## Tech stack and targets
 

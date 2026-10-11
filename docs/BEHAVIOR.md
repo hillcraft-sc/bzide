@@ -102,6 +102,16 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Layout.** Two tabs, Library (artists, albums, playlists) and Search, with a mini player above the tab bar showing the current track, play/pause and next. Tapping the mini player opens Now Playing: artwork, controls, star, and the queue.
 - **Cover art** is looked up by cover art id and size (never by URL, which carries a fresh auth salt each time): memory first, then disk, then the server. Each image is fetched once however many rows show it. Fetched images are saved in `Caches/CoverArt`, which iOS may clear when space runs low. If the server can't be reached, any size of that cover already on disk is shown rather than nothing. Artwork responses never go into the shared on-disk URL cache, because their URLs carry a reusable auth token; only image responses (HTTP 200, `image/*`) are kept.
 
+## CarPlay
+
+- Tabs: Recently Played and Albums (recently added) show the first page of those album lists; Playlists; Downloaded, built from the saved downloads so it works with no connection and refreshed each time it's shown.
+- An album or playlist opens as a list of its songs, headed by Shuffle. Choosing a song plays the album or playlist from that song, the same rule as on the phone, and shows CarPlay's Now Playing screen.
+- Now Playing is CarPlay's built-in screen. It shows the same title, artwork, progress and controls as the lock screen, from the same source.
+- Lists stop at CarPlay's maximum length. While loading a list shows "Loading…"; a failure shows the reason and a Try Again row.
+- Signed out, CarPlay shows "Sign in on your iPhone" and switches to the library once the user signs in.
+- The CarPlay screen can start without the phone's own window (app launched from the car with the phone locked); it uses the same single app model and playback engine as the phone.
+- Until Apple grants the CarPlay entitlement (after M6), only simulator builds carry it.
+
 ## Caching and offline
 
 ### Streaming quality
@@ -194,6 +204,13 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Download a playlist that shares songs with a downloaded album. Remove the album: the playlist's songs still play offline.
 - [ ] Remove All Downloads in Settings: Storage Used goes to zero.
 - [ ] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork.
+
+### CarPlay (simulator)
+- [ ] Open the CarPlay window. The four tabs appear with artwork; each list loads.
+- [ ] Open an album, choose a song: it plays from that song and Now Playing appears with the right artwork and working controls.
+- [ ] Shuffle plays the album shuffled.
+- [ ] Downloaded lists downloads; with the network off, a downloaded album still opens and plays.
+- [ ] Play from the phone while CarPlay is open: CarPlay's Now Playing follows.
 
 ### Scrobbling
 - [ ] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it.

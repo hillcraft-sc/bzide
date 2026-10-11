@@ -9,6 +9,11 @@ import os
 @MainActor
 @Observable
 final class AppModel {
+    /// The one instance, shared by the phone window and CarPlay. CarPlay can
+    /// start without the phone's window (launched from the car with the phone
+    /// locked), so this can't belong to the SwiftUI view tree.
+    static let shared = AppModel()
+
     private(set) var engine: PlaybackEngine?
     private(set) var library: Library?
     private(set) var isSigningIn = false
@@ -22,7 +27,7 @@ final class AppModel {
     @ObservationIgnored private let credentialStore = KeychainCredentialStore()
     private static let logger = Logger(subsystem: "MusicApp", category: "AppModel")
 
-    init() {
+    private init() {
         do {
             if let saved = try credentialStore.load() {
                 start(with: saved)

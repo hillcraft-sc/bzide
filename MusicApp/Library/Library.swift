@@ -45,8 +45,8 @@ final class Library {
         LoadModel { [client] () async throws(SubsonicError) in try await client.playlist(id: id) }
     }
 
-    func albumsModel() -> AlbumsModel {
-        AlbumsModel { [client] type, size, offset async throws(SubsonicError) in
+    func albumsModel(sort: AlbumSort = .newest) -> AlbumsModel {
+        AlbumsModel(sort: sort) { [client] type, size, offset async throws(SubsonicError) in
             try await client.albumList(type, size: size, offset: offset)
         }
     }
