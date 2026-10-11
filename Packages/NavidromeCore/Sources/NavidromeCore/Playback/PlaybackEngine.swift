@@ -299,14 +299,17 @@ public final class PlaybackEngine {
         defer { publishNowPlaying() }
         switch event {
         case .interruptionBegan:
+            Self.logger.notice("Interruption began while \(String(describing: self.status), privacy: .public)")
             guard status.isActive else { return }
             resumeAfterInterruption = true
             stopForSystem()
         case .interruptionEnded(let shouldResume):
             let resume = resumeAfterInterruption && shouldResume
+            Self.logger.notice("Interruption ended: shouldResume \(shouldResume), was playing \(self.resumeAfterInterruption), resuming \(resume)")
             resumeAfterInterruption = false
             if resume { play() }
         case .outputDeviceLost:
+            Self.logger.notice("Output device lost while \(String(describing: self.status), privacy: .public), resume pending \(self.resumeAfterInterruption)")
             // Never fall back to the speaker on our own; the user presses play.
             guard status.isActive else { return }
             resumeAfterInterruption = false

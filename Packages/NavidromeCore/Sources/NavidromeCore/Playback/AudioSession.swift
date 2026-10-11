@@ -70,7 +70,9 @@ public final class SystemAudioSession: AudioSessionControlling {
         ) { [weak self] notification in
             let context = notification.userInfo?[AVAudioSession.deactivationContextKey] as? AVAudioSession.DeactivationContext
             let event = context.flatMap { Self.deactivationEvent(source: $0.source) }
+            let source = context.map { String(describing: $0.source) } ?? "none"
             MainActor.assumeIsolated {
+                Self.logger.notice("Raw: became inactive, source \(source, privacy: .public)")
                 if let event { self?.deliver(event) }
             }
         })
@@ -79,14 +81,32 @@ public final class SystemAudioSession: AudioSessionControlling {
         ) { [weak self] notification in
             let context = notification.userInfo?[AVAudioSession.resumptionContextKey] as? AVAudioSession.ResumptionContext
             let event = Self.resumptionEvent(recommendation: context?.recommendation)
-            MainActor.assumeIsolated { self?.deliver(event) }
+            let recommendation = context.map { String(describing: $0.recommendation) } ?? "none"
+            MainActor.assumeIsolated {
+                Self.logger.notice("Raw: resumption recommendation \(recommendation, privacy: .public)")
+                self?.deliver(event)
+            }
         })
         notificationTokens.append(center.addObserver(
             forName: AVAudioSession.routeChangeNotification, object: session, queue: .main
         ) { [weak self] notification in
             let event = Self.routeChangeEvent(from: notification.userInfo)
+            let reason = (notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt).map(String.init) ?? "none"
             MainActor.assumeIsolated {
+                Self.logger.notice("Raw: route change, reason \(reason, privacy: .public)")
                 if let event { self?.deliver(event) }
+            }
+        })
+        // Not acted on: the classic interruption notification, logged to compare
+        // with the iOS 27 notifications above while diagnosing call handling.
+        notificationTokens.append(center.addObserver(
+            forName: AVAudioSession.interruptionNotification, object: session, queue: .main
+        ) { notification in
+            let type = (notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt).map(String.init) ?? "none"
+            let options = (notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt).map(String.init) ?? "none"
+            let reason = (notification.userInfo?[AVAudioSessionInterruptionReasonKey] as? UInt).map(String.init) ?? "none"
+            MainActor.assumeIsolated {
+                Self.logger.notice("Raw: classic interruption, type \(type, privacy: .public), options \(options, privacy: .public), reason \(reason, privacy: .public)")
             }
         })
         // Apple's docs say observers stay registered across a reset, so this
