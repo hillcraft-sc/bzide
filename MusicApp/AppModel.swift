@@ -68,7 +68,8 @@ final class AppModel {
         let artwork = ArtworkCache(client: client)
         let settings = StreamingSettingsModel()
         let network = SystemNetworkMonitor()
-        let resolver = TrackResolver(client: client, settings: settings, network: network, downloads: NoDownloads())
+        let downloads = Self.makeDownloads(client: client, settings: settings)
+        let resolver = TrackResolver(client: client, settings: settings, network: network, downloads: downloads)
         let engine = PlaybackEngine(
             player: AVQueueAudioPlayer(),
             session: SystemAudioSession(),
@@ -80,7 +81,7 @@ final class AppModel {
             scrobbler: scrobbler
         )
         self.engine = engine
-        library = Library(client: client, engine: engine, artwork: artwork, settings: settings)
+        library = Library(client: client, engine: engine, artwork: artwork, settings: settings, downloads: downloads)
         self.client = client
         self.scrobbler = scrobbler
         // Send anything left over from a previous run.
@@ -121,9 +122,26 @@ final class AppModel {
             libraryError = error.localizedDescription
         }
     }
-}
 
-/// Stands in until downloads exist (M4 step 2).
-private final class NoDownloads: DownloadedTrackLookup {
-    func localFile(forSongID songID: String) -> URL? { nil }
+    // MARK: - Downloads
+
+    private static func makeDownloads(client: SubsonicClient, settings: StreamingSettingsModel) -> DownloadManager {
+        let directory: URL
+        do {
+            directory = try DownloadManager.applicationSupportDirectory()
+        } catch {
+            // Without a place to keep files, downloads can't persist; use temporary
+            // storage so the rest of the app still works.
+            logger.error("Downloads won't persist: \(String(describing: error), privacy: .public)")
+            directory = URL.temporaryDirectory.appending(path: "Downloads")
+        }
+        let manager = DownloadManager(
+            directory: directory,
+            transport: BackgroundDownloadTransport(stagingDirectory: directory.appending(path: "Incoming")),
+            downloadURL: { songID in try client.downloadURL(songID: songID) },
+            allowsCellular: { settings.settings.downloadOverCellular }
+        )
+        Task { await manager.resume() }
+        return manager
+    }
 }
