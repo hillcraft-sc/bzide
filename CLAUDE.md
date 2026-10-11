@@ -136,7 +136,7 @@ Design goals: fast, uncluttered, large readable controls, minimal taps to play s
 
 - [x] **M1: Foundation.** Repo, package layout, API client with auth, Keychain storage, unit tests, integration test against the real server.
 - [ ] **M2: Playback engine.** Background audio, lock screen controls, interruptions, route changes, gapless, queue persistence, tested through a bare debug screen. Stress-test on a real device before moving on.
-  - *Status (2026-10-10):* code complete (engine, audio session, lock screen, network recovery, scrobbling, debug screen); 136 package + 3 app tests pass. Device checklist (`docs/BEHAVIOR.md`) in progress: Basics and Lock screen passed; Audio session partly done (Siri resolved as iOS behaviour). Still to run: rest of Audio session, Network recovery, Scrobbling, and all headphone checks (owner's headphones were charging). Launch from the Home Screen, not under the debugger.
+  - *Status (2026-10-11):* code complete (engine, audio session, lock screen, network recovery, scrobbling, debug screen); 136 package + 3 app tests pass. Device checklist (`docs/BEHAVIOR.md`) passed, with two exceptions: phone calls were tested only with a Clock alarm as a stand-in (still to test with a real call), and wired headphones are untested (owner has none). Before ticking M2: handle "media services were reset" and decide on async audio session activation (both open in `docs/ISSUES.md`). Launch from the Home Screen, not under the debugger.
 - [ ] **M3: Library UI.** Artists, albums, playlists, search, now playing.
 - [ ] **M4: Offline and caching.** Downloads, cover art cache, cellular transcoding settings.
 - [ ] **M5: CarPlay (simulator) and widgets.**
