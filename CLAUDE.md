@@ -141,6 +141,7 @@ Design goals: fast, uncluttered, large readable controls, minimal taps to play s
 - [ ] **M3: Library UI.** Artists, albums, playlists, search, now playing.
   - *Status (2026-10-11):* code complete with plain, system-styled screens: Library and Search tabs, mini player, Now Playing. 173 package + 3 app tests pass. The owner gave a first look on device ("looks good so far"); the Library section of the device checklist in `docs/BEHAVIOR.md` hasn't been run in full. The owner will give design direction after using it.
 - [ ] **M4: Offline and caching.** Downloads, cover art cache, cellular transcoding settings.
+  - *Status (2026-10-11):* code complete: per-connection streaming quality, background downloads of albums and playlists (originals, no storage cap), cover art disk cache with covers kept for downloads. 205 package + 3 app tests pass. On device, the Downloads checklist and offline artwork passed. Still to run: the Streaming quality checks in `docs/BEHAVIOR.md`, especially seeking within a transcoded stream on cellular.
 - [ ] **M5: CarPlay (simulator) and widgets.**
 - [ ] **M6: Daily-drive period.** Fix issues from `docs/ISSUES.md`. Only after this: paid Apple Developer account and CarPlay entitlement request.
 - [ ] **Later:** web client, then Android client, ported from `docs/BEHAVIOR.md`.
