@@ -131,6 +131,7 @@ struct ArtistView: View {
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
                 }
+                .themedRows()
                 Section {
                     ForEach(artist.albums) { album in
                         NavigationLink(value: LibraryRoute.album(id: album.id)) {
@@ -141,8 +142,10 @@ struct ArtistView: View {
                         Text("No Albums").foregroundStyle(.secondary)
                     }
                 }
+                .themedRows()
             }
             .listStyle(.plain)
+            .themedList()
             .toolbar {
                 ToolbarItem {
                     Menu("More", systemImage: "ellipsis") {

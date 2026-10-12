@@ -33,19 +33,24 @@ struct LibraryView: View {
                     Text(notice)
                 }
             }
-            NavigationLink(value: LibraryRoute.artists) { Label("Artists", systemImage: "music.microphone") }
-            NavigationLink(value: LibraryRoute.albums) { Label("Albums", systemImage: "square.stack") }
-            NavigationLink(value: LibraryRoute.playlists) { Label("Playlists", systemImage: "music.note.list") }
-            NavigationLink(value: LibraryRoute.downloads) { Label("Downloaded", systemImage: "arrow.down.circle") }
-            NavigationLink(value: LibraryRoute.history) { Label("History", systemImage: "clock.arrow.circlepath") }
+            .themedRows(grouped: true)
+            Section {
+                NavigationLink(value: LibraryRoute.artists) { Label("Artists", systemImage: "music.microphone") }
+                NavigationLink(value: LibraryRoute.albums) { Label("Albums", systemImage: "square.stack") }
+                NavigationLink(value: LibraryRoute.playlists) { Label("Playlists", systemImage: "music.note.list") }
+                NavigationLink(value: LibraryRoute.downloads) { Label("Downloaded", systemImage: "arrow.down.circle") }
+                NavigationLink(value: LibraryRoute.history) { Label("History", systemImage: "clock.arrow.circlepath") }
+            }
+            .themedRows(grouped: true)
         }
+        .themedList(grouped: true)
         .navigationTitle("Library")
         .toolbar {
             ToolbarItem {
                 NavigationLink {
                     SettingsView(
                         settings: library.settings, downloads: library.downloads, history: library.history,
-                        account: model.account, signOut: model.signOut
+                        appearance: model.appearance, account: model.account, signOut: model.signOut
                     )
                 } label: {
                     Label("Settings", systemImage: "gear")
@@ -85,8 +90,10 @@ struct ArtistsView: View {
                     }
                     .sectionIndexLabel(section.name)
                 }
+                .themedRows()
             }
             .listStyle(.plain)
+            .themedList()
         }
         .navigationTitle("Artists")
         .task { await model.load() }
@@ -112,17 +119,22 @@ struct AlbumsView: View {
                     }
                     .task { await model.loadMoreIfNeeded(after: album) }
                 }
-                if model.isLoadingMore {
-                    ProgressView().frame(maxWidth: .infinity)
-                } else if let error = model.loadMoreError {
-                    VStack(spacing: 8) {
-                        Text(error).font(.caption).foregroundStyle(.secondary)
-                        Button("Load More") { Task { await model.loadMore() } }
+                .themedRows()
+                Group {
+                    if model.isLoadingMore {
+                        ProgressView().frame(maxWidth: .infinity)
+                    } else if let error = model.loadMoreError {
+                        VStack(spacing: 8) {
+                            Text(error).font(.caption).foregroundStyle(.secondary)
+                            Button("Load More") { Task { await model.loadMore() } }
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
                 }
+                .themedRows()
             }
             .listStyle(.plain)
+            .themedList()
             .overlay {
                 if albums.isEmpty {
                     ContentUnavailableView("No Albums", systemImage: "square.stack")
@@ -169,8 +181,10 @@ struct PlaylistsView: View {
                         }
                     }
                 }
+                .themedRows()
             }
             .listStyle(.plain)
+            .themedList()
             .overlay {
                 if playlists.isEmpty {
                     ContentUnavailableView("No Playlists", systemImage: "music.note.list")

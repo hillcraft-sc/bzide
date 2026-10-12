@@ -24,8 +24,10 @@ struct HistoryView: View {
                     }
                 }
             }
+            .themedRows()
         }
         .listStyle(.plain)
+        .themedList()
         .overlay {
             if library.history.entries.isEmpty {
                 ContentUnavailableView(
@@ -123,9 +125,13 @@ private struct DateRangePicker: View {
     var body: some View {
         NavigationStack {
             Form {
-                DatePicker("From", selection: $from, in: ...Date(), displayedComponents: .date)
-                DatePicker("To", selection: $to, in: ...Date(), displayedComponents: .date)
+                Section {
+                    DatePicker("From", selection: $from, in: ...Date(), displayedComponents: .date)
+                    DatePicker("To", selection: $to, in: ...Date(), displayedComponents: .date)
+                }
+                .themedRows(grouped: true)
             }
+            .themedList(grouped: true)
             .navigationTitle("Choose Dates")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

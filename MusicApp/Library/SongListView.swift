@@ -25,6 +25,7 @@ struct SongListView<Header: View>: View {
                 .disabled(songs.isEmpty)
                 .listRowSeparator(.hidden)
             }
+            .themedRows()
             Section {
                 ForEach(Array(songs.enumerated()), id: \.offset) { index, song in
                     Button {
@@ -40,8 +41,10 @@ struct SongListView<Header: View>: View {
                     .contextMenu { SongActions(library: library, song: song) }
                 }
             }
+            .themedRows()
         }
         .listStyle(.plain)
+        .themedList()
     }
 }
 

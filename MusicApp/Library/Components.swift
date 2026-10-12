@@ -36,10 +36,14 @@ struct LoadStateView<Value, Content: View>: View {
     let retry: () async -> Void
     @ViewBuilder let content: (Value) -> Content
 
+    @Environment(\.catppuccin) private var palette
+
     var body: some View {
         switch state {
         case .loading:
-            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(palette.map { Color($0.base) } ?? .clear)
         case .failed(let message):
             ContentUnavailableView {
                 Label("Couldn't load", systemImage: "exclamationmark.triangle")
@@ -48,6 +52,7 @@ struct LoadStateView<Value, Content: View>: View {
             } actions: {
                 Button("Try Again") { Task { await retry() } }
             }
+            .background(palette.map { Color($0.base) } ?? .clear)
         case .loaded(let value):
             content(value)
         }

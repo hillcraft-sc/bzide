@@ -23,6 +23,8 @@ final class AppModel {
     private(set) var libraryError: String?
     /// Who is signed in, for Settings.
     private(set) var account: AccountSummary?
+    /// Device-wide, so the theme also applies to the sign-in screen and survives sign-out.
+    let appearance = AppearanceModel()
 
     @ObservationIgnored private var client: SubsonicClient?
     @ObservationIgnored private var scrobbler: Scrobbler?

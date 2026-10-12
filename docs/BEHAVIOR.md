@@ -125,6 +125,13 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Layout.** Two tabs, Library (artists, albums, playlists) and Search, with a mini player above the tab bar showing the current track, play/pause and next. Tapping the mini player opens Now Playing: artwork, controls, favorite and rating, and the queue.
 - **Cover art** is looked up by cover art id and size (never by URL, which carries a fresh auth salt each time): memory first, then disk, then the server. Each image is fetched once however many rows show it. Fetched images are saved in `Caches/CoverArt`, which iOS may clear when space runs low. If the server can't be reached, any size of that cover already on disk is shown rather than nothing. Artwork responses never go into the shared on-disk URL cache, because their URLs carry a reusable auth token; only image responses (HTTP 200, `image/*`) are kept.
 
+## Appearance
+
+- **Themes.** Settings > Appearance offers System (follows the phone's light or dark mode, the default), Light, Dark, and four [Catppuccin](https://catppuccin.com) flavours: Latte (light), Frappé, Macchiato and Mocha (dark). A flavour forces its own mode; it doesn't switch with the phone. The choice is kept on the device, applies at once, including on the sign-in screen, and stays across sign-outs. A saved theme or accent the app doesn't recognise falls back to its default without resetting the other.
+- **Catppuccin colours.** With a flavour chosen, the user also picks one of its 14 accents (Rosewater, Flamingo, Pink, Mauve, Red, Maroon, Peach, Yellow, Green, Teal, Sky, Sapphire, Blue, Lavender; Mauve by default), shown as swatches in that flavour's shades. The accent replaces the system tint everywhere iOS would use it: buttons and their icons (Play, Shuffle, favorite, rating, toolbar, mini player), list icons, the selected tab, the current song and sliders. Text keeps iOS's own label colours (white and grey in dark flavours, black and grey in Latte), because a theme-wide text colour would also override the accent on buttons. Plain lists sit on `base`. Grouped lists (Settings, the Library home, sign-in, the date picker) sit on `base` with `surface0` rows in dark flavours, and on `crust` with `base` rows in Latte. The light and dark system themes keep iOS's own colours and tint.
+- **Limits.** iOS draws some things itself: the navigation and tab bars and the mini player are glass over the themed background, navigation titles are iOS's black or white, and menus, alerts, context menus and the keyboard follow only the flavour's light or dark mode.
+- Palette values are Catppuccin's published ones (MIT licence), from github.com/catppuccin/palette.
+
 ## Play history
 
 - A play is added to the history at the moment it counts for scrobbling (half the track or 4 minutes, whichever comes first), recorded with the song as it was and the time the play started. Skipped plays aren't recorded. Works offline.
@@ -259,6 +266,16 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Remove All Downloads in Settings: Storage Used goes to zero. (2026-10-11)
 - [ ] Search Downloaded by album name, artist and a song title: each finds the right download; a search with no match says so.
 - [x] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork. (2026-10-11)
+
+### Appearance
+
+- [ ] Settings > Appearance > Theme: choose Catppuccin Mocha. The app turns Mocha at once without leaving Settings: dark blue-grey background, lighter rows, Mauve tint.
+- [ ] With Mocha, pick a few accents (e.g. Peach, Green, Blue): the swatch gets a tick and the tint changes everywhere (tab bar, Play and Shuffle, the current song, Now Playing's slider).
+- [ ] Browse every screen in Mocha: Library, Artists (letter headers), an artist, Albums, an album, Playlists, Downloaded, History, Search with results, Now Playing and its queue. No plain black areas left; text is readable.
+- [ ] Choose Latte: everything turns light, including Now Playing and the History date picker sheet. Then Frappé and Macchiato.
+- [ ] With the phone in light mode, Mocha stays dark; with the phone in dark mode, Latte stays light.
+- [ ] Back to System: the app follows the phone's light or dark mode with iOS blue, as before.
+- [ ] Force quit and relaunch: the chosen theme and accent are kept. Sign out: the sign-in screen is in the theme too.
 
 ### Play history
 - [ ] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear.

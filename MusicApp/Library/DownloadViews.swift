@@ -60,8 +60,10 @@ struct DownloadsView: View {
                     }
                 }
             }
+            .themedRows()
         }
         .listStyle(.plain)
+        .themedList()
         .overlay {
             if downloads.collections.isEmpty {
                 ContentUnavailableView(

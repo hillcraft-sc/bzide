@@ -12,39 +12,43 @@ struct SearchView: View {
 
     var body: some View {
         List {
-            if let results = model.results {
-                if !results.artists.isEmpty {
-                    Section("Artists") {
-                        ForEach(results.artists) { artist in
-                            NavigationLink(artist.name.isEmpty ? "Unknown Artist" : artist.name, value: LibraryRoute.artist(id: artist.id))
-                        }
-                    }
-                }
-                if !results.albums.isEmpty {
-                    Section("Albums") {
-                        ForEach(results.albums) { album in
-                            NavigationLink(value: LibraryRoute.album(id: album.id)) {
-                                AlbumRow(library: library, album: album)
+            Group {
+                if let results = model.results {
+                    if !results.artists.isEmpty {
+                        Section("Artists") {
+                            ForEach(results.artists) { artist in
+                                NavigationLink(artist.name.isEmpty ? "Unknown Artist" : artist.name, value: LibraryRoute.artist(id: artist.id))
                             }
                         }
                     }
-                }
-                if !results.songs.isEmpty {
-                    Section("Songs") {
-                        ForEach(Array(results.songs.enumerated()), id: \.offset) { index, song in
-                            Button {
-                                library.engine.play(songs: results.songs, startIndex: index)
-                            } label: {
-                                SongRow(song: song, isCurrent: song.id == library.engine.queue.current?.song.id)
+                    if !results.albums.isEmpty {
+                        Section("Albums") {
+                            ForEach(results.albums) { album in
+                                NavigationLink(value: LibraryRoute.album(id: album.id)) {
+                                    AlbumRow(library: library, album: album)
+                                }
                             }
-                            .foregroundStyle(.primary)
-                            .contextMenu { SongActions(library: library, song: song) }
+                        }
+                    }
+                    if !results.songs.isEmpty {
+                        Section("Songs") {
+                            ForEach(Array(results.songs.enumerated()), id: \.offset) { index, song in
+                                Button {
+                                    library.engine.play(songs: results.songs, startIndex: index)
+                                } label: {
+                                    SongRow(song: song, isCurrent: song.id == library.engine.queue.current?.song.id)
+                                }
+                                .foregroundStyle(.primary)
+                                .contextMenu { SongActions(library: library, song: song) }
+                            }
                         }
                     }
                 }
             }
+            .themedRows()
         }
         .listStyle(.plain)
+        .themedList()
         .overlay { overlay }
         .navigationTitle("Search")
         .searchable(text: Binding(get: { model.query }, set: { model.updateQuery($0) }), prompt: "Artists, albums, songs")

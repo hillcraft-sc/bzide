@@ -64,6 +64,7 @@ struct NowPlayingView: View {
                         .listRowSeparator(.hidden)
                     }
                 }
+                .themedRows()
                 Section {
                     QueueList(engine: engine)
                 } header: {
@@ -77,8 +78,10 @@ struct NowPlayingView: View {
                         }
                     }
                 }
+                .themedRows()
             }
             .listStyle(.plain)
+            .themedList()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "chevron.down") { dismiss() }
