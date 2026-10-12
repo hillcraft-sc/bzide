@@ -100,6 +100,13 @@ public final class PlaybackEngine {
     @ObservationIgnored private var scrobbleTracker = ScrobbleTracker()
     @ObservationIgnored private let now: @MainActor () -> Date
 
+    /// Bumped by every play request and anything that cancels one, so a slow
+    /// activation can't start the player after the user moved on.
+    @ObservationIgnored private var activationRequest = 0
+    /// Waiting for the audio session before starting the player. The loaded
+    /// player reports "paused" meanwhile; that's expected and not shown.
+    @ObservationIgnored private var isActivationPending = false
+
     /// How often, in seconds of playback, the position is saved while playing.
     static let positionSaveInterval: TimeInterval = 10
 
@@ -186,6 +193,7 @@ public final class PlaybackEngine {
     private func start(_ newQueue: PlaybackQueue, shuffleOrigin origin: [QueueEntry.ID]?) {
         defer { publishNowPlaying() }
         cancelRecovery()
+        cancelPendingActivation()
         queue = newQueue
         shuffleOrigin = newQueue.isEmpty ? nil : origin
         resetForNewTrack()
@@ -224,6 +232,7 @@ public final class PlaybackEngine {
         guard !queue.isEmpty else { return }
         resumeAfterInterruption = false
         resumeAfterMediaServicesReset = false
+        cancelPendingActivation()
         player.pause()
         status = .paused
         saveSnapshot()
@@ -408,6 +417,7 @@ public final class PlaybackEngine {
     private func mediaServicesLost() {
         Self.logger.notice("Media services were lost")
         isAwaitingMediaServicesReset = true
+        cancelPendingActivation()
         if status.isActive {
             resumeAfterMediaServicesReset = true
             status = .paused
@@ -425,6 +435,7 @@ public final class PlaybackEngine {
         isAwaitingMediaServicesReset = false
         resumeAfterMediaServicesReset = false
         cancelRecovery()
+        cancelPendingActivation()
         player.rebuild()
         isPlayerLoaded = false
         if wasActive { status = .paused }
@@ -439,6 +450,7 @@ public final class PlaybackEngine {
     /// The last track finished: the queue is done and is emptied, which also
     /// clears Now Playing.
     private func endQueue() {
+        cancelPendingActivation()
         queue = PlaybackQueue()
         shuffleOrigin = nil
         player.setItems([], startPosition: 0)
@@ -452,6 +464,7 @@ public final class PlaybackEngine {
     /// Pauses because of something outside the user's control.
     private func stopForSystem() {
         cancelRecovery()
+        cancelPendingActivation()
         player.pause()
         status = .paused
         saveSnapshot()
@@ -473,6 +486,7 @@ public final class PlaybackEngine {
             // reconnecting the old player's reports are stale.
             if case .failed = status { return }
             if status == .reconnecting { return }
+            if isActivationPending, playerStatus == .paused { return }
             switch playerStatus {
             case .paused: status = .paused
             case .buffering: status = .buffering
@@ -689,19 +703,34 @@ public final class PlaybackEngine {
 
     // MARK: - Helpers
 
+    /// Activates the audio session, then starts the player once it's active.
+    /// Starting the player first would make AVFoundation activate the session
+    /// itself, synchronously, on the main thread.
     private func startPlayback() {
         guard isPlayerLoaded else { return }
-        do {
-            try session.activate()
-        } catch {
-            player.pause()
-            status = .failed("Can't play right now: \(error.message)")
-            return
-        }
-        // Set before calling the player, so its own status report (which may arrive
-        // immediately) has the last word.
         status = .buffering
-        player.play()
+        activationRequest += 1
+        isActivationPending = true
+        let request = activationRequest
+        session.activate { [weak self] error in
+            guard let self else { return }
+            // Paused, interrupted or replaced meanwhile: this one no longer counts.
+            guard request == self.activationRequest, self.isPlayerLoaded else { return }
+            self.isActivationPending = false
+            if let error {
+                self.player.pause()
+                self.status = .failed("Can't play right now: \(error.message)")
+            } else {
+                // The player's own status report (which may arrive at once) has the last word.
+                self.player.play()
+            }
+            self.publishNowPlaying()
+        }
+    }
+
+    private func cancelPendingActivation() {
+        activationRequest += 1
+        isActivationPending = false
     }
 
     /// Where next goes: the following entry, or with repeat all the first one

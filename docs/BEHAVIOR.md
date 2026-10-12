@@ -49,7 +49,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 ### Audio session and interruptions
 
-- Before every play, the app claims audio output for long-form music playback (category playback, long-form audio routing policy, which routes to AirPlay and CarPlay like other music apps). If the system refuses, the track fails with "Can't play right now: <reason>".
+- The audio category (playback, long-form audio routing policy, which routes to AirPlay and CarPlay like other music apps) is set once at launch, while the session is inactive, and again after a media services reset, which forgets it. On every play the app then activates the session asynchronously (iOS 27's non-blocking activation, so the main thread never waits) and starts the player only once it's active; meanwhile the status is Buffering, and the player's own "paused" reports are ignored. Pausing, an interruption, media services going down, the queue ending or a new queue cancels a waiting activation, so a late one never starts playback; a skip to the preloaded next song keeps it, and that song starts when it completes. If the system refuses, the track shows as failed ("Can't play right now: …") and play tries again.
 - When the system takes audio away (call, Siri, alarm, another app), playback pauses. If music was playing, the app remembers that.
 - When the system later sends its resumption recommendation, playback resumes only if music was playing before the interruption **and** the system recommends resuming. A missing recommendation means don't resume.
 - If the user presses play or pause during an interruption, their choice wins and the app won't auto-resume.

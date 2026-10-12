@@ -31,8 +31,10 @@ public struct AudioSessionError: Error, Equatable, Sendable {
 @MainActor
 public protocol AudioSessionControlling: AnyObject {
     var onEvent: (@MainActor (AudioSessionEvent) -> Void)? { get set }
-    /// Claims audio output for music playback. Called before every play.
-    func activate() throws(AudioSessionError)
+    /// Claims audio output for music playback, called on every play. Returns at
+    /// once; `completion` gets `nil` once the session is active, or why it
+    /// couldn't be.
+    func activate(completion: @escaping @MainActor @Sendable (AudioSessionError?) -> Void)
 }
 
 /// `AudioSessionControlling` backed by the shared `AVAudioSession`.
@@ -44,22 +46,50 @@ public final class SystemAudioSession: AudioSessionControlling {
     private let session = AVAudioSession.sharedInstance()
     private var notificationTokens: [any NSObjectProtocol] = []
 
-    private static let logger = Logger(subsystem: "MusicApp", category: "AudioSession")
+    nonisolated private static let logger = Logger(subsystem: "MusicApp", category: "AudioSession")
 
     public init() {
+        configureCategory()
         observeNotifications()
     }
 
-    public func activate() throws(AudioSessionError) {
+    /// Set while the session is inactive: at launch, and after a media services
+    /// reset (which forgets it). Setting it on every play, as before, blocked
+    /// the main thread whenever the session was already active.
+    private func configureCategory() {
         do {
             // `.longFormAudio` is Apple's policy for music and podcast apps; it
             // routes playback to AirPlay and CarPlay like other music apps.
             try session.setCategory(.playback, mode: .default, policy: .longFormAudio)
-            try session.setActive(true)
         } catch {
-            let nsError = error as NSError
-            Self.logger.error("Activation failed: \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public)")
-            throw AudioSessionError(message: error.localizedDescription)
+            Self.logger.error("Couldn't set the audio category: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// iOS 27's asynchronous activation: the synchronous `setActive(true)`
+    /// could block the main thread (iOS logs a warning about it on device).
+    public func activate(completion: @escaping @MainActor @Sendable (AudioSessionError?) -> Void) {
+        session.activate(options: [], completionHandler: Self.activationHandler(startedAt: .now, then: completion))
+    }
+
+    /// The system calls this on its own queue, so it's built nonisolated (not
+    /// main-actor isolated; see CLAUDE.md) and hops to the main actor itself.
+    nonisolated private static func activationHandler(
+        startedAt start: ContinuousClock.Instant,
+        then completion: @escaping @MainActor @Sendable (AudioSessionError?) -> Void
+    ) -> @Sendable (Bool, (any Error)?) -> Void {
+        { activated, error in
+            let elapsed = ContinuousClock.now - start
+            var failure: AudioSessionError?
+            if activated {
+                logger.notice("Activated in \(elapsed.formatted(.units(allowed: [.milliseconds])), privacy: .public)")
+            } else {
+                let message = error?.localizedDescription ?? "The audio session couldn't be activated."
+                let code = (error as NSError?).map { "\($0.domain) \($0.code)" } ?? "no error"
+                logger.error("Activation failed after \(elapsed.formatted(.units(allowed: [.milliseconds])), privacy: .public): \(code, privacy: .public)")
+                failure = AudioSessionError(message: message)
+            }
+            Task { @MainActor in completion(failure) }
         }
     }
 
@@ -120,7 +150,11 @@ public final class SystemAudioSession: AudioSessionControlling {
         notificationTokens.append(center.addObserver(
             forName: AVAudioSession.mediaServicesWereResetNotification, object: session, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.deliver(.mediaServicesReset) }
+            MainActor.assumeIsolated {
+                // The reset forgot our category; set it again before the engine replays.
+                self?.configureCategory()
+                self?.deliver(.mediaServicesReset)
+            }
         })
     }
 
