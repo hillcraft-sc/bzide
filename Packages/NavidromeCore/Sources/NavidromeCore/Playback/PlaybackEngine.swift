@@ -35,6 +35,13 @@ public final class PlaybackEngine {
     /// Seconds. From the server's metadata until the player knows better.
     public private(set) var duration: TimeInterval?
     public private(set) var repeatMode: RepeatMode
+    /// The order before shuffling, while shuffle is on.
+    private var shuffleOrigin: [QueueEntry.ID]?
+
+    /// Shuffle is on: up next is in shuffled order, and turning it off puts
+    /// what's left back in the original order.
+    public var isShuffled: Bool { shuffleOrigin != nil }
+
     /// What a radio station says it's playing now, when it says. Always `nil`
     /// for songs.
     public private(set) var streamTitle: String?
@@ -122,6 +129,7 @@ public final class PlaybackEngine {
         lastSavedPosition = restoredPosition
         status = restoredQueue.isEmpty ? .idle : .paused
         repeatMode = snapshot?.repeatMode ?? .off
+        shuffleOrigin = snapshot?.shuffleOrigin
         duration = restoredQueue.current?.song.duration.map(TimeInterval.init)
 
         player.onEvent = { [weak self] event in self?.handle(event) }
@@ -135,10 +143,41 @@ public final class PlaybackEngine {
     // MARK: - Commands
 
     /// Replaces the queue and starts playing at `startIndex`.
+    /// Replaces the queue and starts playing at `startIndex`, in order:
+    /// shuffle turns off.
     public func play(songs: [Song], startIndex: Int = 0) {
+        start(PlaybackQueue(songs: songs, startIndex: startIndex), shuffleOrigin: nil)
+    }
+
+    /// Plays the songs in a random order with shuffle on, so turning shuffle
+    /// off carries on with the rest in their original order.
+    public func playShuffled(_ songs: [Song]) {
+        let original = PlaybackQueue(songs: songs)
+        start(PlaybackQueue(entries: original.entries.shuffled()), shuffleOrigin: original.entries.map(\.id))
+    }
+
+    /// Turns shuffle on (shuffling up next) or off (restoring its order). The
+    /// current song plays on either way. Not for a radio station.
+    public func toggleShuffle() {
+        defer { publishNowPlaying() }
+        guard !queue.isEmpty, !isLive else { return }
+        let nextBefore = preloadEntry?.id
+        if let origin = shuffleOrigin {
+            queue.restoreUpcoming(order: origin)
+            shuffleOrigin = nil
+        } else {
+            shuffleOrigin = queue.entries.map(\.id)
+            queue.shuffleUpcoming()
+        }
+        refreshUpcomingIfChanged(from: nextBefore)
+        saveSnapshot()
+    }
+
+    private func start(_ newQueue: PlaybackQueue, shuffleOrigin origin: [QueueEntry.ID]?) {
         defer { publishNowPlaying() }
         cancelRecovery()
-        queue = PlaybackQueue(songs: songs, startIndex: startIndex)
+        queue = newQueue
+        shuffleOrigin = newQueue.isEmpty ? nil : origin
         resetForNewTrack()
         saveSnapshot()
         guard !queue.isEmpty else {
@@ -149,11 +188,6 @@ public final class PlaybackEngine {
         }
         loadPlayer(startPosition: 0)
         startPlayback()
-    }
-
-    /// Shuffles the songs once and plays them as an ordinary queue.
-    public func playShuffled(_ songs: [Song]) {
-        play(songs: songs.shuffled())
     }
 
     public func play() {
@@ -396,6 +430,7 @@ public final class PlaybackEngine {
     /// clears Now Playing.
     private func endQueue() {
         queue = PlaybackQueue()
+        shuffleOrigin = nil
         player.setItems([], startPosition: 0)
         status = .idle
         position = 0
@@ -794,7 +829,7 @@ public final class PlaybackEngine {
 
     private func saveSnapshot() {
         do {
-            try store.save(QueueSnapshot(queue: queue, position: position, repeatMode: repeatMode))
+            try store.save(QueueSnapshot(queue: queue, position: position, repeatMode: repeatMode, shuffleOrigin: shuffleOrigin))
             lastSavedPosition = position
         } catch {
             // Losing a save is better than interrupting playback; the next save retries.

@@ -42,26 +42,33 @@ struct TransportControls: View {
                 .foregroundStyle(.secondary)
             }
 
-            HStack {
-                Spacer()
+            // Previous, play and next are centred under the progress bar; shuffle
+            // and repeat sit at the edges as overlays so they don't pull them off centre.
+            HStack(spacing: 44) {
                 Button("Previous", systemImage: "backward.fill") { engine.previous() }
                     .disabled(engine.isLive)
-                Spacer()
                 Button(engine.status.isActive ? "Pause" : "Play",
                        systemImage: engine.status.isActive ? "pause.fill" : "play.fill") {
                     engine.togglePlayPause()
                 }
                 .font(.largeTitle)
-                Spacer()
                 Button("Next", systemImage: "forward.fill") { engine.next() }
                     .disabled(!engine.canGoNext)
-                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .leading) {
+                Button(engine.isShuffled ? "Shuffle On" : "Shuffle Off", systemImage: "shuffle") {
+                    engine.toggleShuffle()
+                }
+                .foregroundStyle(engine.isShuffled ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                .disabled(engine.isLive)
+            }
+            .overlay(alignment: .trailing) {
                 Button(repeatLabel, systemImage: engine.repeatMode == .one ? "repeat.1" : "repeat") {
                     engine.cycleRepeatMode()
                 }
                 .foregroundStyle(engine.repeatMode == .off ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 .disabled(engine.isLive)
-                Spacer()
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)

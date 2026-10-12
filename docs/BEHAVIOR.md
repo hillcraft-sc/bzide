@@ -99,7 +99,12 @@ How the app behaves, written so the web and Android clients can be ported from t
 - The queue as shown is the current entry and what's after it. Entries already played are kept out of sight, so previous can still go back to them, until the queue ends or is replaced.
 - Play next inserts songs right after the current entry, ahead of everything else upcoming; the most recent play next goes first. The current track keeps playing; the track the player had buffered as next is swapped for the first inserted song, so the handover stays gapless. On an empty queue it behaves like appending (queued, not started). A queue restored after relaunch and not yet played isn't loaded just to insert.
 - **Editing up next.** In Now Playing's queue, swiping an upcoming song left offers Remove, and long-pressing and dragging an upcoming song moves it. Only upcoming entries can be edited: the current song stays at the top (neither removable nor movable) and played entries stay hidden and untouched. Removing takes out just that entry, even if the same song is queued again. If the edit changes which entry plays next, the player's buffered next track is swapped, without interrupting the current one, so the handover stays gapless; an edit further down leaves the buffer alone. Edits are saved with the queue. On a restored queue that hasn't been played yet, editing doesn't load the player.
-- Shuffle play shuffles the chosen songs once and plays them as an ordinary queue starting at the first. There is no shuffle mode that stays on.
+- **Shuffle** is a mode, turned on and off by the button left of the playback controls (grey when off, the accent colour when on).
+  - Turning it on shuffles the upcoming entries; the current song plays on, and played entries are untouched. The original order is remembered.
+  - Turning it off puts the upcoming entries back in that original order; the current song plays on. Entries added while shuffled (play next, add to queue) keep their places; removed ones are simply gone; reorders made while shuffled are undone.
+  - Shuffle buttons elsewhere (album, playlist, genre, menus, Siri) start the songs in a random order with shuffle on, so turning it off continues with the songs not yet played in their original order. Play, and anything else that starts a new queue in order, turns shuffle off.
+  - The mode and the original order are saved with the queue (a queue saved before shuffle existed has it off). It can't be turned on for a radio station.
+  - Either way, if the entry that plays next changes, the buffered next track is swapped without interrupting the current one; otherwise the buffer is left alone.
 - Repeat has three modes, stepped through by one button: off, repeat all, repeat one. It's saved with the queue (a queue saved before repeat existed has it off) and stays as set when a new queue starts.
   - **Off:** when the last track ends, the queue is done (see Playback).
   - **Repeat all:** after the last track the queue starts again from the first entry, including entries already played. On the last track the player preloads the first, so the wrap is gapless, and next wraps too. A queue of one track plays it again.
@@ -280,6 +285,10 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] In Now Playing, swipe an upcoming song left > Remove: it's gone and the current song plays on. Remove the very next song: when the current one ends, the one after it plays, without a gap. (2026-10-12)
 - [x] Long-press and drag an upcoming song to a new place; drag another to right after the current song: when the current one ends, that song plays next, without a gap. (2026-10-12)
 - [ ] The current song (top row) can't be swiped or dragged. Force quit and relaunch after editing: the queue keeps the new order.
+- [ ] Now Playing: Previous, Play and Next are centred under the progress bar, with Shuffle on the left and Repeat on the right.
+- [ ] Play an album, then tap Shuffle: it turns the accent colour, the queue below is shuffled, the song keeps playing, and the next one plays without a gap. Tap it again: the rest of the album is back in order.
+- [ ] Tap an album's Shuffle button: Shuffle is shown on. Turn it off: the songs not yet played follow in album order. Play an album normally: Shuffle is off.
+- [ ] Turn Shuffle on, force quit and relaunch: it's still on, and turning it off restores the order.
 - [x] Play an album and let a few tracks pass: the queue in Now Playing starts at the current song, but Previous still goes back through the earlier ones. (2026-10-11)
 - [x] Star an album, go back and reopen it: still starred. Check in Navidrome's web UI that it's starred there too. (2026-10-11)
 - [x] Favorite an album, an artist and a song (heart): each stays favorited after reopening, and shows as a favorite in Navidrome's web UI. Unfavorite one: it clears there too. (2026-10-11)

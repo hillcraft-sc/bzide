@@ -32,6 +32,12 @@ public struct PlaybackQueue: Sendable, Equatable, Codable {
         currentIndex = songs.isEmpty ? nil : min(max(startIndex, 0), songs.count - 1)
     }
 
+    /// Existing entries (keeping their ids), starting at `startIndex`, clamped.
+    public init(entries: [QueueEntry], startIndex: Int = 0) {
+        self.entries = entries
+        currentIndex = entries.isEmpty ? nil : min(max(startIndex, 0), entries.count - 1)
+    }
+
     public var isEmpty: Bool { entries.isEmpty }
 
     public var current: QueueEntry? {
@@ -121,6 +127,33 @@ public struct PlaybackQueue: Sendable, Equatable, Codable {
             upcoming.remove(at: offset)
         }
         upcoming.insert(contentsOf: moving, at: target)
+        entries.replaceSubrange((currentIndex + 1)..., with: upcoming)
+    }
+
+    /// Shuffles the upcoming entries; the current and played ones stay put.
+    public mutating func shuffleUpcoming(using generator: inout some RandomNumberGenerator) {
+        guard let currentIndex, hasNext else { return }
+        entries[(currentIndex + 1)...].shuffle(using: &generator)
+    }
+
+    public mutating func shuffleUpcoming() {
+        var generator = SystemRandomNumberGenerator()
+        shuffleUpcoming(using: &generator)
+    }
+
+    /// Puts the upcoming entries back in `order` (entry ids, as they were before
+    /// shuffling). Entries `order` doesn't know (added while shuffled, like a
+    /// play next) keep their places; the rest fill the remaining places in
+    /// their original order.
+    public mutating func restoreUpcoming(order: [QueueEntry.ID]) {
+        guard let currentIndex, hasNext else { return }
+        let rank = Dictionary(order.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        var upcoming = Array(entries[(currentIndex + 1)...])
+        let slots = upcoming.indices.filter { rank[upcoming[$0].id] != nil }
+        let known = slots.map { upcoming[$0] }.sorted { (rank[$0.id] ?? 0) < (rank[$1.id] ?? 0) }
+        for (slot, entry) in zip(slots, known) {
+            upcoming[slot] = entry
+        }
         entries.replaceSubrange((currentIndex + 1)..., with: upcoming)
     }
 

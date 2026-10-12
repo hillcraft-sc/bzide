@@ -8,14 +8,18 @@ public struct QueueSnapshot: Sendable, Equatable, Codable {
     /// Seconds into the current entry.
     public var position: TimeInterval
     public var repeatMode: RepeatMode
+    /// While shuffle is on: the entries' order before shuffling, to go back to.
+    /// `nil` means shuffle is off.
+    public var shuffleOrigin: [QueueEntry.ID]?
 
-    public init(queue: PlaybackQueue, position: TimeInterval, repeatMode: RepeatMode = .off) {
+    public init(queue: PlaybackQueue, position: TimeInterval, repeatMode: RepeatMode = .off, shuffleOrigin: [QueueEntry.ID]? = nil) {
         self.queue = queue
         self.position = position
         self.repeatMode = repeatMode
+        self.shuffleOrigin = shuffleOrigin
     }
 
-    private enum CodingKeys: String, CodingKey { case queue, position, repeatMode }
+    private enum CodingKeys: String, CodingKey { case queue, position, repeatMode, shuffleOrigin }
 
     /// Queues saved before repeat existed have no mode: off.
     public init(from decoder: any Decoder) throws {
@@ -23,6 +27,8 @@ public struct QueueSnapshot: Sendable, Equatable, Codable {
         queue = try c.decode(PlaybackQueue.self, forKey: .queue)
         position = try c.decode(TimeInterval.self, forKey: .position)
         repeatMode = (try? c.decodeIfPresent(RepeatMode.self, forKey: .repeatMode)) ?? .off
+        // Saved before shuffle existed, or unreadable: shuffle off.
+        shuffleOrigin = try? c.decodeIfPresent([QueueEntry.ID].self, forKey: .shuffleOrigin)
     }
 }
 
