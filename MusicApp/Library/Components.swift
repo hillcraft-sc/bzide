@@ -138,7 +138,7 @@ struct RateMenu: View {
 
     var body: some View {
         let current = ratings.rating(target, fromServer: fromServer)
-        Menu(current.map { "Rated \($0.title)" } ?? "Rate", systemImage: current == nil ? "star" : "star.fill") {
+        Menu(current.map { "Rated: \($0.title)" } ?? "Rate", systemImage: current == nil ? "star" : "star.fill") {
             ForEach(Rating.allCases.reversed(), id: \.self) { rating in
                 // A toggle so the menu draws the checkmark; turning the current
                 // one off is choosing it again, which clears it.
