@@ -45,7 +45,9 @@ struct SongDownloadTests {
 
         #expect(manager.collections(matching: "").map(\.id) == ["album:al-9"])
         #expect(manager.songDownloads(matching: "").map(\.id) == ["song:so-2", "song:so-1"])
-        #expect(manager.songDownloads(matching: "aurora").map(\.id) == ["song:so-1"])
+        // Searched by title: both test songs share an artist.
+        #expect(manager.songDownloads(matching: "dawn").map(\.id) == ["song:so-1"])
+        #expect(manager.songDownloads(matching: "aurora").map(\.id) == ["song:so-2", "song:so-1"])
     }
 
     @Test func membershipTellsOwnFromPartOfAnAlbum() {
