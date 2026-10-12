@@ -280,6 +280,15 @@ private final class StreamTitleReader: NSObject, AVPlayerItemMetadataOutputPushD
         let titleItem = items.first { $0.identifier == .icyMetadataStreamTitle }
             ?? items.first { $0.commonKey == .commonKeyTitle }
         guard let titleItem else { return }
-        onTitle(ObjectIdentifier(output), titleItem.stringValue)
+        // AVMetadataItem is immutable (changes need the separate
+        // AVMutableMetadataItem), so the task can read it safely even though
+        // the SDK doesn't mark it Sendable.
+        nonisolated(unsafe) let item = titleItem
+        let key = ObjectIdentifier(output)
+        let onTitle = onTitle
+        Task {
+            let title = try? await item.load(.stringValue)
+            onTitle(key, title ?? nil)
+        }
     }
 }
