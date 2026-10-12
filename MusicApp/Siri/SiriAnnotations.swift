@@ -14,8 +14,9 @@ extension View {
         appEntityIdentifier(EntityIdentifier(for: AlbumEntity.self, identifier: id))
     }
 
-    func siriEntity(songID id: String) -> some View {
-        appEntityIdentifier(EntityIdentifier(for: SongEntity.self, identifier: id))
+    /// `nil` (a radio station) annotates nothing.
+    func siriEntity(songID id: String?) -> some View {
+        appEntityIdentifier(id.map { EntityIdentifier(for: SongEntity.self, identifier: $0) })
     }
 
     func siriEntity(playlistID id: String) -> some View {

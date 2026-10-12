@@ -58,7 +58,7 @@ CarPlay lives in `MusicApp/CarPlay/` (a template scene declared in `Info.plist`)
 
 - Target the Subsonic API as implemented by Navidrome, plus OpenSubsonic extensions where the server advertises them (query `getOpenSubsonicExtensions` and degrade gracefully if unavailable).
 - Auth: token + salt (`t = md5(password + salt)`, `s = salt`), with `u`, `v`, `c` (client name), and `f=json` on every request. Never send the plain password.
-- Endpoints we expect to use: `ping`, `getArtists`, `getArtist`, `getArtistInfo2`, `getAlbum`, `getSong`, `getAlbumList2`, `getPlaylists`, `getPlaylist`, `createPlaylist`, `updatePlaylist`, `search3`, `stream`, `download`, `getCoverArt`, `star`/`unstar`, `scrobble`, `getRandomSongs`.
+- Endpoints we expect to use: `ping`, `getArtists`, `getArtist`, `getArtistInfo2`, `getAlbum`, `getSong`, `getAlbumList2`, `getPlaylists`, `getPlaylist`, `createPlaylist`, `updatePlaylist`, `getInternetRadioStations`, `search3`, `stream`, `download`, `getCoverArt`, `star`/`unstar`, `scrobble`, `getRandomSongs`.
 - Decode defensively. Servers return optional fields inconsistently; a missing field must never crash or drop an entire list.
 - The server may be reached over a local network, a reverse proxy, or a VPN. Support a configurable base URL and handle HTTP vs HTTPS explicitly (App Transport Security exceptions must be deliberate and documented, not blanket).
 
@@ -81,6 +81,7 @@ These must all work and each needs automated tests where feasible and a manual c
 - Credentials go in the Keychain only. Never in UserDefaults, logs, or source.
 - Never commit server URLs, usernames, passwords, tokens, or API keys. Integration tests read them from environment variables (see Testing).
 - Redact auth parameters (`t`, `s`, `u`) from any logging.
+- App Transport Security has one deliberate exception: `NSAllowsArbitraryLoadsForMedia` (in `MusicApp/Info.plist`), because many internet radio stations stream over plain http. It covers audio loaded by AVFoundation only; server API calls, artwork and radio playlist files (`.pls`/`.m3u`) still require https. Don't widen it.
 
 ## Testing
 

@@ -41,6 +41,6 @@ struct QueueList: View {
             }
         }
         .foregroundStyle(.primary)
-        .siriEntity(songID: entry.song.id)
+        .siriEntity(songID: entry.song.isLive ? nil : entry.song.id)
     }
 }

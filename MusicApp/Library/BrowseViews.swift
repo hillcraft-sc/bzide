@@ -44,6 +44,7 @@ struct LibraryView: View {
                 NavigationLink(value: LibraryRoute.artists) { Label("Artists", systemImage: "music.microphone") }
                 NavigationLink(value: LibraryRoute.albums) { Label("Albums", systemImage: "square.stack") }
                 NavigationLink(value: LibraryRoute.playlists) { Label("Playlists", systemImage: "music.note.list") }
+                NavigationLink(value: LibraryRoute.radio) { Label("Radio", systemImage: "dot.radiowaves.left.and.right") }
                 NavigationLink(value: LibraryRoute.downloads) { Label("Downloaded", systemImage: "arrow.down.circle") }
                 NavigationLink(value: LibraryRoute.history) { Label("History", systemImage: "clock.arrow.circlepath") }
             }

@@ -1,3 +1,4 @@
+import Foundation
 import NavidromeCore
 
 /// What the library screens need, handed down from the root. Builds each
@@ -7,6 +8,7 @@ final class Library {
     let stars: StarModel
     let ratings: RatingModel
     let quickActions: QuickActions
+    let radio: RadioPlayer
     let playlistEditor: PlaylistEditor
     /// How Siri finds things on the server. Not for views, which use the models.
     let siriLookup: SiriLookup
@@ -52,6 +54,12 @@ final class Library {
             playlists: { [client] () async throws(SubsonicError) in try await client.playlists() },
             search: { [client] query async throws(SubsonicError) in try await client.search(query, artistCount: 10, albumCount: 10, songCount: 10) }
         )
+        // Station playlist files live on the open internet: no shared cache or cookies.
+        let playlistSession = URLSession(configuration: .ephemeral)
+        self.radio = RadioPlayer(
+            fetchPlaylist: { url in try await playlistSession.data(from: url).0 },
+            play: { [engine] station in engine.play(songs: [station]) }
+        )
         let addToPlaylist = AddToPlaylistRequest()
         self.addToPlaylist = addToPlaylist
         self.quickActions = QuickActions(
@@ -88,6 +96,12 @@ final class Library {
     /// The newest albums, for the row at the top of Library.
     func recentlyAddedModel() -> LoadModel<[Album]> {
         LoadModel { [client] () async throws(SubsonicError) in try await client.albumList(.newest, size: 15) }
+    }
+
+    func radioStationsModel() -> LoadModel<[RadioStation]> {
+        LoadModel { [client] () async throws(SubsonicError) in
+            try await client.radioStations().sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        }
     }
 
     func albumModel(id: String) -> LoadModel<Album> {

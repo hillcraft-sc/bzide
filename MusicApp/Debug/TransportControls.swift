@@ -9,10 +9,16 @@ struct TransportControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             TitleRow(
-                title: engine.queue.current?.song.title ?? "Nothing queued",
-                subtitle: engine.queue.current?.song.artist
+                title: engine.currentTitle ?? "Nothing queued",
+                subtitle: engine.currentSubtitle
             )
             Text(statusText).font(.caption).foregroundStyle(statusColor)
+            if engine.isLive {
+                // A station has no length or position: say so instead of a progress bar.
+                Label("Live", systemImage: "dot.radiowaves.left.and.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(.tint)
+            }
 
             if let duration = engine.duration, duration > 0 {
                 Slider(
@@ -39,6 +45,7 @@ struct TransportControls: View {
             HStack {
                 Spacer()
                 Button("Previous", systemImage: "backward.fill") { engine.previous() }
+                    .disabled(engine.isLive)
                 Spacer()
                 Button(engine.status.isActive ? "Pause" : "Play",
                        systemImage: engine.status.isActive ? "pause.fill" : "play.fill") {
@@ -47,12 +54,13 @@ struct TransportControls: View {
                 .font(.largeTitle)
                 Spacer()
                 Button("Next", systemImage: "forward.fill") { engine.next() }
-                    .disabled(!engine.queue.hasNext && engine.repeatMode != .all)
+                    .disabled(!engine.canGoNext)
                 Spacer()
                 Button(repeatLabel, systemImage: engine.repeatMode == .one ? "repeat.1" : "repeat") {
                     engine.cycleRepeatMode()
                 }
                 .foregroundStyle(engine.repeatMode == .off ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+                .disabled(engine.isLive)
                 Spacer()
             }
             .labelStyle(.iconOnly)

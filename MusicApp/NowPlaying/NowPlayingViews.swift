@@ -15,7 +15,7 @@ struct MiniPlayer: View {
             Button(action: open) {
                 HStack(spacing: 12) {
                     ArtworkView(library: library, coverArtID: engine.queue.current?.song.coverArtID, side: 32)
-                    Text(engine.queue.current?.song.title ?? "Not Playing")
+                    Text(engine.currentTitle ?? "Not Playing")
                         .lineLimit(1)
                         .foregroundStyle(engine.queue.isEmpty ? .secondary : .primary)
                     Spacer(minLength: 0)
@@ -31,7 +31,7 @@ struct MiniPlayer: View {
             }
             .disabled(engine.queue.isEmpty)
             Button("Next", systemImage: "forward.fill") { engine.next() }
-                .disabled(!engine.queue.hasNext && engine.repeatMode != .all)
+                .disabled(!engine.canGoNext)
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.borderless)
@@ -47,6 +47,10 @@ struct NowPlayingView: View {
 
     private var engine: PlaybackEngine { library.engine }
 
+    private var savableQueue: [Song] {
+        engine.queue.entries.map(\.song).filter { !$0.isLive }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -55,7 +59,8 @@ struct NowPlayingView: View {
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
                     TransportControls(engine: engine)
-                    if let song = engine.queue.current?.song {
+                    // A station isn't on the server, so it can't be favorited or rated.
+                    if let song = engine.queue.current?.song, !song.isLive {
                         HStack(spacing: 32) {
                             MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
                         }
@@ -93,17 +98,18 @@ struct NowPlayingView: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Save Queue as Playlist", systemImage: "text.badge.plus") {
-                        library.addToPlaylist.open(engine.queue.entries.map(\.song), title: "Save Queue")
+                        library.addToPlaylist.open(savableQueue, title: "Save Queue")
                     }
-                    .disabled(engine.queue.isEmpty)
+                    // A station can't go in a playlist.
+                    .disabled(savableQueue.isEmpty)
                 }
             }
             .addToPlaylistSheet(library)
             .playlistConfirmation(library.playlistEditor)
             // Tells Siri which song this screen is about ("add this to my
             // running playlist").
-            .userActivity("com.erichebert.musicapp.nowPlaying", isActive: engine.queue.current != nil) { activity in
-                guard let song = engine.queue.current?.song else { return }
+            .userActivity("com.erichebert.musicapp.nowPlaying", isActive: engine.queue.current.map { !$0.song.isLive } ?? false) { activity in
+                guard let song = engine.queue.current?.song, !song.isLive else { return }
                 activity.title = song.title
                 activity.appEntityIdentifier = EntityIdentifier(for: SongEntity.self, identifier: song.id)
             }

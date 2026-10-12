@@ -32,8 +32,10 @@ final class SystemNowPlaying: NowPlayingControlling {
             return
         }
         commandCenter.nextTrackCommand.isEnabled = info.hasNext
-        // Previous always works: it restarts the track when there's nothing before it.
-        commandCenter.previousTrackCommand.isEnabled = true
+        // Previous always works for songs: it restarts the track when there's
+        // nothing before it. A station can't be restarted or scrubbed.
+        commandCenter.previousTrackCommand.isEnabled = !info.isLiveStream
+        commandCenter.changePlaybackPositionCommand.isEnabled = !info.isLiveStream
 
         var dictionary: [String: Any] = [
             MPMediaItemPropertyTitle: info.title,
@@ -45,6 +47,7 @@ final class SystemNowPlaying: NowPlayingControlling {
         dictionary[MPMediaItemPropertyArtist] = info.artist
         dictionary[MPMediaItemPropertyAlbumTitle] = info.album
         dictionary[MPMediaItemPropertyPlaybackDuration] = info.duration
+        dictionary[MPNowPlayingInfoPropertyIsLiveStream] = info.isLiveStream
         if info.coverArtID == artworkCoverID {
             dictionary[MPMediaItemPropertyArtwork] = artwork
         } else {

@@ -40,6 +40,11 @@ struct RootView: View {
         } message: {
             Text(library.ratings.error ?? "")
         }
+        .alert("Couldn't Play Station", isPresented: radioErrorShown) {
+            Button("OK") { library.radio.dismissError() }
+        } message: {
+            Text(library.radio.error ?? "")
+        }
         .alert("Couldn't Load Songs", isPresented: quickActionsErrorShown) {
             Button("OK") { library.quickActions.dismissError() }
         } message: {
@@ -60,6 +65,10 @@ struct RootView: View {
 
     private var favoriteErrorShown: Binding<Bool> {
         Binding(get: { library.stars.error != nil }, set: { if !$0 { library.stars.dismissError() } })
+    }
+
+    private var radioErrorShown: Binding<Bool> {
+        Binding(get: { library.radio.error != nil }, set: { if !$0 { library.radio.dismissError() } })
     }
 
     private var quickActionsErrorShown: Binding<Bool> {

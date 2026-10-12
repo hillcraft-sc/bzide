@@ -147,6 +147,16 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Limits.** iOS draws some things itself: the navigation and tab bars and the mini player are glass over the themed background, navigation titles are iOS's black or white, and menus, alerts, context menus and the keyboard follow only the flavour's light or dark mode.
 - Palette values are Catppuccin's published ones (MIT licence), from github.com/catppuccin/palette.
 
+## Radio
+
+- **Stations** are the internet radio stations saved on the server (`getInternetRadioStations`), listed by name under Library > Radio; each shows its stream's host. Stations without a usable http(s) stream address are left out. They're added and edited in Navidrome's web UI, not in the app. Long-press offers Play and Open Homepage (when the station has one).
+- **Playing a station** replaces the queue with that one station, like playing a new album. A second tap while one is starting is ignored.
+- **Stream address.** A direct stream or an HLS (`.m3u8`) address goes to the player as is. A `.pls` or `.m3u` playlist file is read first and its first stream is played (`.pls`: the lowest-numbered `File` entry; `.m3u`: the first line that isn't blank or a `#` comment). Plain http streams play (the app's only App Transport Security exception, for audio); a playlist *file* on plain http can't be read, and the app says to use the station's direct stream address instead. If the file can't be fetched or lists no stream, the error says so ("Couldn't Play Station").
+- **A station is live:** no duration or progress bar ("Live" instead), no seeking, previous and repeat disabled, nothing preloaded after it. It's never scrobbled or added to play history, can't be favorited, rated or added to a playlist (Save Queue leaves it out), and isn't offered to Siri. The lock screen marks it as a live stream with scrubbing and previous disabled.
+- **Pause and resume** rejoins the broadcast live rather than continuing minutes behind. If the stream ends or fails while listening, it's retried like a failed song (same delays and network-return retry), always from "now".
+- **What's on.** When the stream announces what it's playing (Shoutcast/Icecast `StreamTitle`, or a title in its metadata), that becomes the title in the mini player, Now Playing and on the lock screen, with the station's name beneath; otherwise the station's name is the title. A new track or station clears it.
+- **Relaunch:** a station that was playing comes back paused, and play rejoins it live.
+
 ## Siri
 
 - **What Siri knows.** Songs, albums, artists and playlists are Siri entities using the system's audio schemas (ids are the server's). Every artist, album, playlist, song, download and queue row is annotated with its entity, as are the album, artist and playlist page headers; Now Playing publishes the current song. So "Ask Siri" from a long-press, or "play this" / "add this to …" while looking at something, refers to that item. iOS 27 adds Ask Siri to menus on its own; the app can't remove it (see `docs/ISSUES.md`).
@@ -317,6 +327,17 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] With the phone in light mode, Mocha stays dark; with the phone in dark mode, Latte stays light.
 - [ ] Back to System: the app follows the phone's light or dark mode with iOS blue, as before.
 - [ ] Force quit and relaunch: the chosen theme and accent are kept. Sign out: the sign-in screen is in the theme too.
+
+### Radio
+
+- [ ] Library > Radio lists the stations added in Navidrome, by name. Tap one: it plays within a few seconds; the row shows the speaker icon.
+- [ ] Play an http station and an https station; if one of your stations' addresses is a `.pls` or `.m3u` file, play that too.
+- [ ] While a station plays: Now Playing shows "Live", no progress bar; previous and repeat are greyed out; no heart or rating. If the station announces songs, the title changes with them and the station name shows beneath.
+- [ ] Lock screen: shows the station (and current song if announced) as live, with no scrubber; play/pause works.
+- [ ] Pause for a minute, then play: it comes back live (what's on now), not where it paused.
+- [ ] Turn on Airplane Mode for ~10 seconds while it plays, then off: it reconnects on its own.
+- [ ] Force quit and relaunch: the station is shown paused; play rejoins it. Play an album afterwards: normal songs work as before (scrobbling, history).
+- [ ] Navidrome's web UI shows no scrobbles and play history shows nothing for radio listening.
 
 ### Siri (needs Apple Intelligence)
 
