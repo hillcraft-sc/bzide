@@ -97,6 +97,8 @@ Build and test commands:
 
 Known problem: `xcodebuild test` currently hangs from the command line on Xcode 27, while ⌘U in Xcode works (Xcode 27 has no Simulator app; virtual devices are managed in Device Hub). See `docs/ISSUES.md`. Until it's fixed, ask the owner to run ⌘U and read the newest `.xcresult` with `xcrun xcresulttool get test-results summary --path <bundle>`.
 
+Building the app needs Xcode's Metal Toolchain (the visualizer has a Metal shader); on a fresh machine install it once with `xcodebuild -downloadComponent MetalToolchain` or from Xcode > Settings > Components.
+
 Run the core package's tests on the iOS Simulator with `xcodebuild`, not with `swift test`. `swift test` builds for the macOS host, where `AVAudioSession` doesn't exist and the iOS-27-only platform setting doesn't apply, so `Playback/` won't compile there.
 ```
 # Core package (run from Packages/NavidromeCore)

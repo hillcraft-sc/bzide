@@ -128,6 +128,28 @@ public final class SpectrumFeed {
     /// The sound wave for the waveform style: `wavePointCount` points, -1...1.
     public private(set) var wave: [Float]
 
+    /// How much bass, mid-range and treble there is now, from the smoothed
+    /// bars, for styles that react to the music as a whole (Plasma).
+    public var energy: SpectrumEnergy { SpectrumEnergy(levels: smoother.levels) }
+
+    /// A clock for flowing styles that only moves forward, faster in busy
+    /// passages and slower in quiet ones. Speeding up never makes it jump, as
+    /// multiplying real time by a changing speed would.
+    public private(set) var flow: Double = 0
+    static let flowSpeed = (quiet: 0.4, busy: 1.4)
+
+    /// 0...1: jumps when the bass suddenly rises above its recent average (a
+    /// kick or snare) and fades over a fraction of a second, for styles that
+    /// pulse on the beat.
+    public private(set) var beat: Float = 0
+    /// The bass's recent average, which a beat has to rise above.
+    private var bassAverage: Float = 0
+    /// How fast `bassAverage` follows the bass, and how fast `beat` fades (per second).
+    static let bassAverageRate: Float = 3
+    static let beatFadeRate: Float = 5
+    /// How far above its average the bass must jump to count as a full beat.
+    static let beatRange: Float = 0.25
+
     private let meter: AudioLevelMeter
     private let analyzer: SpectrumAnalyzer
     private var smoother: SpectrumSmoother
@@ -173,7 +195,20 @@ public final class SpectrumFeed {
         let elapsed = lastFrame.map { time.timeIntervalSince($0) } ?? 0
         lastFrame = time
         smoother.update(toward: target, elapsed: min(elapsed, 0.1))
+        let step = min(elapsed, 0.1)
+        updateBeat(bass: energy.bass, elapsed: Float(step))
+        let busy = Double(min(max(energy.mid * 1.5, 0), 1))
+        // A beat also pushes the flow on a little, so the pattern lurches with the drums.
+        let speed = Self.flowSpeed.quiet + (Self.flowSpeed.busy - Self.flowSpeed.quiet) * busy + Double(beat) * 2
+        flow += step * speed
         return smoother.levels
+    }
+
+    private func updateBeat(bass: Float, elapsed: Float) {
+        let onset = max(bass - bassAverage, 0) / Self.beatRange
+        beat = max(beat * exp(-Self.beatFadeRate * elapsed), min(onset, 1))
+        if beat < 0.001 { beat = 0 }
+        bassAverage += (bass - bassAverage) * min(Self.bassAverageRate * elapsed, 1)
     }
 
     /// Eases the wave toward the latest samples, or toward flat when the audio
@@ -204,5 +239,34 @@ public final class SpectrumFeed {
             let average = samples[from..<to].reduce(0, +) / Float(to - from)
             return min(max(average * waveGain, -1), 1)
         }
+    }
+}
+
+/// Average bar level in three ranges, each 0...1: the lowest fifth of the bars
+/// (bass, up to about 200 Hz), the next two fifths (mid-range), and the top
+/// two fifths (treble).
+public struct SpectrumEnergy: Sendable, Equatable {
+    public var bass: Float
+    public var mid: Float
+    public var treble: Float
+
+    public init(bass: Float, mid: Float, treble: Float) {
+        self.bass = bass
+        self.mid = mid
+        self.treble = treble
+    }
+
+    public init(levels: [Float]) {
+        let count = levels.count
+        guard count >= 5 else {
+            self.init(bass: 0, mid: 0, treble: 0)
+            return
+        }
+        let bassEnd = count / 5
+        let midEnd = count * 3 / 5
+        func average(_ range: Range<Int>) -> Float {
+            range.isEmpty ? 0 : levels[range].reduce(0, +) / Float(range.count)
+        }
+        self.init(bass: average(0..<bassEnd), mid: average(bassEnd..<midEnd), treble: average(midEnd..<count))
     }
 }

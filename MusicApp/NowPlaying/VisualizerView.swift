@@ -75,19 +75,71 @@ struct VisualizerView: View {
     private var visualization: some View {
         TimelineView(.animation) { timeline in
             let levels = feed.update(at: timeline.date)
-            let wave = feed.wave
-            Canvas { context, size in
-                switch style {
-                case .bars: drawBars(levels, in: &context, size: size)
-                case .waveform: drawWave(wave, in: &context, size: size)
+            switch style {
+            case .plasma:
+                plasma(flow: feed.flow, beat: feed.beat, energy: feed.energy)
+            case .bars, .waveform:
+                let wave = feed.wave
+                Canvas { context, size in
+                    if style == .bars {
+                        drawBars(levels, in: &context, size: size)
+                    } else {
+                        drawWave(wave, in: &context, size: size)
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 230)
+                .padding(.top, 100)
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 230)
-            .padding(.top, 100)
         }
-        .accessibilityLabel(style == .bars ? "Spectrum visualizer" : "Waveform visualizer")
+        .accessibilityLabel("\(style.title) visualizer")
         .accessibilityHint("Swipe left or right to change style")
+    }
+
+    /// The Plasma shader (Plasma.metal) over the whole screen, behind the controls.
+    private func plasma(flow: Double, beat: Float, energy: SpectrumEnergy) -> some View {
+        let colors = plasmaColors
+        // Wrapped so the shader's single-precision maths stays smooth for hours.
+        let flow = Float(flow.truncatingRemainder(dividingBy: 10_000))
+        return GeometryReader { geometry in
+            Rectangle()
+                .colorEffect(ShaderLibrary.plasma(
+                    .float2(geometry.size),
+                    .float(flow),
+                    .float(beat), .float(energy.bass), .float(energy.mid), .float(energy.treble),
+                    .color(colors[0]), .color(colors[1]), .color(colors[2]), .color(colors[3])
+                ))
+        }
+        // Darker at the top and bottom, so the white controls stay readable.
+        .overlay {
+            LinearGradient(
+                stops: [
+                    .init(color: .black.opacity(0.45), location: 0),
+                    .init(color: .clear, location: 0.18),
+                    .init(color: .clear, location: 0.55),
+                    .init(color: .black.opacity(0.7), location: 1),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+        }
+        .ignoresSafeArea()
+    }
+
+    /// Four colours for the plasma's palette loop: shades of the accent, or
+    /// four from the multicolour sweep.
+    private var plasmaColors: [Color] {
+        switch colorMode {
+        case .multicolor:
+            return VisualizerPalette.colors(count: 4, mode: .multicolor, accent: accent, catppuccin: palette)
+        case .accent:
+            let base = UIColor(accent)
+            return [
+                Color(base.mixed(with: .black, amount: 0.8)),
+                accent,
+                Color(base.mixed(with: .white, amount: 0.55)),
+                Color(base.mixed(with: .black, amount: 0.35)),
+            ]
+        }
     }
 
     /// Bars across the width, growing up from the bottom, bass on the left.
@@ -237,12 +289,13 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform
+    case bars, waveform, plasma
 
     var title: String {
         switch self {
         case .bars: "Bars"
         case .waveform: "Waveform"
+        case .plasma: "Plasma"
         }
     }
 
@@ -250,6 +303,7 @@ enum VisualizerStyle: String, CaseIterable {
         switch self {
         case .bars: "chart.bar.fill"
         case .waveform: "waveform.path"
+        case .plasma: "flame"
         }
     }
 
@@ -316,6 +370,22 @@ enum VisualizerPalette {
             red: a.red + (b.red - a.red) * mix,
             green: a.green + (b.green - a.green) * mix,
             blue: a.blue + (b.blue - a.blue) * mix
+        )
+    }
+}
+
+private extension UIColor {
+    /// This colour moved `amount` (0...1) of the way toward `other`.
+    func mixed(with other: UIColor, amount: CGFloat) -> UIColor {
+        var (r1, g1, b1, a1): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
+        var (r2, g2, b2, a2): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
+        getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        other.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        return UIColor(
+            red: r1 + (r2 - r1) * amount,
+            green: g1 + (g2 - g1) * amount,
+            blue: b1 + (b2 - b1) * amount,
+            alpha: a1 + (a2 - a1) * amount
         )
     }
 }

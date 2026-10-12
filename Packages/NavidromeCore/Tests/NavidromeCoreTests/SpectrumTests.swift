@@ -120,8 +120,66 @@ struct SpectrumFeedTests {
         #expect(points.max() == 1)
     }
 
+    @Test func flowOnlyMovesForwardAndFasterWhenBusy() {
+        let meter = AudioLevelMeter()
+        meter.assumeFloatSamples()
+        let start = Date(timeIntervalSince1970: 0)
+
+        let quiet = SpectrumFeed(meter: AudioLevelMeter())
+        for frame in 0...60 { quiet.update(at: start.addingTimeInterval(Double(frame) / 60)) }
+        // A second of silence moves it at the quiet speed.
+        #expect(abs(quiet.flow - SpectrumFeed.flowSpeed.quiet) < 0.01)
+
+        let busy = SpectrumFeed(meter: meter)
+        var previous = busy.flow
+        for frame in 0...60 {
+            play(meter, frequency: 1_000)
+            busy.update(at: start.addingTimeInterval(Double(frame) / 60))
+            #expect(busy.flow >= previous)
+            previous = busy.flow
+        }
+        #expect(busy.flow > quiet.flow)
+    }
+
+    @Test func aSuddenBassHitIsABeatThatFades() {
+        let meter = AudioLevelMeter()
+        meter.assumeFloatSamples()
+        let feed = SpectrumFeed(meter: meter)
+        let start = Date(timeIntervalSince1970: 0)
+        #expect(feed.beat == 0)
+
+        // Silence, then a loud low tone arrives: a beat.
+        for frame in 0..<30 { feed.update(at: start.addingTimeInterval(Double(frame) / 60)) }
+        var peak: Float = 0
+        for frame in 30..<40 {
+            play(meter, frequency: 80)
+            feed.update(at: start.addingTimeInterval(Double(frame) / 60))
+            peak = max(peak, feed.beat)
+        }
+        #expect(peak > 0.5)
+
+        // The same tone held steady stops counting as a beat; it fades.
+        for frame in 40..<160 {
+            play(meter, frequency: 80)
+            feed.update(at: start.addingTimeInterval(Double(frame) / 60))
+        }
+        #expect(feed.beat < 0.1)
+    }
+
     @Test func nothingPlayedMeansNoBars() {
         let feed = SpectrumFeed(meter: AudioLevelMeter())
         #expect(feed.update(at: Date()).allSatisfy { $0 == 0 })
+    }
+}
+
+struct SpectrumEnergyTests {
+    @Test func averagesBassMidAndTreble() {
+        // 10 bars: 2 bass, 4 mid, 4 treble.
+        let energy = SpectrumEnergy(levels: [1, 1, 0.5, 0.5, 0.5, 0.5, 0, 0, 0, 0.4])
+        #expect(energy == SpectrumEnergy(bass: 1, mid: 0.5, treble: 0.1))
+    }
+
+    @Test func tooFewBarsIsSilence() {
+        #expect(SpectrumEnergy(levels: [1, 1]) == SpectrumEnergy(bass: 0, mid: 0, treble: 0))
     }
 }
