@@ -85,6 +85,26 @@ struct DownloadIndex: Sendable, Equatable, Codable {
     var collections: [DownloadCollection] = []
     /// Keyed by song id.
     var files: [String: StoredFile] = [:]
+    /// Songs downloading converted, by song id, with the file extension their
+    /// file must get. Saved so a download that finishes after a relaunch is
+    /// still named for what it is.
+    var convertedFormats: [String: String] = [:]
+
+    init(collections: [DownloadCollection] = [], files: [String: StoredFile] = [:], convertedFormats: [String: String] = [:]) {
+        self.collections = collections
+        self.files = files
+        self.convertedFormats = convertedFormats
+    }
+
+    private enum CodingKeys: String, CodingKey { case collections, files, convertedFormats }
+
+    /// An index saved before conversion existed has no formats.
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        collections = try c.decode([DownloadCollection].self, forKey: .collections)
+        files = try c.decode([String: StoredFile].self, forKey: .files)
+        convertedFormats = (try? c.decodeIfPresent([String: String].self, forKey: .convertedFormats)) ?? [:]
+    }
 }
 
 /// What the downloader reports back.

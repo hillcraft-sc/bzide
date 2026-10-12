@@ -37,6 +37,7 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                qualityPicker("Download Quality", selection: $settings.settings.downloadQuality)
                 Toggle("Download over Cellular", isOn: $settings.settings.downloadOverCellular)
                 LabeledContent("Storage Used", value: downloads.totalBytes.formatted(.byteCount(style: .file)))
                 Button("Remove All Downloads", role: .destructive) { isConfirmingRemoveAll = true }
@@ -44,7 +45,7 @@ struct SettingsView: View {
             } header: {
                 Text("Downloads")
             } footer: {
-                Text("Downloads are stored in original quality. The cellular setting applies to downloads started after changing it.")
+                Text("Below Original, the server converts songs to MP3 as they download, which saves space. Quality and cellular changes apply to songs downloaded afterwards; songs already downloaded stay as they are.")
             }
             .themedRows(grouped: true)
             Section {

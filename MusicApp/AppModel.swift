@@ -216,6 +216,10 @@ final class AppModel {
             directory: system.downloadsDirectory,
             transport: system.downloadTransport,
             downloadURL: { songID in try client.downloadURL(songID: songID) },
+            convertedURL: { songID, quality in
+                try client.streamURL(songID: songID, maxBitRate: quality.maxBitRate, format: DownloadManager.convertedFormat)
+            },
+            quality: { settings.settings.downloadQuality },
             allowsCellular: { settings.settings.downloadOverCellular },
             artwork: artwork
         )

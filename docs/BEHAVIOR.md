@@ -208,7 +208,8 @@ How the app behaves, written so the web and Android clients can be ported from t
 ### Downloads
 
 - The user downloads a whole album or playlist. Its song list is saved as it was at that moment, so it can be listed and played with no server. Downloading it again updates the list: new songs are fetched, songs no longer in it are dropped.
-- Songs are downloaded in their original format (`download` endpoint, never transcoded) to `Application Support/Downloads/Files/<song id>.<suffix>`, excluded from iCloud backup. The suffix comes from the song's metadata, else from the server's file name.
+- **Download quality** (Settings > Downloads, Original by default, same choices as streaming quality). At Original, songs are downloaded in their original format (`download` endpoint, never transcoded). Below it, they're fetched from `stream` with that `maxBitRate` and `format=mp3`, so the server converts them as they download; the size isn't known in advance, so such a song shows as downloading without a percentage until it's done. The quality is fixed for each song when its download starts and saved with the download index, so changing the setting mid-download, or a relaunch before a converted song finishes, never mislabels a file. Songs already downloaded are kept as they are: a change applies to songs downloaded afterwards.
+- Files go to `Application Support/Downloads/Files/<song id>.<extension>`, excluded from iCloud backup. A converted song is `.mp3`; an original takes the extension from the song's metadata, else from the server's file name.
 - Each song is stored once, however many downloaded albums or playlists contain it. Removing an album or playlist deletes only files no other download still uses, and stops their running downloads.
 - Three songs download at a time; the rest wait in the order the user asked for them (oldest download first, album order within). Downloads run in a background `URLSession`, so they carry on while the app is suspended or terminated. On the next launch the app reconnects to them, restarts whatever was waiting, and cancels system downloads nothing wants any more.
 - A failed song stays failed until the user retries; after a relaunch, failed songs are tried again. A response that isn't 2xx, or is JSON/XML (how Subsonic reports errors, even with HTTP 200), is a failure, never saved as a song.
@@ -332,6 +333,8 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Remove All Downloads in Settings: Storage Used goes to zero. (2026-10-11)
 - [ ] Search Downloaded by album name, artist and a song title: each finds the right download; a search with no match says so.
 - [x] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork. (2026-10-11)
+- [x] Settings > Downloads > Download Quality: 128 kbps. Download an album: it finishes, plays offline, and Storage Used grows much less than for the same album at Original. (2026-10-12)
+- [x] With some songs of that album still downloading, switch back to Original: the album finishes and every song plays. Albums downloaded earlier aren't downloaded again. (2026-10-12)
 
 ### Appearance
 

@@ -17,10 +17,14 @@ public final class DownloadManager: DownloadedTrackLookup {
     private var active: [String: Double?] = [:]
     /// Songs whose last attempt failed. Not saved: after a relaunch they're tried again.
     private var failures: [String: String] = [:]
+    /// See `DownloadIndex.convertedFormats`.
+    @ObservationIgnored private var convertedFormats: [String: String] = [:]
 
     @ObservationIgnored private let transport: any DownloadTransport
     @ObservationIgnored private let directory: URL
     @ObservationIgnored private let downloadURL: (String) throws -> URL
+    @ObservationIgnored private let convertedURL: (String, StreamQuality) throws -> URL
+    @ObservationIgnored private let quality: () -> StreamQuality
     @ObservationIgnored private let allowsCellular: () -> Bool
     @ObservationIgnored private let artwork: (any ArtworkPinning)?
 
@@ -28,23 +32,33 @@ public final class DownloadManager: DownloadedTrackLookup {
     nonisolated static let directoryName = "Downloads"
     private static let logger = Logger(subsystem: "MusicApp", category: "Downloads")
 
+    /// The format songs are converted to when downloaded below original quality.
+    public static let convertedFormat = "mp3"
+
     /// `directory` holds the index and the song files. Call `resume()` once after
-    /// creating, to pick up downloads from the last run.
+    /// creating, to pick up downloads from the last run. `downloadURL` fetches a
+    /// song's original file; `convertedURL` one converted to MP3 at a quality,
+    /// used when `quality` isn't original.
     public init(
         directory: URL,
         transport: any DownloadTransport,
         downloadURL: @escaping (String) throws -> URL,
+        convertedURL: @escaping (String, StreamQuality) throws -> URL = { _, _ in throw URLError(.unsupportedURL) },
+        quality: @escaping () -> StreamQuality = { .original },
         allowsCellular: @escaping () -> Bool,
         artwork: (any ArtworkPinning)? = nil
     ) {
         self.directory = directory
         self.transport = transport
         self.downloadURL = downloadURL
+        self.convertedURL = convertedURL
+        self.quality = quality
         self.allowsCellular = allowsCellular
         self.artwork = artwork
         let index = Self.loadIndex(from: directory)
         collections = index.collections
         files = index.files
+        convertedFormats = index.convertedFormats
         transport.onEvent = { [weak self] event in self?.handle(event) }
     }
 
@@ -171,7 +185,18 @@ public final class DownloadManager: DownloadedTrackLookup {
         for songID in waitingSongIDs() {
             guard active.count < Self.maxConcurrent else { return }
             do {
-                let url = try downloadURL(songID)
+                // The quality is fixed when a song starts, so changing the
+                // setting never mislabels a song that's already downloading.
+                let quality = quality()
+                let url: URL
+                if quality == .original {
+                    url = try downloadURL(songID)
+                    convertedFormats[songID] = nil
+                } else {
+                    url = try convertedURL(songID, quality)
+                    convertedFormats[songID] = Self.convertedFormat
+                }
+                saveIndex()
                 active[songID] = .some(nil)
                 transport.start(songID: songID, from: url, allowsCellular: allowsCellular())
             } catch {
@@ -216,11 +241,13 @@ public final class DownloadManager: DownloadedTrackLookup {
     private func store(_ file: URL, for songID: String, fileExtension: String?) {
         let fileManager = FileManager.default
         // Removed while it was downloading: nothing wants it now.
+        let converted = convertedFormats.removeValue(forKey: songID)
         guard isWanted(songID) else {
             try? fileManager.removeItem(at: file)
             return
         }
-        let suffix = song(songID)?.suffix ?? fileExtension ?? "audio"
+        // A converted file is MP3 whatever the original was.
+        let suffix = converted ?? song(songID)?.suffix ?? fileExtension ?? "audio"
         let fileName = "\(songID).\(suffix)"
         let destination = filesDirectory.appending(path: fileName)
         do {
@@ -306,7 +333,7 @@ public final class DownloadManager: DownloadedTrackLookup {
     private func saveIndex() {
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let data = try JSONEncoder().encode(DownloadIndex(collections: collections, files: files))
+            let data = try JSONEncoder().encode(DownloadIndex(collections: collections, files: files, convertedFormats: convertedFormats))
             try data.write(to: Self.indexURL(in: directory), options: .atomic)
         } catch {
             Self.logger.error("Couldn't save the download index: \(String(describing: error), privacy: .public)")

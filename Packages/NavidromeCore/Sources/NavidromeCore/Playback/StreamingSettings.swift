@@ -16,7 +16,7 @@ public enum StreamQuality: Int, CaseIterable, Codable, Sendable {
     }
 
     /// `nil` means no transcoding.
-    var maxBitRate: Int? {
+    public var maxBitRate: Int? {
         self == .original ? nil : rawValue
     }
 }
@@ -26,15 +26,21 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     public var cellularQuality: StreamQuality
     /// Off by default: downloads wait for Wi-Fi.
     public var downloadOverCellular: Bool
+    /// Original by default. Applies to songs downloaded after it changes.
+    public var downloadQuality: StreamQuality
 
-    public init(wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192, downloadOverCellular: Bool = false) {
+    public init(
+        wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
+        downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original
+    ) {
         self.wifiQuality = wifiQuality
         self.cellularQuality = cellularQuality
         self.downloadOverCellular = downloadOverCellular
+        self.downloadQuality = downloadQuality
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -45,6 +51,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         wifiQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .wifiQuality) ?? defaults.wifiQuality
         cellularQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .cellularQuality) ?? defaults.cellularQuality
         downloadOverCellular = try c.decodeIfPresent(Bool.self, forKey: .downloadOverCellular) ?? defaults.downloadOverCellular
+        downloadQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .downloadQuality) ?? defaults.downloadQuality
     }
 }
 
