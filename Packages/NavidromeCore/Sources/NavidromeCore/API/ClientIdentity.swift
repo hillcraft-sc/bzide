@@ -5,7 +5,7 @@ public struct ClientIdentity: Sendable, Equatable {
     /// Sent as `v`. Navidrome implements Subsonic API 1.16.1.
     public var apiVersion: String
 
-    public init(name: String = "MusicApp", apiVersion: String = "1.16.1") {
+    public init(name: String = "Bzide", apiVersion: String = "1.16.1") {
         self.name = name
         self.apiVersion = apiVersion
     }

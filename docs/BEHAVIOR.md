@@ -7,7 +7,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Protocol: Subsonic API 1.16.1 as implemented by Navidrome, JSON (`f=json`), HTTP GET.
 - Requests go to `<base URL>/rest/<endpoint>`. Any path in the base URL is kept, so servers behind a reverse proxy subpath work.
 - Only `http` and `https` base URLs are accepted.
-- Auth: every request carries `u`, `t = md5(password + salt)`, `s = salt`, `v`, `c`. The salt is 16 random bytes as hex, new for every request. The plain password is never sent.
+- Auth: every request carries `u`, `t = md5(password + salt)`, `s = salt`, `v`, `c` (the client name, `Bzide`). The salt is 16 random bytes as hex, new for every request. The plain password is never sent.
 - Query values are percent-encoded including `+`, because the server decodes a bare `+` as a space.
 - Auth parameters (`t`, `s`, `u`, `p`) are replaced with `REDACTED` before a URL is logged.
 - Errors are reported as one of: invalid base URL, network failure, non-2xx HTTP status, server `status: "failed"` (with the Subsonic error code), or an unreadable response. Codes 40 and 41 count as authentication failures.

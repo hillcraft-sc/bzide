@@ -16,7 +16,7 @@ struct RequestBuilderTests {
             "t": "26719a1196d2a940705a59634eb18eab",
             "s": "c19b2d",
             "v": "1.16.1",
-            "c": "MusicApp",
+            "c": "Bzide",
             "f": "json",
         ])
     }

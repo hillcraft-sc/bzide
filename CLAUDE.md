@@ -12,7 +12,7 @@ A native iOS music player for a self-hosted Navidrome server. The owner finds ex
 3. **CarPlay and widgets** (added after the core is solid).
 4. Later, in this order: a web client, then an Android client. Do not build these yet, but do not make decisions that block them.
 
-**Status:** see the Milestones checklist below. It is the source of truth for progress: tick a milestone off when it is done, and check the repo itself rather than assuming. App name: TBD (use `MusicApp` as a placeholder).
+**Status:** see the Milestones checklist below. It is the source of truth for progress: tick a milestone off when it is done, and check the repo itself rather than assuming. App name: **Bzide** (chosen 2026-10-12). It is what users see: the Home Screen name and the client name (`c`) sent to the server. Code, targets, folders, the bundle ID and internal identifiers (Keychain service, download session) keep the old `MusicApp` name on purpose; renaming them would sign the user out, orphan background downloads, or change signing.
 
 ## Principles
 
