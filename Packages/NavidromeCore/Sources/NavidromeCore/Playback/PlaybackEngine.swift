@@ -35,6 +35,16 @@ public final class PlaybackEngine {
     /// Seconds. From the server's metadata until the player knows better.
     public private(set) var duration: TimeInterval?
     public private(set) var repeatMode: RepeatMode
+    /// What each loaded entry plays as, recorded when its item is built: the
+    /// preloaded next track keeps the quality it was loaded at.
+    private var loadedQualities: [QueueEntry.ID: PlaybackQuality] = [:]
+
+    /// What the current song is playing as; `nil` before it's loaded, for a
+    /// radio station, or when unknown.
+    public var currentQuality: PlaybackQuality? {
+        queue.current.flatMap { loadedQualities[$0.id] }
+    }
+
     /// The order before shuffling, while shuffle is on.
     private var shuffleOrigin: [QueueEntry.ID]?
 
@@ -798,11 +808,23 @@ public final class PlaybackEngine {
             if let live = entry.song.liveStreamURL {
                 return PlayerItem(entryID: entry.id, url: live, isLive: true)
             }
-            return PlayerItem(entryID: entry.id, url: try urls.streamURL(for: entry.song))
+            let item = PlayerItem(entryID: entry.id, url: try urls.streamURL(for: entry.song))
+            recordQuality(of: entry)
+            return item
         } catch {
             Self.logger.error("No stream URL for a queue entry: \(String(describing: error), privacy: .public)")
             return nil
         }
+    }
+
+    /// Keeps the quality of what the player holds: the current entry and the
+    /// one preloaded after it.
+    private func recordQuality(of entry: QueueEntry) {
+        let kept: Set<QueueEntry.ID> = [queue.current?.id, preloadEntry?.id, entry.id].reduce(into: []) { set, id in
+            if let id { set.insert(id) }
+        }
+        loadedQualities = loadedQualities.filter { kept.contains($0.key) }
+        loadedQualities[entry.id] = urls.quality(for: entry.song)
     }
 
     private func resetForNewTrack() {

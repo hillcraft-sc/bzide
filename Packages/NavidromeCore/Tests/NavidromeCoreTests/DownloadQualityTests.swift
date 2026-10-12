@@ -41,6 +41,7 @@ struct DownloadQualityTests {
         #expect(transport.started.first?.url.path() == "/rest/download")
         transport.finish("so-1")
         #expect(try #require(manager.localFile(forSongID: "so-1")).pathExtension == "flac")
+        #expect(manager.convertedBitRate(forSongID: "so-1") == nil)
     }
 
     @Test func aLowerQualityDownloadsAConvertedMP3() throws {
@@ -56,6 +57,7 @@ struct DownloadQualityTests {
         // Named for what it is, even though the original is FLAC.
         transport.finish("so-1", fileExtension: "flac")
         #expect(try #require(manager.localFile(forSongID: "so-1")).pathExtension == "mp3")
+        #expect(manager.convertedBitRate(forSongID: "so-1") == 192)
     }
 
     @Test func changingTheSettingMidwayKeepsEachSongsOwnFormat() throws {
@@ -90,6 +92,10 @@ struct DownloadQualityTests {
         await relaunched.resume()
         second.finish("so-1")
         #expect(try #require(relaunched.localFile(forSongID: "so-1")).pathExtension == "mp3")
+        #expect(relaunched.convertedBitRate(forSongID: "so-1") == 256)
+        // And it's remembered with the file.
+        let third = makeManager(transport(), setting: setting)
+        #expect(third.convertedBitRate(forSongID: "so-1") == 256)
     }
 
     @Test func anIndexSavedBeforeConversionStillLoads() throws {

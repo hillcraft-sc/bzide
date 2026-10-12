@@ -19,6 +19,7 @@ public final class DownloadManager: DownloadedTrackLookup {
     private var failures: [String: String] = [:]
     /// See `DownloadIndex.convertedFormats`.
     @ObservationIgnored private var convertedFormats: [String: String] = [:]
+    @ObservationIgnored private var convertedBitRates: [String: Int] = [:]
 
     @ObservationIgnored private let transport: any DownloadTransport
     @ObservationIgnored private let directory: URL
@@ -33,7 +34,7 @@ public final class DownloadManager: DownloadedTrackLookup {
     private static let logger = Logger(subsystem: "MusicApp", category: "Downloads")
 
     /// The format songs are converted to when downloaded below original quality.
-    public static let convertedFormat = "mp3"
+    public nonisolated static let convertedFormat = "mp3"
 
     /// `directory` holds the index and the song files. Call `resume()` once after
     /// creating, to pick up downloads from the last run. `downloadURL` fetches a
@@ -59,6 +60,7 @@ public final class DownloadManager: DownloadedTrackLookup {
         collections = index.collections
         files = index.files
         convertedFormats = index.convertedFormats
+        convertedBitRates = index.convertedBitRates
         transport.onEvent = { [weak self] event in self?.handle(event) }
     }
 
@@ -69,6 +71,10 @@ public final class DownloadManager: DownloadedTrackLookup {
         let url = filesDirectory.appending(path: stored.fileName)
         // A file removed behind our back (or by a restore) must fall back to streaming.
         return FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) ? url : nil
+    }
+
+    public func convertedBitRate(forSongID songID: String) -> Int? {
+        files[songID]?.convertedBitRate
     }
 
     public func state(ofSong songID: String) -> SongDownloadState {
@@ -192,9 +198,11 @@ public final class DownloadManager: DownloadedTrackLookup {
                 if quality == .original {
                     url = try downloadURL(songID)
                     convertedFormats[songID] = nil
+                    convertedBitRates[songID] = nil
                 } else {
                     url = try convertedURL(songID, quality)
                     convertedFormats[songID] = Self.convertedFormat
+                    convertedBitRates[songID] = quality.maxBitRate
                 }
                 saveIndex()
                 active[songID] = .some(nil)
@@ -242,6 +250,7 @@ public final class DownloadManager: DownloadedTrackLookup {
         let fileManager = FileManager.default
         // Removed while it was downloading: nothing wants it now.
         let converted = convertedFormats.removeValue(forKey: songID)
+        let convertedBitRate = convertedBitRates.removeValue(forKey: songID)
         guard isWanted(songID) else {
             try? fileManager.removeItem(at: file)
             return
@@ -257,7 +266,7 @@ public final class DownloadManager: DownloadedTrackLookup {
             }
             try fileManager.moveItem(at: file, to: destination)
             let size = try fileManager.attributesOfItem(atPath: destination.path(percentEncoded: false))[.size] as? Int64
-            files[songID] = StoredFile(fileName: fileName, bytes: size ?? 0)
+            files[songID] = StoredFile(fileName: fileName, bytes: size ?? 0, convertedBitRate: converted == nil ? nil : convertedBitRate)
             failures[songID] = nil
             saveIndex()
         } catch {
@@ -333,7 +342,9 @@ public final class DownloadManager: DownloadedTrackLookup {
     private func saveIndex() {
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let data = try JSONEncoder().encode(DownloadIndex(collections: collections, files: files, convertedFormats: convertedFormats))
+            let data = try JSONEncoder().encode(DownloadIndex(
+                collections: collections, files: files, convertedFormats: convertedFormats, convertedBitRates: convertedBitRates
+            ))
             try data.write(to: Self.indexURL(in: directory), options: .atomic)
         } catch {
             Self.logger.error("Couldn't save the download index: \(String(describing: error), privacy: .public)")

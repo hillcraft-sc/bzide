@@ -78,6 +78,8 @@ public struct CollectionDownloadStatus: Sendable, Equatable {
 struct StoredFile: Sendable, Equatable, Codable {
     var fileName: String
     var bytes: Int64
+    /// Kbps it was converted to; `nil` for an original.
+    var convertedBitRate: Int?
 }
 
 /// What's saved between launches.
@@ -89,14 +91,20 @@ struct DownloadIndex: Sendable, Equatable, Codable {
     /// file must get. Saved so a download that finishes after a relaunch is
     /// still named for what it is.
     var convertedFormats: [String: String] = [:]
+    /// The bitrate each of those is being converted to.
+    var convertedBitRates: [String: Int] = [:]
 
-    init(collections: [DownloadCollection] = [], files: [String: StoredFile] = [:], convertedFormats: [String: String] = [:]) {
+    init(
+        collections: [DownloadCollection] = [], files: [String: StoredFile] = [:],
+        convertedFormats: [String: String] = [:], convertedBitRates: [String: Int] = [:]
+    ) {
         self.collections = collections
         self.files = files
         self.convertedFormats = convertedFormats
+        self.convertedBitRates = convertedBitRates
     }
 
-    private enum CodingKeys: String, CodingKey { case collections, files, convertedFormats }
+    private enum CodingKeys: String, CodingKey { case collections, files, convertedFormats, convertedBitRates }
 
     /// An index saved before conversion existed has no formats.
     init(from decoder: any Decoder) throws {
@@ -104,6 +112,7 @@ struct DownloadIndex: Sendable, Equatable, Codable {
         collections = try c.decode([DownloadCollection].self, forKey: .collections)
         files = try c.decode([String: StoredFile].self, forKey: .files)
         convertedFormats = (try? c.decodeIfPresent([String: String].self, forKey: .convertedFormats)) ?? [:]
+        convertedBitRates = (try? c.decodeIfPresent([String: Int].self, forKey: .convertedBitRates)) ?? [:]
     }
 }
 

@@ -74,6 +74,12 @@ public protocol AudioPlayer: AnyObject {
 @MainActor
 public protocol StreamURLProviding {
     func streamURL(for song: Song) throws -> URL
+    /// What `streamURL(for:)` chose, to show the listener; `nil` if unknown.
+    func quality(for song: Song) -> PlaybackQuality?
+}
+
+extension StreamURLProviding {
+    public func quality(for song: Song) -> PlaybackQuality? { nil }
 }
 
 extension SubsonicClient: StreamURLProviding {

@@ -12,7 +12,14 @@ struct TransportControls: View {
                 title: engine.currentTitle ?? "Nothing queued",
                 subtitle: engine.currentSubtitle
             )
-            Text(statusText).font(.caption).foregroundStyle(statusColor)
+            HStack {
+                Text(statusText).foregroundStyle(statusColor)
+                Spacer()
+                if let quality = engine.currentQuality {
+                    QualityLabel(quality: quality)
+                }
+            }
+            .font(.caption)
             if engine.isLive {
                 // A station has no length or position: say so instead of a progress bar.
                 Label("Live", systemImage: "dot.radiowaves.left.and.right")
@@ -106,5 +113,33 @@ struct TransportControls: View {
 
     private static func format(_ seconds: TimeInterval) -> String {
         Duration.seconds(seconds.rounded(.down)).formatted(.time(pattern: .minuteSecond))
+    }
+}
+
+/// The current song's format, bitrate and source. Tapping it hides it behind a
+/// small icon, and tapping the icon shows it again; the choice is remembered.
+private struct QualityLabel: View {
+    let quality: PlaybackQuality
+    /// A display preference for this device only.
+    @AppStorage("showsPlaybackQuality") private var isShown = true
+
+    var body: some View {
+        Button {
+            withAnimation(.snappy) { isShown.toggle() }
+        } label: {
+            if isShown {
+                Text(quality.label)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .transition(.opacity)
+            } else {
+                Image(systemName: "waveform")
+                    .transition(.opacity)
+            }
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .accessibilityLabel(isShown ? "Quality: \(quality.label)" : "Show quality")
+        .accessibilityHint(isShown ? "Hides the quality" : "")
     }
 }

@@ -5,6 +5,13 @@ import Foundation
 public protocol DownloadedTrackLookup: AnyObject {
     /// The local file for the song, if it's fully downloaded.
     func localFile(forSongID songID: String) -> URL?
+    /// The bitrate a downloaded song was converted to; `nil` for an original
+    /// (or a conversion from before this was recorded).
+    func convertedBitRate(forSongID songID: String) -> Int?
+}
+
+extension DownloadedTrackLookup {
+    public func convertedBitRate(forSongID songID: String) -> Int? { nil }
 }
 
 /// Decides where the player gets each song: the downloaded file if there is one,
@@ -35,8 +42,27 @@ public final class TrackResolver: StreamURLProviding {
         if let local = downloads.localFile(forSongID: song.id) {
             return local
         }
-        let quality = network.isExpensive ? settings.settings.cellularQuality : settings.settings.wifiQuality
-        let bitRate = quality.maxBitRate
+        let bitRate = streamingCap
         return try client.streamURL(songID: song.id, maxBitRate: bitRate, format: bitRate == nil ? nil : "mp3")
+    }
+
+    /// Decided the same way as `streamURL(for:)`, so it describes the same choice.
+    public func quality(for song: Song) -> PlaybackQuality? {
+        guard let local = downloads.localFile(forSongID: song.id) else {
+            return .streamed(song, cap: streamingCap)
+        }
+        if let bitRate = downloads.convertedBitRate(forSongID: song.id) {
+            return PlaybackQuality(format: DownloadManager.convertedFormat, bitRate: bitRate, isConverted: true, isDownloaded: true)
+        }
+        // A converted download from before its bitrate was recorded: MP3 in place of another format.
+        let fileFormat = local.pathExtension.lowercased()
+        if fileFormat == DownloadManager.convertedFormat, song.suffix?.lowercased() != fileFormat {
+            return PlaybackQuality(format: fileFormat, bitRate: nil, isConverted: true, isDownloaded: true)
+        }
+        return .original(song, downloaded: true)
+    }
+
+    private var streamingCap: Int? {
+        (network.isExpensive ? settings.settings.cellularQuality : settings.settings.wifiQuality).maxBitRate
     }
 }

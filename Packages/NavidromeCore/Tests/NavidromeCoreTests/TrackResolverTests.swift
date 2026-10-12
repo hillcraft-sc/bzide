@@ -10,9 +10,14 @@ final class FakeNetworkCost: NetworkCostMonitoring {
 @MainActor
 final class FakeDownloads: DownloadedTrackLookup {
     var files: [String: URL] = [:]
+    var convertedBitRates: [String: Int] = [:]
 
     func localFile(forSongID songID: String) -> URL? {
         files[songID]
+    }
+
+    func convertedBitRate(forSongID songID: String) -> Int? {
+        convertedBitRates[songID]
     }
 }
 
