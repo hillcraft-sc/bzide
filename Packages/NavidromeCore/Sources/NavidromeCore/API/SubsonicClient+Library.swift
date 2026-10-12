@@ -13,6 +13,12 @@ extension SubsonicClient {
         try await request("getArtist", parameters: [.init(name: "id", value: id)], as: ItemPayload<Artist, ArtistKey>.self).item
     }
 
+    /// The biography and other details the server has looked up. An artist the
+    /// server knows nothing about gives an empty `ArtistInfo`, not an error.
+    public func artistInfo(id: String) async throws(SubsonicError) -> ArtistInfo {
+        try await request("getArtistInfo2", parameters: [.init(name: "id", value: id)], as: ArtistInfoPayload.self).info
+    }
+
     /// The album with its songs.
     public func album(id: String) async throws(SubsonicError) -> Album {
         try await request("getAlbum", parameters: [.init(name: "id", value: id)], as: ItemPayload<Album, AlbumKey>.self).item
@@ -124,6 +130,18 @@ struct ItemPayload<Item: Decodable, Key: ItemKey>: Decodable {
 enum ArtistKey: ItemKey { static let key = "artist" }
 enum AlbumKey: ItemKey { static let key = "album" }
 enum PlaylistKey: ItemKey { static let key = "playlist" }
+
+/// `getArtistInfo2` may omit `artistInfo2`, or send it empty.
+struct ArtistInfoPayload: Decodable {
+    let info: ArtistInfo
+
+    private enum Keys: String, CodingKey { case artistInfo2 }
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        info = (try? c.decodeIfPresent(ArtistInfo.self, forKey: .artistInfo2)) ?? ArtistInfo()
+    }
+}
 
 /// `search3` with no matches may omit `searchResult3` entirely.
 struct SearchPayload: Decodable {

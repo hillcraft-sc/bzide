@@ -42,6 +42,10 @@ final class Library {
         LoadModel { [client] () async throws(SubsonicError) in try await client.artist(id: id) }
     }
 
+    func artistInfoModel(id: String) -> LoadModel<ArtistInfo> {
+        LoadModel { [client] () async throws(SubsonicError) in try await client.artistInfo(id: id) }
+    }
+
     func albumModel(id: String) -> LoadModel<Album> {
         LoadModel { [client] () async throws(SubsonicError) in try await client.album(id: id) }
     }

@@ -114,25 +114,35 @@ struct PlaylistView: View {
 struct ArtistView: View {
     let library: Library
     @State private var model: LoadModel<Artist>
+    /// Loaded separately: a slow or failed lookup never holds up the albums.
+    @State private var info: LoadModel<ArtistInfo>
 
     init(library: Library, id: String) {
         self.library = library
         _model = State(initialValue: library.artistModel(id: id))
+        _info = State(initialValue: library.artistInfoModel(id: id))
     }
 
     var body: some View {
         LoadStateView(state: model.state, retry: model.load) { artist in
-            List(artist.albums) { album in
-                NavigationLink(value: LibraryRoute.album(id: album.id)) {
-                    AlbumRow(library: library, album: album)
+            List {
+                Section {
+                    ArtistHeader(library: library, artist: artist, biography: info.value?.biography)
+                        .frame(maxWidth: .infinity)
+                        .listRowSeparator(.hidden)
+                }
+                Section {
+                    ForEach(artist.albums) { album in
+                        NavigationLink(value: LibraryRoute.album(id: album.id)) {
+                            AlbumRow(library: library, album: album)
+                        }
+                    }
+                    if artist.albums.isEmpty {
+                        Text("No Albums").foregroundStyle(.secondary)
+                    }
                 }
             }
             .listStyle(.plain)
-            .overlay {
-                if artist.albums.isEmpty {
-                    ContentUnavailableView("No Albums", systemImage: "square.stack")
-                }
-            }
             .toolbar {
                 ToolbarItem {
                     Menu("More", systemImage: "ellipsis") {
@@ -142,7 +152,72 @@ struct ArtistView: View {
             }
         }
         .navigationTitle(model.value?.name ?? "")
-        .task { await model.load() }
-        .refreshable { await model.load() }
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    private func load() async {
+        async let albums: Void = model.load()
+        async let biography: Void = info.load()
+        _ = await (albums, biography)
+    }
+}
+
+/// Artist image and name, then the first lines of the biography; tapping
+/// More shows the rest.
+private struct ArtistHeader: View {
+    let library: Library
+    let artist: Artist
+    let biography: String?
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ArtworkView(library: library, coverArtID: artist.coverArtID, side: 220)
+            Text(artist.name.isEmpty ? "Unknown Artist" : artist.name)
+                .font(.title2.bold())
+                .multilineTextAlignment(.center)
+            if let biography {
+                Biography(text: biography)
+                    .padding(.top, 4)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+}
+
+private struct Biography: View {
+    let text: String
+
+    @State private var isExpanded = false
+    @State private var shortHeight: CGFloat = 0
+    @State private var fullHeight: CGFloat = 0
+
+    /// Only offer More when three lines don't already show it all.
+    private var isTruncated: Bool { fullHeight > shortHeight + 1 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(text)
+                .lineLimit(isExpanded ? nil : 3)
+                .foregroundStyle(.secondary)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { if !isExpanded { shortHeight = $0 } }
+                .background(alignment: .top) {
+                    // The full text, unseen, to measure against.
+                    Text(text)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .hidden()
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { fullHeight = $0 }
+                }
+            if isTruncated {
+                Button(isExpanded ? "Less" : "More") {
+                    withAnimation { isExpanded.toggle() }
+                }
+                .font(.subheadline.bold())
+                .buttonStyle(.borderless)
+            }
+        }
+        .font(.subheadline)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
