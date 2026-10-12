@@ -42,8 +42,10 @@ struct MiniPlayer: View {
 
 /// Full-screen player: artwork, controls, and the queue.
 struct NowPlayingView: View {
+    let model: AppModel
     let library: Library
     @Environment(\.dismiss) private var dismiss
+    @State private var isVisualizerOpen = false
 
     private var engine: PlaybackEngine { library.engine }
 
@@ -67,6 +69,7 @@ struct NowPlayingView: View {
                             }
                             AirPlayButton()
                                 .frame(width: 32, height: 32)
+                            Button("Visualizer", systemImage: "waveform") { isVisualizerOpen = true }
                         }
                         .labelStyle(.iconOnly)
                         .font(.title3)
@@ -110,6 +113,9 @@ struct NowPlayingView: View {
             }
             .addToPlaylistSheet(library)
             .playlistConfirmation(library.playlistEditor)
+            .fullScreenCover(isPresented: $isVisualizerOpen) {
+                VisualizerView(model: model, engine: engine)
+            }
             // Tells Siri which song this screen is about ("add this to my
             // running playlist").
             .userActivity("com.erichebert.musicapp.nowPlaying", isActive: engine.queue.current.map { !$0.song.isLive } ?? false) { activity in

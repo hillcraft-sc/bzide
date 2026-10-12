@@ -25,13 +25,13 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     /// Live levels of what's playing, while `isMetering` is on.
     public let levelMeter = AudioLevelMeter()
 
-    /// Taps every loaded item (and each one loaded later) with `levelMeter`.
-    /// Off by default: until the visualizer is proven, playback runs untouched.
-    public var isMetering = false {
-        didSet {
-            guard isMetering != oldValue else { return }
-            for item in player.items() { applyMetering(to: item) }
-        }
+    /// Whether `levelMeter` measures. Every item is tapped when it's loaded,
+    /// before it plays, and the tap stays: adding or removing a tap on a playing
+    /// item makes AVFoundation rebuild its audio chain, which is heard as a
+    /// skip. So this only switches measuring on and off.
+    public var isMetering: Bool {
+        get { levelMeter.isMeasuring }
+        set { levelMeter.isMeasuring = newValue }
     }
 
     public init() {
@@ -111,7 +111,7 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         itemObservations[key] = avItem.observe(\.status, options: [.new]) { @Sendable [weak self] avItem, _ in
             Task { @MainActor in self?.itemStatusChanged(avItem) }
         }
-        applyMetering(to: avItem)
+        attachLevelTap(to: avItem)
         if item.isLive, let titleReader {
             // Radio streams announce what they're playing as timed metadata.
             let output = AVPlayerItemMetadataOutput(identifiers: nil)
@@ -267,17 +267,14 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         onEvent?(.stalled(entryID))
     }
 
-    /// Adds or removes the level tap. The tap goes on the item's audio track,
-    /// which a streamed item only knows once it has loaded, so it's attached
-    /// when that's done; the audio itself passes through unchanged.
-    private func applyMetering(to item: AVPlayerItem) {
-        guard isMetering else {
-            item.audioMix = nil
-            return
-        }
+    /// Taps a newly loaded item for `levelMeter` (measuring only while
+    /// `isMetering`). The tap goes on the item's audio track, which a streamed
+    /// item only knows once it has loaded; that's normally done while it
+    /// buffers, before it's heard. The audio passes through unchanged.
+    private func attachLevelTap(to item: AVPlayerItem) {
         Task { [weak self] in
             guard let track = try? await item.asset.loadTracks(withMediaType: .audio).first,
-                  let self, self.isMetering, let tap = self.levelMeter.makeTap() else { return }
+                  let self, let tap = self.levelMeter.makeTap() else { return }
             let parameters = AVMutableAudioMixInputParameters(track: track)
             parameters.audioTapProcessor = tap
             let mix = AVMutableAudioMix()

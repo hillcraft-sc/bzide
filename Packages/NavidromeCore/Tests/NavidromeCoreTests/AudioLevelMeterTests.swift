@@ -37,6 +37,15 @@ struct AudioLevelMeterTests {
         #expect(meter.bufferCount == 1)
     }
 
+    @Test func measuringIsOffUntilSwitchedOn() {
+        let meter = AudioLevelMeter()
+        #expect(!meter.isMeasuring)
+        meter.isMeasuring = true
+        #expect(meter.isMeasuring)
+        meter.isMeasuring = false
+        #expect(!meter.isMeasuring)
+    }
+
     @Test func aTapCanBeMade() {
         #expect(AudioLevelMeter().makeTap() != nil)
     }

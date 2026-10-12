@@ -60,9 +60,15 @@ How the app behaves, written so the web and Android clients can be ported from t
 ### Audio levels (visualizer groundwork)
 
 - The player can tap each item's audio (an `MTAudioProcessingTap` on its audio mix) to measure live left/right levels for a future visualizer. The tap passes the audio through untouched and its real-time callbacks never lock or allocate: they measure with vDSP and store numbers in atomics that the UI reads as it draws.
-- It's off by default and at every launch; for now it's switched on only from the Debug player's "Audio tap" switch (phase 1, proving it doesn't affect playback). While on, every loaded item gets the tap, including the preloaded next song; a streamed item gets it once its audio track has loaded. Turning it off removes it from every item.
+- Every item is tapped when it's loaded, before it plays (a streamed item once its audio track has loaded, normally while it buffers), and the tap stays until the item is gone. Adding or removing a tap on an item that's playing makes AVFoundation rebuild its audio chain, heard as a skip, so the tap is never added or removed mid-song. What's switched is only whether it measures: off by default and at every launch, on while the visualizer is open (or the Debug player's "Audio tap" switch is on). Not measuring, it just passes the audio through.
 - Over AirPlay the tap sees no audio, so the levels stay still while playback itself is unaffected (confirmed on device 2026-10-12). AirPlay 2 sends the encoded audio to the receiver, which decodes and plays it; it never passes through the phone's local audio path where the tap sits. A visualizer needs a fallback while AirPlay is the output.
 - Radio stations get no levels either (playback unaffected; confirmed on device 2026-10-12). A live stream reports no audio track up front, and even attaching the tap to the track the playing item exposes later (tried the same day) gives no audio: the tap is attached but never called. AVFoundation plays endless streams through a path that skips audio taps, so a visualizer needs the same fallback for radio as for AirPlay.
+
+### Visualizer
+
+- Now Playing's waveform button (in the row with the heart, rating and AirPlay) opens a full-screen visualizer: about 40 spectrum bars, bass on the left to treble on the right (60 Hz to 16 kHz, spaced like musical pitch), in the theme's accent (system tint in the system themes), on black, with the song's title and artist at the bottom and a close button. While it's open the audio tap runs and the screen doesn't dim; closing it turns both back to how they were.
+- Each frame takes the latest 2048 samples (mixed to mono), applies a Hann window and a Fourier transform, and takes each band's peak on a decibel scale (−75 dB empty to −15 dB full), so quiet passages still move. Bars rise quickly and fall at most 1.6 of their height per second. When no new audio has arrived for a quarter of a second (paused, between songs, or the tap isn't running) they fall to a sliver rather than freezing.
+- For a radio station it shows "The visualizer isn't available for radio.", and over AirPlay "The visualizer isn't available over AirPlay." (neither can be tapped; see Audio levels). Both follow changes while it's open.
 
 ### Lock screen, Control Center and remote commands
 
@@ -381,6 +387,14 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] With the tap on: pause/resume, skip, lock the phone for a few minutes, take a call or alarm, unplug or disconnect headphones: all behave as without it. Note anything that sounds different. (2026-10-12)
 - [x] With the tap on, AirPlay to a speaker: playback is unaffected; note whether the bars still move. (2026-10-12: playback fine; the bars don't move, as expected, see Audio levels.)
 - [x] Turn it off: playback carries on untouched. Relaunch: it's off. (2026-10-12)
+
+### Visualizer
+
+- [x] Play an album, open Now Playing > waveform button: full-screen bars in your accent move with the music (bass on the left), title and artist at the bottom. Let a song end: the next one starts without a gap and the bars carry on. (2026-10-12)
+- [x] Open and close the visualizer several times in the middle of a song, and start a new album with it closed and with it open: no skip or hiccup in the audio. (2026-10-12)
+- [x] Pause: the bars fall flat. Play: they come back. Leave it open a few minutes: the screen doesn't dim or lock. Close it: the screen dims normally again. (2026-10-12)
+- [x] Play a radio station and open it: "The visualizer isn't available for radio." Switch to AirPlay with a song: "…isn't available over AirPlay."; back to the iPhone: the bars return. (2026-10-12)
+- [x] Switch to Catppuccin with another accent: the bars use it. (2026-10-12)
 
 ### Siri (needs Apple Intelligence)
 

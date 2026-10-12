@@ -26,7 +26,7 @@ struct RootView: View {
             MiniPlayer(library: library) { isNowPlayingOpen = true }
         }
         .sheet(isPresented: $isNowPlayingOpen) {
-            NowPlayingView(library: library)
+            NowPlayingView(model: model, library: library)
         }
         .addToPlaylistSheet(library, isEnabled: !isNowPlayingOpen)
         .playlistConfirmation(library.playlistEditor)
