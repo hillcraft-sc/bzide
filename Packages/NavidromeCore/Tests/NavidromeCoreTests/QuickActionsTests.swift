@@ -9,6 +9,7 @@ private final class FakeLibraryServer: Sendable {
         var albums: [String: Album] = [:]
         var playlists: [String: Playlist] = [:]
         var artists: [String: Artist] = [:]
+        var genres: [String: [Song]] = [:]
         var albumFetches: [String] = []
         var failingAlbum: String?
     }
@@ -37,6 +38,9 @@ private final class FakeLibraryServer: Sendable {
                     guard let artist = state.artists[id] else { throw Self.notFound }
                     return artist
                 }
+            },
+            genreSongs: { name async throws(SubsonicError) in
+                self.state.withLock { $0.genres[name] ?? [] }
             }
         )
     }
@@ -91,6 +95,15 @@ struct QuickActionsTests {
         #expect(handled.calls.map(\.0) == [.shuffle])
         #expect(handled.songIDs == [["so-1"]])
         #expect(handled.calls.first?.1.download?.id == DownloadCollection.id(.playlist, serverID: "pl-1"))
+    }
+
+    @Test func aGenreIsFetchedThenHandled() async {
+        fake.state.withLock { $0.genres["Jazz"] = [Song(id: "so-1", title: "One"), Song(id: "so-2", title: "Two")] }
+        let handled = Handled()
+        await makeModel(handled).perform(.shuffle, on: .genre("Jazz"))
+        #expect(handled.calls.map(\.0) == [.shuffle])
+        #expect(handled.songIDs == [["so-1", "so-2"]])
+        #expect(handled.calls.first?.1.download == nil)
     }
 
     @Test func songsAtHandNeedNoFetch() async {
@@ -199,7 +212,8 @@ struct QuickActionsTests {
             server: QuickActions.Server(
                 album: { id async throws(SubsonicError) in try await gate.fetch(id) },
                 playlist: { _ async throws(SubsonicError) in throw FakeLibraryServer.notFound },
-                artist: { _ async throws(SubsonicError) in throw FakeLibraryServer.notFound }
+                artist: { _ async throws(SubsonicError) in throw FakeLibraryServer.notFound },
+                genreSongs: { _ async throws(SubsonicError) in [] }
             ),
             handle: { handled.calls.append(($0, $1)) }
         )

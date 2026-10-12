@@ -74,6 +74,20 @@ extension SubsonicClient {
         return try await request("search3", parameters: parameters, as: SearchPayload.self).result
     }
 
+    public func genres() async throws(SubsonicError) -> [Genre] {
+        try await request("getGenres", as: ListPayload<Genre, GenresKeys>.self).elements
+    }
+
+    /// `count` is capped at 500 by the server.
+    public func songs(inGenre genre: String, count: Int = 500, offset: Int = 0) async throws(SubsonicError) -> [Song] {
+        let parameters: [URLQueryItem] = [
+            .init(name: "genre", value: genre),
+            .init(name: "count", value: String(count)),
+            .init(name: "offset", value: String(offset)),
+        ]
+        return try await request("getSongsByGenre", parameters: parameters, as: ListPayload<Song, SongsByGenreKeys>.self).elements
+    }
+
     public func radioStations() async throws(SubsonicError) -> [RadioStation] {
         try await request("getInternetRadioStations", as: ListPayload<RadioStation, RadioStationsKeys>.self).elements
     }
@@ -135,6 +149,8 @@ struct ListPayload<Element: Decodable, Keys: ListKeys>: Decodable {
 enum ArtistsKeys: ListKeys { static let wrapper = "artists"; static let list = "index" }
 enum AlbumList2Keys: ListKeys { static let wrapper = "albumList2"; static let list = "album" }
 enum PlaylistsKeys: ListKeys { static let wrapper = "playlists"; static let list = "playlist" }
+enum GenresKeys: ListKeys { static let wrapper = "genres"; static let list = "genre" }
+enum SongsByGenreKeys: ListKeys { static let wrapper = "songsByGenre"; static let list = "song" }
 enum RadioStationsKeys: ListKeys { static let wrapper = "internetRadioStations"; static let list = "internetRadioStation" }
 enum RandomSongsKeys: ListKeys { static let wrapper = "randomSongs"; static let list = "song" }
 

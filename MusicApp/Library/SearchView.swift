@@ -11,6 +11,19 @@ struct SearchView: View {
     }
 
     var body: some View {
+        Group {
+            // Nothing typed yet: browse by genre instead of an empty screen.
+            if model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                GenreGrid(library: library)
+            } else {
+                results
+            }
+        }
+        .navigationTitle("Search")
+        .searchable(text: Binding(get: { model.query }, set: { model.updateQuery($0) }), prompt: "Artists, albums, songs")
+    }
+
+    private var results: some View {
         List {
             Group {
                 if let results = model.results {
@@ -55,8 +68,6 @@ struct SearchView: View {
         .listStyle(.plain)
         .themedList()
         .overlay { overlay }
-        .navigationTitle("Search")
-        .searchable(text: Binding(get: { model.query }, set: { model.updateQuery($0) }), prompt: "Artists, albums, songs")
     }
 
     @ViewBuilder private var overlay: some View {

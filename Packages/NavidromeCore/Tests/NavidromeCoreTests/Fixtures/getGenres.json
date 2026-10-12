@@ -1,0 +1,9 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","type":"navidrome","serverVersion":"0.58.0","openSubsonic":true,
+"genres":{"genre":[
+  {"value":"Jazz","songCount":120,"albumCount":12},
+  {"value":"Rock","songCount":900,"albumCount":"80"},
+  {"value":"Spoken Word","songCount":0,"albumCount":0},
+  {"value":"  ","songCount":3,"albumCount":1},
+  {"value":"Ambient","songCount":40},
+  {"value":"Blues","songCount":120,"albumCount":12}
+]}}}

@@ -1,0 +1,5 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","type":"navidrome","serverVersion":"0.58.0","openSubsonic":true,
+"songsByGenre":{"song":[
+  {"id":"so-1","title":"Dawn","album":"First Light","albumId":"al-1","artist":"Aurora Lines","genre":"Jazz","duration":201},
+  {"id":"so-2","title":"Noon","album":"First Light","albumId":"al-1","artist":"Aurora Lines","genre":"Jazz","duration":205}
+]}}}

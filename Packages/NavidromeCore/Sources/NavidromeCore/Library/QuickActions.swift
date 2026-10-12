@@ -8,6 +8,8 @@ public enum SongSource: Sendable, Equatable {
     case playlist(id: String)
     /// All of the artist's albums, oldest first, each in track order.
     case artist(id: String)
+    /// Up to 500 of the genre's songs, in the server's order.
+    case genre(String)
 
     /// Equal for the same thing, so a second request for it can be ignored.
     var key: String {
@@ -16,6 +18,7 @@ public enum SongSource: Sendable, Equatable {
         case .album(let id): "album:\(id)"
         case .playlist(let id): "playlist:\(id)"
         case .artist(let id): "artist:\(id)"
+        case .genre(let name): "genre:\(name)"
         }
     }
 }
@@ -35,15 +38,18 @@ public final class QuickActions {
         public var album: @Sendable (_ id: String) async throws(SubsonicError) -> Album
         public var playlist: @Sendable (_ id: String) async throws(SubsonicError) -> Playlist
         public var artist: @Sendable (_ id: String) async throws(SubsonicError) -> Artist
+        public var genreSongs: @Sendable (_ genre: String) async throws(SubsonicError) -> [Song]
 
         public init(
             album: @escaping @Sendable (_ id: String) async throws(SubsonicError) -> Album,
             playlist: @escaping @Sendable (_ id: String) async throws(SubsonicError) -> Playlist,
-            artist: @escaping @Sendable (_ id: String) async throws(SubsonicError) -> Artist
+            artist: @escaping @Sendable (_ id: String) async throws(SubsonicError) -> Artist,
+            genreSongs: @escaping @Sendable (_ genre: String) async throws(SubsonicError) -> [Song]
         ) {
             self.album = album
             self.playlist = playlist
             self.artist = artist
+            self.genreSongs = genreSongs
         }
     }
 
@@ -95,6 +101,8 @@ public final class QuickActions {
         case .artist(let id):
             let artist = try await server.artist(id)
             return Resolved(songs: try await songs(of: Self.oldestFirst(artist.albums)), download: nil)
+        case .genre(let name):
+            return Resolved(songs: try await server.genreSongs(name), download: nil)
         }
     }
 

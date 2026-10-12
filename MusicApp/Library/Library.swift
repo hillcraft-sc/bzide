@@ -9,6 +9,8 @@ final class Library {
     let ratings: RatingModel
     let quickActions: QuickActions
     let radio: RadioPlayer
+    /// Shared so covers fetched once stay for the session.
+    let genreCovers: GenreCovers
     let playlistEditor: PlaylistEditor
     /// How Siri finds things on the server. Not for views, which use the models.
     let siriLookup: SiriLookup
@@ -54,6 +56,9 @@ final class Library {
             playlists: { [client] () async throws(SubsonicError) in try await client.playlists() },
             search: { [client] query async throws(SubsonicError) in try await client.search(query, artistCount: 10, albumCount: 10, songCount: 10) }
         )
+        self.genreCovers = GenreCovers { [client] genre async throws(SubsonicError) in
+            try await client.albumList(.byGenre(genre), size: 1).first?.coverArtID
+        }
         // Station playlist files live on the open internet: no shared cache or cookies.
         let playlistSession = URLSession(configuration: .ephemeral)
         self.radio = RadioPlayer(
@@ -66,7 +71,8 @@ final class Library {
             server: QuickActions.Server(
                 album: { [client] id async throws(SubsonicError) in try await client.album(id: id) },
                 playlist: { [client] id async throws(SubsonicError) in try await client.playlist(id: id) },
-                artist: { [client] id async throws(SubsonicError) in try await client.artist(id: id) }
+                artist: { [client] id async throws(SubsonicError) in try await client.artist(id: id) },
+                genreSongs: { [client] genre async throws(SubsonicError) in try await client.songs(inGenre: genre) }
             ),
             handle: { [engine, downloads] action, resolved in
                 switch action {
@@ -96,6 +102,16 @@ final class Library {
     /// The newest albums, for the row at the top of Library.
     func recentlyAddedModel() -> LoadModel<[Album]> {
         LoadModel { [client] () async throws(SubsonicError) in try await client.albumList(.newest, size: 15) }
+    }
+
+    func genresModel() -> LoadModel<[Genre]> {
+        LoadModel { [client] () async throws(SubsonicError) in Genre.forBrowsing(try await client.genres()) }
+    }
+
+    func genreAlbumsModel(_ genre: String) -> AlbumsModel {
+        AlbumsModel(listType: .byGenre(genre)) { [client] type, size, offset async throws(SubsonicError) in
+            try await client.albumList(type, size: size, offset: offset)
+        }
     }
 
     func radioStationsModel() -> LoadModel<[RadioStation]> {

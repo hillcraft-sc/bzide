@@ -57,6 +57,9 @@ public final class AlbumsModel {
     public private(set) var loadMoreError: String?
 
     @ObservationIgnored private let fetch: Fetch
+    /// Set for a list that isn't one of the sorts (a genre's albums); `sort`
+    /// is then unused.
+    @ObservationIgnored private let fixedType: AlbumListType?
     @ObservationIgnored private var hasMore = false
     /// Where the next page starts on the server. Not `albums.count`: duplicates
     /// are dropped, and the server's offset must not drift because of that.
@@ -72,7 +75,18 @@ public final class AlbumsModel {
     public init(sort: AlbumSort = .newest, fetch: @escaping Fetch) {
         self.sort = sort
         self.fetch = fetch
+        fixedType = nil
     }
+
+    /// A list with one fixed order, such as `.byGenre`. Always paged.
+    public init(listType: AlbumListType, fetch: @escaping Fetch) {
+        sort = .newest
+        self.fetch = fetch
+        fixedType = listType
+    }
+
+    private var listType: AlbumListType { fixedType ?? sort.listType }
+    private var isPaged: Bool { fixedType != nil || sort.isPaged }
 
     public var albums: [Album]? {
         if case .loaded(let albums) = state { albums } else { nil }
@@ -88,11 +102,11 @@ public final class AlbumsModel {
         let hadContent = albums != nil
         if !hadContent { state = .loading }
         do {
-            let page = try await fetch(sort.listType, Self.pageSize, 0)
+            let page = try await fetch(listType, Self.pageSize, 0)
             guard thisLoad == generation else { return }
             state = .loaded(Self.withoutDuplicates(page, after: []))
             nextOffset = page.count
-            hasMore = sort.isPaged && page.count == Self.pageSize
+            hasMore = isPaged && page.count == Self.pageSize
         } catch {
             guard thisLoad == generation, !Task.isCancelled else { return }
             if hadContent {
@@ -128,7 +142,7 @@ public final class AlbumsModel {
         isLoadingMore = true
         loadMoreError = nil
         do {
-            let page = try await fetch(sort.listType, Self.pageSize, nextOffset)
+            let page = try await fetch(listType, Self.pageSize, nextOffset)
             guard thisLoad == generation, let albums else { return }
             state = .loaded(albums + Self.withoutDuplicates(page, after: albums))
             nextOffset += page.count
