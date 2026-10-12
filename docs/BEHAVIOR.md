@@ -62,6 +62,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - The player can tap each item's audio (an `MTAudioProcessingTap` on its audio mix) to measure live left/right levels for a future visualizer. The tap passes the audio through untouched and its real-time callbacks never lock or allocate: they measure with vDSP and store numbers in atomics that the UI reads as it draws.
 - It's off by default and at every launch; for now it's switched on only from the Debug player's "Audio tap" switch (phase 1, proving it doesn't affect playback). While on, every loaded item gets the tap, including the preloaded next song; a streamed item gets it once its audio track has loaded. Turning it off removes it from every item.
 - Over AirPlay the tap sees no audio, so the levels stay still while playback itself is unaffected (confirmed on device 2026-10-12). AirPlay 2 sends the encoded audio to the receiver, which decodes and plays it; it never passes through the phone's local audio path where the tap sits. A visualizer needs a fallback while AirPlay is the output.
+- Radio stations get no tap either (playback unaffected; confirmed on device 2026-10-12). The tap is attached to the item's audio track, and an endless radio stream (or HLS) usually reports no tracks, so none is attached. Not yet confirmed which it is for each station.
 
 ### Lock screen, Control Center and remote commands
 
@@ -376,7 +377,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 ### Audio levels (visualizer phase 1, from the Debug player)
 
 - [x] Turn on Audio tap and play a streamed album: the bars move with the music and Buffers keeps climbing. Let two songs hand over: no gap, no glitch. (2026-10-12)
-- [x] With the tap on: a downloaded song and a converted (lower-quality) stream move the bars too; note whether a radio station does. (2026-10-12)
+- [x] With the tap on: a downloaded song and a converted (lower-quality) stream move the bars too; note whether a radio station does. (2026-10-12: downloads and converted streams move them; a radio station plays fine but the bars don't move, see Audio levels.)
 - [x] With the tap on: pause/resume, skip, lock the phone for a few minutes, take a call or alarm, unplug or disconnect headphones: all behave as without it. Note anything that sounds different. (2026-10-12)
 - [x] With the tap on, AirPlay to a speaker: playback is unaffected; note whether the bars still move. (2026-10-12: playback fine; the bars don't move, as expected, see Audio levels.)
 - [x] Turn it off: playback carries on untouched. Relaunch: it's off. (2026-10-12)
