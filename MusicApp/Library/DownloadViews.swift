@@ -55,6 +55,7 @@ struct DownloadsView: View {
                     DownloadRow(library: library, collection: collection)
                 }
                 .contextMenu { DownloadRowMenu(library: library, collection: collection) }
+                .siriEntity(download: collection)
                 .swipeActions {
                     Button("Remove", systemImage: "trash", role: .destructive) {
                         downloads.remove(collectionID: collection.id)

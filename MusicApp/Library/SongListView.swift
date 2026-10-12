@@ -39,6 +39,7 @@ struct SongListView<Header: View>: View {
                     }
                     .foregroundStyle(.primary)
                     .contextMenu { SongActions(library: library, song: song) }
+                    .siriEntity(songID: song.id)
                 }
             }
             .themedRows()

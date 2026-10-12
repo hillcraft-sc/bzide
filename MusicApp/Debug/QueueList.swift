@@ -23,6 +23,7 @@ struct QueueList: View {
                 }
             }
             .foregroundStyle(.primary)
+            .siriEntity(songID: entry.song.id)
         }
     }
 }

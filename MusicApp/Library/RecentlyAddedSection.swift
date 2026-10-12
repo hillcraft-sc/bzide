@@ -66,6 +66,7 @@ struct RecentlyAddedSection: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu { AlbumRowMenu(library: library, album: album) }
+                        .siriEntity(albumID: album.id)
                     }
                 }
                 .padding(.horizontal, 16)

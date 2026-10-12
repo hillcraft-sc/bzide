@@ -96,6 +96,7 @@ struct ArtistsView: View {
                                 Text(artist.name.isEmpty ? "Unknown Artist" : artist.name)
                             }
                             .contextMenu { ArtistRowMenu(library: library, artist: artist) }
+                            .siriEntity(artistID: artist.id)
                         }
                     }
                     .sectionIndexLabel(section.name)
@@ -128,6 +129,7 @@ struct AlbumsView: View {
                         AlbumRow(library: library, album: album)
                     }
                     .contextMenu { AlbumRowMenu(library: library, album: album) }
+                    .siriEntity(albumID: album.id)
                     .task { await model.loadMoreIfNeeded(after: album) }
                 }
                 .themedRows()
@@ -187,6 +189,7 @@ struct PlaylistsView: View {
                     PlaylistRow(library: library, playlist: playlist)
                 }
                 .contextMenu { PlaylistRowMenu(library: library, playlist: playlist) }
+                .siriEntity(playlistID: playlist.id)
                 .themedRows()
             }
             .listStyle(.plain)

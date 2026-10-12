@@ -19,6 +19,7 @@ struct SearchView: View {
                             ForEach(results.artists) { artist in
                                 NavigationLink(artist.name.isEmpty ? "Unknown Artist" : artist.name, value: LibraryRoute.artist(id: artist.id))
                                     .contextMenu { ArtistRowMenu(library: library, artist: artist) }
+                                    .siriEntity(artistID: artist.id)
                             }
                         }
                     }
@@ -29,6 +30,7 @@ struct SearchView: View {
                                     AlbumRow(library: library, album: album)
                                 }
                                 .contextMenu { AlbumRowMenu(library: library, album: album) }
+                                .siriEntity(albumID: album.id)
                             }
                         }
                     }
@@ -42,6 +44,7 @@ struct SearchView: View {
                                 }
                                 .foregroundStyle(.primary)
                                 .contextMenu { SongActions(library: library, song: song) }
+                                .siriEntity(songID: song.id)
                             }
                         }
                     }

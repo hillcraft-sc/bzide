@@ -8,6 +8,8 @@ final class Library {
     let ratings: RatingModel
     let quickActions: QuickActions
     let playlistEditor: PlaylistEditor
+    /// How Siri finds things on the server. Not for views, which use the models.
+    let siriLookup: SiriLookup
     /// Which songs the Add to Playlist sheet is open for.
     let addToPlaylist: AddToPlaylistRequest
     let artwork: ArtworkCache
@@ -42,6 +44,14 @@ final class Library {
             create: { [client] name, ids async throws(SubsonicError) in try await client.createPlaylist(name: name, songIDs: ids) },
             add: { [client] id, ids async throws(SubsonicError) in try await client.addToPlaylist(id: id, songIDs: ids) }
         ))
+        self.siriLookup = SiriLookup(
+            artist: { [client] id async throws(SubsonicError) in try await client.artist(id: id) },
+            album: { [client] id async throws(SubsonicError) in try await client.album(id: id) },
+            playlist: { [client] id async throws(SubsonicError) in try await client.playlist(id: id) },
+            song: { [client] id async throws(SubsonicError) in try await client.song(id: id) },
+            playlists: { [client] () async throws(SubsonicError) in try await client.playlists() },
+            search: { [client] query async throws(SubsonicError) in try await client.search(query, artistCount: 10, albumCount: 10, songCount: 10) }
+        )
         let addToPlaylist = AddToPlaylistRequest()
         self.addToPlaylist = addToPlaylist
         self.quickActions = QuickActions(

@@ -1,3 +1,4 @@
+import AppIntents
 import NavidromeCore
 import SwiftUI
 
@@ -99,6 +100,13 @@ struct NowPlayingView: View {
             }
             .addToPlaylistSheet(library)
             .playlistConfirmation(library.playlistEditor)
+            // Tells Siri which song this screen is about ("add this to my
+            // running playlist").
+            .userActivity("com.erichebert.musicapp.nowPlaying", isActive: engine.queue.current != nil) { activity in
+                guard let song = engine.queue.current?.song else { return }
+                activity.title = song.title
+                activity.appEntityIdentifier = EntityIdentifier(for: SongEntity.self, identifier: song.id)
+            }
         }
     }
 }

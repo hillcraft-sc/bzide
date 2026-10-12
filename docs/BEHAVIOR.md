@@ -146,6 +146,15 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Limits.** iOS draws some things itself: the navigation and tab bars and the mini player are glass over the themed background, navigation titles are iOS's black or white, and menus, alerts, context menus and the keyboard follow only the flavour's light or dark mode.
 - Palette values are Catppuccin's published ones (MIT licence), from github.com/catppuccin/palette.
 
+## Siri
+
+- **What Siri knows.** Songs, albums, artists and playlists are Siri entities using the system's audio schemas (ids are the server's). Every artist, album, playlist, song, download and queue row is annotated with its entity, as are the album, artist and playlist page headers; Now Playing publishes the current song. So "Ask Siri" from a long-press, or "play this" / "add this to …" while looking at something, refers to that item. iOS 27 adds Ask Siri to menus on its own; the app can't remove it (see `docs/ISSUES.md`).
+- **Finding things by name.** Siri looks entities up by id (`getArtist`, `getAlbum`, `getPlaylist`, `getSong`; ids the server no longer has are skipped) or by name (`search3`, 10 of each kind; playlists by filtering the user's list, since the server has no playlist search). For "play X", an exact (case- and accent-insensitive) name match comes first, then songs, albums, artists and playlists.
+- **Play** (`playAudio` schema): plays the item as the long-press Play does (an artist's albums oldest first). Shuffle plays it shuffled; Repeat also turns on repeat all; "next" and "last" put it after the current song or at the end of the queue instead of replacing it.
+- **Add to Playlist** (`addToPlaylist` schema): adds the item to the named playlist with the same rules as the sheet (only new songs; long lists chunked). Siri says the result, e.g. "Added 8 songs to “Morning”. 2 were already there."; a failure is spoken as the server's message.
+- An artist with more than 100 songs asks for confirmation first, as the menus do.
+- Signed out, every Siri request fails with "Sign in to your Navidrome server in Bzide first." Siri needs Apple Intelligence; none of this works without it.
+
 ## Play history
 
 - A play is added to the history at the moment it counts for scrobbling (half the track or 4 minutes, whichever comes first), recorded with the song as it was and the time the play started. Skipped plays aren't recorded. Works offline.
@@ -304,6 +313,16 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] With the phone in light mode, Mocha stays dark; with the phone in dark mode, Latte stays light.
 - [ ] Back to System: the app follows the phone's light or dark mode with iOS blue, as before.
 - [ ] Force quit and relaunch: the chosen theme and accent are kept. Sign out: the sign-in screen is in the theme too.
+
+### Siri (needs Apple Intelligence)
+
+- [ ] Long-press an artist > Ask Siri > "play this": that artist plays, oldest album first. Same from an album and a playlist row.
+- [ ] Long-press an artist > Ask Siri > "tell me about this artist": Siri talks about that artist (not about Bzide or the screen).
+- [ ] Long-press a song > Ask Siri > "add this to my <playlist> playlist": it's added; Siri says so. Ask again: Siri says it's already there.
+- [ ] With Now Playing open, "add this to <playlist>": the current song is added.
+- [ ] Without the app open: "Play <album name> in Bzide", "Shuffle <artist> in Bzide", "Play <playlist> in Bzide".
+- [ ] "Play <artist with more than 100 songs> in Bzide": Siri asks first; saying no plays nothing.
+- [ ] Signed out: a Siri request says to sign in first.
 
 ### Play history
 - [ ] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear.

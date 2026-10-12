@@ -49,6 +49,7 @@ struct AlbumView: View {
                     title: album.name,
                     subtitle: [album.artist, album.year.map(String.init)].compactMap { $0 }.joined(separator: " · ")
                 )
+                .siriEntity(albumID: album.id)
             }
             .toolbar {
                 ToolbarItem {
@@ -92,6 +93,7 @@ struct PlaylistView: View {
                     title: playlist.name,
                     subtitle: playlist.songCount.map { "\($0) songs" }
                 )
+                .siriEntity(playlistID: playlist.id)
             }
             .toolbar {
                 ToolbarItem {
@@ -130,6 +132,7 @@ struct ArtistView: View {
             List {
                 Section {
                     ArtistHeader(library: library, artist: artist, biography: info.value?.biography)
+                        .siriEntity(artistID: artist.id)
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
                 }
@@ -140,6 +143,7 @@ struct ArtistView: View {
                             AlbumRow(library: library, album: album)
                         }
                         .contextMenu { AlbumRowMenu(library: library, album: album, showsGoToArtist: false) }
+                        .siriEntity(albumID: album.id)
                     }
                     if artist.albums.isEmpty {
                         Text("No Albums").foregroundStyle(.secondary)

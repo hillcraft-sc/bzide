@@ -21,6 +21,7 @@ struct HistoryView: View {
                         }
                         .foregroundStyle(.primary)
                         .contextMenu { SongActions(library: library, song: item.entry.song) }
+                        .siriEntity(songID: item.entry.song.id)
                     }
                 }
             }
