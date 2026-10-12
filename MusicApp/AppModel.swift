@@ -23,6 +23,14 @@ final class AppModel {
     private(set) var libraryError: String?
     /// Who is signed in, for Settings.
     private(set) var account: AccountSummary?
+    /// Visualizer phase 1 test: the player's live level meter, and the switch
+    /// that taps playback for it. Off at every launch.
+    var levelMeter: AudioLevelMeter { system.player.levelMeter }
+    var isMetering: Bool {
+        get { system.player.isMetering }
+        set { system.player.isMetering = newValue }
+    }
+
     /// Device-wide, so the theme also applies to the sign-in screen and survives sign-out.
     let appearance = AppearanceModel()
 

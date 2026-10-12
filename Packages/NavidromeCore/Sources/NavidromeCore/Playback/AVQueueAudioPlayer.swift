@@ -22,6 +22,18 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     private var metadataOutputs: [ObjectIdentifier: (output: AVPlayerItemMetadataOutput, entryID: QueueEntry.ID)] = [:]
     private var titleReader: StreamTitleReader?
 
+    /// Live levels of what's playing, while `isMetering` is on.
+    public let levelMeter = AudioLevelMeter()
+
+    /// Taps every loaded item (and each one loaded later) with `levelMeter`.
+    /// Off by default: until the visualizer is proven, playback runs untouched.
+    public var isMetering = false {
+        didSet {
+            guard isMetering != oldValue else { return }
+            for item in player.items() { applyMetering(to: item) }
+        }
+    }
+
     public init() {
         observePlayer()
         observeItemNotifications()
@@ -99,6 +111,7 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         itemObservations[key] = avItem.observe(\.status, options: [.new]) { @Sendable [weak self] avItem, _ in
             Task { @MainActor in self?.itemStatusChanged(avItem) }
         }
+        applyMetering(to: avItem)
         if item.isLive, let titleReader {
             // Radio streams announce what they're playing as timed metadata.
             let output = AVPlayerItemMetadataOutput(identifiers: nil)
@@ -252,6 +265,25 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     private func itemStalled(_ item: AVPlayerItem?) {
         guard let item, let entryID = entryIDs[ObjectIdentifier(item)] else { return }
         onEvent?(.stalled(entryID))
+    }
+
+    /// Adds or removes the level tap. The tap goes on the item's audio track,
+    /// which a streamed item only knows once it has loaded, so it's attached
+    /// when that's done; the audio itself passes through unchanged.
+    private func applyMetering(to item: AVPlayerItem) {
+        guard isMetering else {
+            item.audioMix = nil
+            return
+        }
+        Task { [weak self] in
+            guard let track = try? await item.asset.loadTracks(withMediaType: .audio).first,
+                  let self, self.isMetering, let tap = self.levelMeter.makeTap() else { return }
+            let parameters = AVMutableAudioMixInputParameters(track: track)
+            parameters.audioTapProcessor = tap
+            let mix = AVMutableAudioMix()
+            mix.inputParameters = [parameters]
+            item.audioMix = mix
+        }
     }
 
     private func streamAnnounced(_ title: String?, by outputKey: ObjectIdentifier) {

@@ -57,6 +57,12 @@ How the app behaves, written so the web and Android clients can be ported from t
 - When the system restarts its audio services ("media services were reset"), the app throws away its player and builds a new one. If music was playing (or buffering, or reconnecting), it reloads the current track at the same position and keeps playing; the user didn't stop it and the output route hasn't changed. If it was paused, it stays paused, and play picks up at the same position.
 - Before a full audio reset the system first reports that media services were lost, and the audio system can stay down for many seconds (about 18 on device). During that outage the app shows paused, ignores the player's failure reports (they aren't real track failures), and doesn't retry anything. The tracks can fail a moment before the loss is announced; that failure starts reconnecting, which still counts as music on, so the resume still happens. While the outage lasts the app isn't playing, so iOS may suspend it and remove it from Control Center; it resumes once the reset arrives, which in practice can be when the user returns to the app. Pressing play during the outage shows reconnecting and starts once audio is back; pressing pause cancels the automatic resume. The queue is unchanged, Now Playing is sent again in full, and it counts as the same play for scrobbling.
 
+### Audio levels (visualizer groundwork)
+
+- The player can tap each item's audio (an `MTAudioProcessingTap` on its audio mix) to measure live left/right levels for a future visualizer. The tap passes the audio through untouched and its real-time callbacks never lock or allocate: they measure with vDSP and store numbers in atomics that the UI reads as it draws.
+- It's off by default and at every launch; for now it's switched on only from the Debug player's "Audio tap" switch (phase 1, proving it doesn't affect playback). While on, every loaded item gets the tap, including the preloaded next song; a streamed item gets it once its audio track has loaded. Turning it off removes it from every item.
+- Over AirPlay the tap sees no audio, so the levels stay still while playback itself is unaffected (confirmed on device 2026-10-12). AirPlay 2 sends the encoded audio to the receiver, which decodes and plays it; it never passes through the phone's local audio path where the tap sits. A visualizer needs a fallback while AirPlay is the output.
+
 ### Lock screen, Control Center and remote commands
 
 - Now Playing shows the current track's title, artist, album, artwork, duration and elapsed time. An empty queue clears it.
@@ -366,6 +372,14 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Turn on Airplane Mode for ~10 seconds while it plays, then off: it reconnects on its own.
 - [ ] Force quit and relaunch: the station is shown paused; play rejoins it. Play an album afterwards: normal songs work as before (scrobbling, history).
 - [ ] Navidrome's web UI shows no scrobbles and play history shows nothing for radio listening.
+
+### Audio levels (visualizer phase 1, from the Debug player)
+
+- [x] Turn on Audio tap and play a streamed album: the bars move with the music and Buffers keeps climbing. Let two songs hand over: no gap, no glitch. (2026-10-12)
+- [x] With the tap on: a downloaded song and a converted (lower-quality) stream move the bars too; note whether a radio station does. (2026-10-12)
+- [x] With the tap on: pause/resume, skip, lock the phone for a few minutes, take a call or alarm, unplug or disconnect headphones: all behave as without it. Note anything that sounds different. (2026-10-12)
+- [x] With the tap on, AirPlay to a speaker: playback is unaffected; note whether the bars still move. (2026-10-12: playback fine; the bars don't move, as expected, see Audio levels.)
+- [x] Turn it off: playback carries on untouched. Relaunch: it's off. (2026-10-12)
 
 ### Siri (needs Apple Intelligence)
 
