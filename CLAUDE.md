@@ -56,7 +56,7 @@ CarPlay lives in `MusicApp/CarPlay/` (a template scene declared in `Info.plist`)
 
 - Target the Subsonic API as implemented by Navidrome, plus OpenSubsonic extensions where the server advertises them (query `getOpenSubsonicExtensions` and degrade gracefully if unavailable).
 - Auth: token + salt (`t = md5(password + salt)`, `s = salt`), with `u`, `v`, `c` (client name), and `f=json` on every request. Never send the plain password.
-- Endpoints we expect to use: `ping`, `getArtists`, `getArtist`, `getArtistInfo2`, `getAlbum`, `getAlbumList2`, `getPlaylists`, `getPlaylist`, `search3`, `stream`, `download`, `getCoverArt`, `star`/`unstar`, `scrobble`, `getRandomSongs`.
+- Endpoints we expect to use: `ping`, `getArtists`, `getArtist`, `getArtistInfo2`, `getAlbum`, `getAlbumList2`, `getPlaylists`, `getPlaylist`, `createPlaylist`, `updatePlaylist`, `search3`, `stream`, `download`, `getCoverArt`, `star`/`unstar`, `scrobble`, `getRandomSongs`.
 - Decode defensively. Servers return optional fields inconsistently; a missing field must never crash or drop an entire list.
 - The server may be reached over a local network, a reverse proxy, or a VPN. Support a configurable base URL and handle HTTP vs HTTPS explicitly (App Transport Security exceptions must be deliberate and documented, not blanket).
 

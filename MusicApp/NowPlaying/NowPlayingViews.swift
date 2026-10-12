@@ -90,7 +90,15 @@ struct NowPlayingView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "chevron.down") { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Save Queue as Playlist", systemImage: "text.badge.plus") {
+                        library.addToPlaylist.open(.songs(engine.queue.entries.map(\.song)), title: "Save Queue")
+                    }
+                    .disabled(engine.queue.isEmpty)
+                }
             }
+            .addToPlaylistSheet(library)
+            .playlistConfirmation(library.playlistEditor)
         }
     }
 }

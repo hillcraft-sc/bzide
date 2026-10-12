@@ -6,6 +6,10 @@ final class Library {
     let engine: PlaybackEngine
     let stars: StarModel
     let ratings: RatingModel
+    let albumQueue: AlbumQueueModel
+    let playlistEditor: PlaylistEditor
+    /// Which songs the Add to Playlist sheet is open for.
+    let addToPlaylist = AddToPlaylistRequest()
     let artwork: ArtworkCache
     let settings: StreamingSettingsModel
     let downloads: DownloadManager
@@ -13,7 +17,7 @@ final class Library {
     private let client: SubsonicClient
 
     init(
-        client: SubsonicClient, engine: PlaybackEngine, artwork: ArtworkCache,
+        client: SubsonicClient, username: String, engine: PlaybackEngine, artwork: ArtworkCache,
         settings: StreamingSettingsModel, downloads: DownloadManager, history: PlayHistory
     ) {
         self.downloads = downloads
@@ -32,6 +36,23 @@ final class Library {
         self.ratings = RatingModel { [client] target, stars async throws(SubsonicError) in
             try await client.setRating(target, stars: stars)
         }
+        self.playlistEditor = PlaylistEditor(username: username, server: PlaylistEditor.Server(
+            playlists: { [client] () async throws(SubsonicError) in try await client.playlists() },
+            playlist: { [client] id async throws(SubsonicError) in try await client.playlist(id: id) },
+            albumSongs: { [client] id async throws(SubsonicError) in try await client.album(id: id).songs },
+            create: { [client] name, ids async throws(SubsonicError) in try await client.createPlaylist(name: name, songIDs: ids) },
+            add: { [client] id, ids async throws(SubsonicError) in try await client.addToPlaylist(id: id, songIDs: ids) }
+        ))
+        self.albumQueue = AlbumQueueModel(
+            fetch: { [client] id async throws(SubsonicError) in try await client.album(id: id).songs },
+            perform: { [engine] action, songs in
+                switch action {
+                case .play: engine.play(songs: songs)
+                case .playNext: engine.playNext(songs)
+                case .addToQueue: engine.append(songs)
+                }
+            }
+        )
     }
 
     func artistsModel() -> LoadModel<[ArtistSection]> {
@@ -44,6 +65,11 @@ final class Library {
 
     func artistInfoModel(id: String) -> LoadModel<ArtistInfo> {
         LoadModel { [client] () async throws(SubsonicError) in try await client.artistInfo(id: id) }
+    }
+
+    /// The newest albums, for the row at the top of Library.
+    func recentlyAddedModel() -> LoadModel<[Album]> {
+        LoadModel { [client] () async throws(SubsonicError) in try await client.albumList(.newest, size: 15) }
     }
 
     func albumModel(id: String) -> LoadModel<Album> {

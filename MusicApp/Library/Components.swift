@@ -183,6 +183,7 @@ struct SongActions: View {
     var body: some View {
         Button("Play Next", systemImage: "text.insert") { library.engine.playNext([song]) }
         Button("Add to Queue", systemImage: "text.append") { library.engine.append([song]) }
+        AddToPlaylistButton(library: library, source: .songs([song]))
         MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
     }
 }

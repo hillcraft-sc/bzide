@@ -96,7 +96,10 @@ final class AppModel {
             history: history
         )
         self.engine = engine
-        library = Library(client: client, engine: engine, artwork: artwork, settings: system.settings, downloads: downloads, history: history)
+        library = Library(
+            client: client, username: credentials.username, engine: engine, artwork: artwork,
+            settings: system.settings, downloads: downloads, history: history
+        )
         account = AccountSummary(credentials: credentials)
         self.client = client
         self.scrobbler = scrobbler

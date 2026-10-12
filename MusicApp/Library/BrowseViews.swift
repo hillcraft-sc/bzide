@@ -6,15 +6,21 @@ struct LibraryView: View {
     let model: AppModel
     let library: Library
     @State private var randomMix: RandomMixModel
+    @State private var recentlyAdded: LoadModel<[Album]>
+    /// Remembered on this device: a display preference, nothing to sync.
+    @AppStorage("recentlyAddedCollapsed") private var isRecentlyAddedCollapsed = false
 
     init(model: AppModel, library: Library) {
         self.model = model
         self.library = library
         _randomMix = State(initialValue: library.randomMixModel())
+        _recentlyAdded = State(initialValue: library.recentlyAddedModel())
     }
 
     var body: some View {
         List {
+            RecentlyAddedSection(library: library, model: recentlyAdded, isCollapsed: $isRecentlyAddedCollapsed)
+                .themedRows(grouped: true)
             Section {
                 Button {
                     Task { await randomMix.start() }
@@ -45,6 +51,9 @@ struct LibraryView: View {
         }
         .themedList(grouped: true)
         .navigationTitle("Library")
+        // Each return to Library checks for new albums; the row stays on screen meanwhile.
+        .task { await recentlyAdded.load() }
+        .refreshable { await recentlyAdded.load() }
         .toolbar {
             ToolbarItem {
                 NavigationLink {
@@ -161,6 +170,8 @@ struct AlbumsView: View {
 struct PlaylistsView: View {
     let library: Library
     @State private var model: LoadModel<[Playlist]>
+    @State private var isNaming = false
+    @State private var newName = ""
 
     init(library: Library) {
         self.library = library
@@ -171,15 +182,7 @@ struct PlaylistsView: View {
         LoadStateView(state: model.state, retry: model.load) { playlists in
             List(playlists) { playlist in
                 NavigationLink(value: LibraryRoute.playlist(id: playlist.id)) {
-                    HStack(spacing: 12) {
-                        ArtworkView(library: library, coverArtID: playlist.coverArtID, side: 48)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(playlist.name.isEmpty ? "Untitled" : playlist.name).lineLimit(1)
-                            if let count = playlist.songCount {
-                                Text("\(count) songs").font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                    }
+                    PlaylistRow(library: library, playlist: playlist)
                 }
                 .themedRows()
             }
@@ -192,6 +195,34 @@ struct PlaylistsView: View {
             }
         }
         .navigationTitle("Playlists")
+        .toolbar {
+            ToolbarItem {
+                Button("New Playlist", systemImage: "plus") {
+                    newName = ""
+                    isNaming = true
+                }
+            }
+        }
+        .alert("New Playlist", isPresented: $isNaming) {
+            TextField("Name", text: $newName)
+            Button("Create") {
+                Task {
+                    if await library.playlistEditor.create(named: newName, with: .songs([])) {
+                        await model.load()
+                    }
+                }
+            }
+            .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Couldn't Save Playlist", isPresented: Binding(
+            get: { library.playlistEditor.error != nil && !library.addToPlaylist.isOpen },
+            set: { if !$0 { library.playlistEditor.dismissError() } }
+        )) {
+            Button("OK") { library.playlistEditor.dismissError() }
+        } message: {
+            Text(library.playlistEditor.error ?? "")
+        }
         .task { await model.load() }
         .refreshable { await model.load() }
     }
