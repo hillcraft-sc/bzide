@@ -15,10 +15,13 @@ public struct NowPlayingInfo: Sendable, Equatable {
     public var isPlaying: Bool
     public var hasNext: Bool
     public var hasPrevious: Bool
+    /// A radio station: no duration and no seeking.
+    public var isLiveStream: Bool
 
     public init(
         title: String, artist: String? = nil, album: String? = nil, coverArtID: String? = nil,
-        duration: TimeInterval? = nil, elapsed: TimeInterval, isPlaying: Bool, hasNext: Bool, hasPrevious: Bool
+        duration: TimeInterval? = nil, elapsed: TimeInterval, isPlaying: Bool, hasNext: Bool, hasPrevious: Bool,
+        isLiveStream: Bool = false
     ) {
         self.title = title
         self.artist = artist
@@ -29,6 +32,7 @@ public struct NowPlayingInfo: Sendable, Equatable {
         self.isPlaying = isPlaying
         self.hasNext = hasNext
         self.hasPrevious = hasPrevious
+        self.isLiveStream = isLiveStream
     }
 }
 

@@ -35,6 +35,9 @@ public final class PlaybackEngine {
     /// Seconds. From the server's metadata until the player knows better.
     public private(set) var duration: TimeInterval?
     public private(set) var repeatMode: RepeatMode
+    /// What a radio station says it's playing now, when it says. Always `nil`
+    /// for songs.
+    public private(set) var streamTitle: String?
 
     @ObservationIgnored private let player: any AudioPlayer
     @ObservationIgnored private let session: any AudioSessionControlling
@@ -113,8 +116,10 @@ public final class PlaybackEngine {
         let snapshot = Self.restore(from: store)
         let restoredQueue = snapshot?.queue ?? PlaybackQueue()
         queue = restoredQueue
-        position = snapshot?.position ?? 0
-        lastSavedPosition = snapshot?.position ?? 0
+        // A station has no position to come back to; it rejoins live.
+        let restoredPosition = restoredQueue.current?.song.isLive == true ? 0 : snapshot?.position ?? 0
+        position = restoredPosition
+        lastSavedPosition = restoredPosition
         status = restoredQueue.isEmpty ? .idle : .paused
         repeatMode = snapshot?.repeatMode ?? .off
         duration = restoredQueue.current?.song.duration.map(TimeInterval.init)
@@ -162,7 +167,8 @@ public final class PlaybackEngine {
             status = .reconnecting
             return
         }
-        if !isPlayerLoaded {
+        // A paused station would resume minutes behind; reload it to rejoin live.
+        if !isPlayerLoaded || (isLive && !status.isActive) {
             loadPlayer(startPosition: position)
         }
         startPlayback()
@@ -214,8 +220,9 @@ public final class PlaybackEngine {
 
     public func previous() {
         defer { publishNowPlaying() }
+        // A station can't be restarted, and it's always the start of its queue.
+        guard !queue.isEmpty, !isLive else { return }
         cancelRecovery()
-        guard !queue.isEmpty else { return }
         switch PreviousAction.decide(elapsed: position, hasPrevious: queue.hasPrevious) {
         case .restartCurrent:
             seek(to: 0)
@@ -300,7 +307,7 @@ public final class PlaybackEngine {
 
     public func seek(to target: TimeInterval) {
         defer { publishNowPlaying() }
-        guard !queue.isEmpty else { return }
+        guard !queue.isEmpty, !isLive else { return }
         var clamped = max(target, 0)
         if let duration { clamped = min(clamped, duration) }
         position = clamped
@@ -452,9 +459,16 @@ public final class PlaybackEngine {
                 saveSnapshot()
             }
         case .durationKnown(let seconds):
+            guard !isLive else { return }
             duration = seconds
             scrobbleTracker.updateDuration(seconds)
         case .reachedEnd:
+            if isLive {
+                // Live streams don't end; the station dropped. Retry like any failure.
+                Self.logger.error("Live stream ended")
+                currentTrackFailed(message: "The station stopped broadcasting.")
+                return
+            }
             cancelRecovery()
             isPlayerLoaded = false
             if repeatMode == .one || (repeatMode == .all && queue.entries.count == 1) {
@@ -480,6 +494,10 @@ public final class PlaybackEngine {
             guard entryID == queue.current?.id else { return }
             Self.logger.notice("Playback stalled")
             scheduleStallCheck()
+        case .streamTitle(let entryID, let title):
+            guard entryID == queue.current?.id, isLive else { return }
+            let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines)
+            streamTitle = trimmed?.isEmpty == false ? trimmed : nil
         }
     }
 
@@ -533,6 +551,7 @@ public final class PlaybackEngine {
     private func retryCurrentTrack() {
         defer { publishNowPlaying() }
         pendingRecovery = nil
+        if isLive { position = 0 }
         lastRetryPosition = position
         loadPlayer(startPosition: position)
         startPlayback()
@@ -602,16 +621,19 @@ public final class PlaybackEngine {
 
     private func publishNowPlaying() {
         let info = queue.current.map { entry in
-            NowPlayingInfo(
-                title: entry.song.title,
-                artist: entry.song.artist,
-                album: entry.song.album,
-                coverArtID: entry.song.coverArtID,
-                duration: duration,
-                elapsed: position,
+            let song = entry.song
+            let live = song.isLive
+            return NowPlayingInfo(
+                title: currentTitle ?? song.title,
+                artist: currentSubtitle,
+                album: song.album,
+                coverArtID: song.coverArtID,
+                duration: live ? nil : duration,
+                elapsed: live ? 0 : position,
                 isPlaying: status == .playing,
                 hasNext: nextEntry != nil,
-                hasPrevious: queue.hasPrevious
+                hasPrevious: !live && queue.hasPrevious,
+                isLiveStream: live
             )
         }
         guard !hasPublishedNowPlaying || info != lastNowPlaying else { return }
@@ -646,9 +668,34 @@ public final class PlaybackEngine {
     }
 
     /// The entry the player holds after the current one, for a gapless handover.
-    /// Repeat one holds nothing: the track is restarted when it ends.
+    /// Repeat one holds nothing: the track is restarted when it ends. Neither
+    /// does a station, which never ends.
     private var preloadEntry: QueueEntry? {
-        repeatMode == .one ? nil : nextEntry
+        repeatMode == .one || isLive ? nil : nextEntry
+    }
+
+    /// The current entry is a radio station.
+    public var isLive: Bool {
+        queue.current?.song.isLive == true
+    }
+
+    /// Whether next has somewhere to go (including repeat all's wrap-around).
+    public var canGoNext: Bool {
+        nextEntry != nil
+    }
+
+    /// What to show as the title: for a station, the song it announced, if any.
+    public var currentTitle: String? {
+        guard let song = queue.current?.song else { return nil }
+        return song.isLive ? streamTitle ?? song.title : song.title
+    }
+
+    /// Beneath the title: the artist, or for a station its name when the title
+    /// is the announced song.
+    public var currentSubtitle: String? {
+        guard let song = queue.current?.song else { return nil }
+        guard song.isLive else { return song.artist }
+        return streamTitle == nil ? nil : song.title
     }
 
     /// Makes the player's preloaded next track match `preloadEntry`, after
@@ -695,6 +742,8 @@ public final class PlaybackEngine {
     /// Loads the current track and the one after it.
     private func loadPlayer(startPosition: TimeInterval) {
         guard let current = queue.current else { return }
+        // A station always starts at "now".
+        let startPosition = current.song.isLive ? 0 : startPosition
         guard let currentItem = makeItem(for: current) else {
             isPlayerLoaded = false
             status = .failed("Couldn't build a stream URL for this track.")
@@ -711,6 +760,9 @@ public final class PlaybackEngine {
 
     private func makeItem(for entry: QueueEntry) -> PlayerItem? {
         do {
+            if let live = entry.song.liveStreamURL {
+                return PlayerItem(entryID: entry.id, url: live, isLive: true)
+            }
             return PlayerItem(entryID: entry.id, url: try urls.streamURL(for: entry.song))
         } catch {
             Self.logger.error("No stream URL for a queue entry: \(String(describing: error), privacy: .public)")
@@ -721,13 +773,15 @@ public final class PlaybackEngine {
     private func resetForNewTrack() {
         position = 0
         lastSavedPosition = 0
+        streamTitle = nil
         duration = metadataDuration
         beginPlay()
     }
 
     /// Starts counting a new play of the current track from the current position.
     private func beginPlay() {
-        guard let song = queue.current?.song else {
+        // Radio is never scrobbled or added to history.
+        guard let song = queue.current?.song, !song.isLive else {
             scrobbleTracker.end()
             return
         }

@@ -74,6 +74,10 @@ extension SubsonicClient {
         return try await request("search3", parameters: parameters, as: SearchPayload.self).result
     }
 
+    public func radioStations() async throws(SubsonicError) -> [RadioStation] {
+        try await request("getInternetRadioStations", as: ListPayload<RadioStation, RadioStationsKeys>.self).elements
+    }
+
     public func randomSongs(size: Int = 50) async throws(SubsonicError) -> [Song] {
         try await request("getRandomSongs", parameters: [.init(name: "size", value: String(size))], as: ListPayload<Song, RandomSongsKeys>.self).elements
     }
@@ -131,6 +135,7 @@ struct ListPayload<Element: Decodable, Keys: ListKeys>: Decodable {
 enum ArtistsKeys: ListKeys { static let wrapper = "artists"; static let list = "index" }
 enum AlbumList2Keys: ListKeys { static let wrapper = "albumList2"; static let list = "album" }
 enum PlaylistsKeys: ListKeys { static let wrapper = "playlists"; static let list = "playlist" }
+enum RadioStationsKeys: ListKeys { static let wrapper = "internetRadioStations"; static let list = "internetRadioStation" }
 enum RandomSongsKeys: ListKeys { static let wrapper = "randomSongs"; static let list = "song" }
 
 /// Names the key of a `{"<key>": {...}}` response.

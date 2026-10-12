@@ -4,10 +4,13 @@ import Foundation
 public struct PlayerItem: Sendable, Equatable {
     public let entryID: QueueEntry.ID
     public let url: URL
+    /// A radio stream: the player reports the titles it announces.
+    public let isLive: Bool
 
-    public init(entryID: QueueEntry.ID, url: URL) {
+    public init(entryID: QueueEntry.ID, url: URL, isLive: Bool = false) {
         self.entryID = entryID
         self.url = url
+        self.isLive = isLive
     }
 }
 
@@ -26,6 +29,8 @@ public enum PlayerEvent: Sendable, Equatable {
     case itemFailed(QueueEntry.ID, message: String)
     /// Playback paused itself waiting for data.
     case stalled(QueueEntry.ID)
+    /// A live stream announced what it's playing now (`nil`: it cleared it).
+    case streamTitle(QueueEntry.ID, String?)
 }
 
 public enum PlayerStatus: Sendable, Equatable {

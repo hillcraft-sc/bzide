@@ -1,0 +1,9 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","type":"navidrome","serverVersion":"0.58.0","openSubsonic":true,
+"internetRadioStations":{"internetRadioStation":[
+  {"id":"rs-1","name":"Night Waves","streamUrl":"https://stream.example.com/nightwaves.mp3","homePageUrl":"https://example.com/nightwaves"},
+  {"id":"rs-2","name":"Plain Old FM","streamUrl":"http://radio.example.org:8000/live"},
+  {"id":"rs-3","name":"","streamUrl":"https://listen.example.net/station.pls","homePageUrl":"not a url"},
+  {"id":"rs-4","name":"No Stream"},
+  {"id":"rs-5","name":"Bad Scheme","streamUrl":"ftp://example.com/x"},
+  {"name":"No ID","streamUrl":"https://example.com/y"}
+]}}}

@@ -1,3 +1,5 @@
+import Foundation
+
 /// A track (Subsonic `Child`).
 public struct Song: Sendable, Equatable, Identifiable, Codable {
     public var id: String
@@ -20,6 +22,12 @@ public struct Song: Sendable, Equatable, Identifiable, Codable {
     public var isStarred: Bool
     /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
     public var userRating: Int?
+    /// Set only for a radio station playing as a queue entry: the stream to
+    /// play instead of the server's. Never comes from the server.
+    public var liveStreamURL: URL?
+
+    /// A radio station: no end, no duration, nothing to scrobble.
+    public var isLive: Bool { liveStreamURL != nil }
 
     public init(
         id: String, title: String, album: String? = nil, albumID: String? = nil,
@@ -52,6 +60,8 @@ extension Song {
     private enum ServerKeys: String, CodingKey {
         case id, title, album, albumId, artist, artistId, track, discNumber, year, genre
         case coverArt, duration, bitRate, suffix, contentType, starred, userRating
+        /// Ours, not the server's: only in saved queues.
+        case liveStreamUrl
     }
 
     // Encoding writes the same shape the server sends, so a saved queue decodes through
@@ -76,6 +86,7 @@ extension Song {
         // The server signals "starred" by the key being present, so write it only when true.
         if isStarred { try c.encode(true, forKey: .starred) }
         try c.encodeIfPresent(userRating, forKey: .userRating)
+        try c.encodeIfPresent(liveStreamURL, forKey: .liveStreamUrl)
     }
 
     public init(from decoder: any Decoder) throws {
@@ -99,5 +110,16 @@ extension Song {
             isStarred: c.contains(.starred),
             userRating: c.rating(.userRating)
         )
+        liveStreamURL = c.lenientString(.liveStreamUrl).flatMap(RadioStation.webURL)
+    }
+}
+
+extension Song {
+    /// A station as a queue entry. Its id can't collide with a server song's,
+    /// and `stream` is the address to play (already resolved from a playlist
+    /// file if the station's address was one).
+    public init(station: RadioStation, stream: URL) {
+        self.init(id: station.songID, title: station.name)
+        liveStreamURL = stream
     }
 }

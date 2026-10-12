@@ -18,10 +18,16 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     private var timeObserver: Any?
     /// A start position for an item that wasn't ready to seek yet.
     private var pendingSeek: (item: ObjectIdentifier, position: TimeInterval)?
+    /// Live items' metadata outputs, to tell whose stream announced a title.
+    private var metadataOutputs: [ObjectIdentifier: (output: AVPlayerItemMetadataOutput, entryID: QueueEntry.ID)] = [:]
+    private var titleReader: StreamTitleReader?
 
     public init() {
         observePlayer()
         observeItemNotifications()
+        titleReader = StreamTitleReader { [weak self] outputKey, title in
+            Task { @MainActor in self?.streamAnnounced(title, by: outputKey) }
+        }
     }
 
     // MARK: - AudioPlayer
@@ -93,6 +99,13 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         itemObservations[key] = avItem.observe(\.status, options: [.new]) { @Sendable [weak self] avItem, _ in
             Task { @MainActor in self?.itemStatusChanged(avItem) }
         }
+        if item.isLive, let titleReader {
+            // Radio streams announce what they're playing as timed metadata.
+            let output = AVPlayerItemMetadataOutput(identifiers: nil)
+            output.setDelegate(titleReader, queue: .main)
+            avItem.add(output)
+            metadataOutputs[key] = (output, item.entryID)
+        }
         player.insert(avItem, after: nil)
     }
 
@@ -139,6 +152,8 @@ public final class AVQueueAudioPlayer: AudioPlayer {
             entryIDs[key] = nil
             itemObservations[key]?.invalidate()
             itemObservations[key] = nil
+            metadataOutputs[key]?.output.setDelegate(nil, queue: nil)
+            metadataOutputs[key] = nil
         }
     }
 
@@ -237,5 +252,34 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     private func itemStalled(_ item: AVPlayerItem?) {
         guard let item, let entryID = entryIDs[ObjectIdentifier(item)] else { return }
         onEvent?(.stalled(entryID))
+    }
+
+    private func streamAnnounced(_ title: String?, by outputKey: ObjectIdentifier) {
+        guard let entry = metadataOutputs.values.first(where: { ObjectIdentifier($0.output) == outputKey }) else { return }
+        onEvent?(.streamTitle(entry.entryID, title))
+    }
+}
+
+/// Reads "now playing" titles out of a live stream's timed metadata (Shoutcast
+/// and Icecast `StreamTitle`, or a common title). AVFoundation calls it on the
+/// queue it was given, but it's kept nonisolated and hands each title to a
+/// `@Sendable` closure, which hops to the main actor itself.
+private final class StreamTitleReader: NSObject, AVPlayerItemMetadataOutputPushDelegate, Sendable {
+    private let onTitle: @Sendable (ObjectIdentifier, String?) -> Void
+
+    init(onTitle: @escaping @Sendable (ObjectIdentifier, String?) -> Void) {
+        self.onTitle = onTitle
+    }
+
+    nonisolated func metadataOutput(
+        _ output: AVPlayerItemMetadataOutput,
+        didOutputTimedMetadataGroups groups: [AVTimedMetadataGroup],
+        from track: AVPlayerItemTrack?
+    ) {
+        let items = groups.flatMap(\.items)
+        let titleItem = items.first { $0.identifier == .icyMetadataStreamTitle }
+            ?? items.first { $0.commonKey == .commonKeyTitle }
+        guard let titleItem else { return }
+        onTitle(ObjectIdentifier(output), titleItem.stringValue)
     }
 }
