@@ -175,10 +175,13 @@ struct MarkActions: View {
     }
 }
 
-/// Song context menu: queue, favourite and rate.
+/// Song context menu: queue, playlist, download, favourite and rate, and the
+/// way to its album and artist.
 struct SongActions: View {
     let library: Library
     let song: Song
+    /// Off on the song's own album page, where it would lead back to itself.
+    var showsGoToAlbum = true
 
     var body: some View {
         Button("Play Next", systemImage: "text.insert") { library.engine.playNext([song]) }
@@ -186,6 +189,18 @@ struct SongActions: View {
         AddToPlaylistButton(library: library, songs: [song])
         SongDownloadButton(downloads: library.downloads, song: song)
         MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
+        Section {
+            if showsGoToAlbum, let albumID = song.albumID {
+                NavigationLink(value: LibraryRoute.album(id: albumID)) {
+                    Label("Go to Album", systemImage: "square.stack")
+                }
+            }
+            if let artistID = song.artistID {
+                NavigationLink(value: LibraryRoute.artist(id: artistID)) {
+                    Label("Go to Artist", systemImage: "music.microphone")
+                }
+            }
+        }
     }
 }
 

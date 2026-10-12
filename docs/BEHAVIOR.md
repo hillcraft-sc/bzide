@@ -126,7 +126,7 @@ How the app behaves, written so the web and Android clients can be ported from t
   - Album (Albums, Recently Added, an artist's page, Search): the same five, Download or Remove Download, Favorite, Rate, and Go to Artist (not on the artist's own page).
   - Playlist (Playlists): the same five, and Download or Remove Download.
   - Download (Downloaded): the same five, using the stored songs, so they work offline, and Remove Download.
-  - Songs already have Play Next, Add to Queue, Add to Playlist…, Favorite and Rate.
+  - Song (album and playlist pages, Search, History, Downloaded): Play Next, Add to Queue, Add to Playlist…, Download or Remove Download, Favorite, Rate, then Go to Album and Go to Artist (when the server gave their ids; Go to Album is left out on the album's own page, including its downloaded copy).
   - The songs are fetched first: an album or playlist in its order; an artist's albums oldest first by year (albums without a year last, otherwise in the server's order), each in track order, fetching at most 4 albums at a time. If any fetch fails, nothing happens and the error is shown ("Couldn't Load Songs"). A second choice for the same item while it loads is ignored.
   - An artist with more than 100 songs (counted from their albums' song counts) asks first, e.g. "Add 340 songs by X to the queue?"; for Add to Playlist the question comes before the playlist sheet.
 - **Genres.** Before anything is typed, Search shows the library's genres (`getGenres`) as a two-column grid of tiles, most albums first (ties by name; genres with no albums are left out, and one whose count isn't given goes last). Each tile has a colour that stays the same for that genre (system colours, or the Catppuccin accents in a Catppuccin theme) and one of the genre's album covers tilted in its corner: the first album `getAlbumList2` gives for `byGenre`, fetched when the tile first appears and kept for the session (a genre with no cover just shows the colour; a failed fetch is tried again when the tile next appears). Typing a search replaces the grid with results; clearing it brings the grid back.
@@ -341,6 +341,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] With some songs of that album still downloading, switch back to Original: the album finishes and every song plays. Albums downloaded earlier aren't downloaded again. (2026-10-12)
 - [ ] Long-press a song (in an album, search, history…) > Download: Library > Downloaded shows "Downloaded Songs" at the top with it inside, and it plays in Airplane Mode. Its long-press now says Remove Download, which removes it.
 - [ ] Long-press a song from an album you've downloaded: it shows "Downloaded", greyed out.
+- [ ] Long-press a song in Search, a playlist and History: Go to Album opens its album, Go to Artist its artist. On an album's own page, only Go to Artist is offered.
 
 ### Appearance
 

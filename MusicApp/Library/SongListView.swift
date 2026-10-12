@@ -38,7 +38,8 @@ struct SongListView<Header: View>: View {
                         )
                     }
                     .foregroundStyle(.primary)
-                    .contextMenu { SongActions(library: library, song: song) }
+                    // Track numbers mean this is the album itself.
+                    .contextMenu { SongActions(library: library, song: song, showsGoToAlbum: !showsTrackNumbers) }
                     .siriEntity(songID: song.id)
                 }
             }
