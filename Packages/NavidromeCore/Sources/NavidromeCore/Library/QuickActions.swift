@@ -79,29 +79,46 @@ public final class QuickActions {
         self.handle = handle
     }
 
+    /// The songs (and, for an album or playlist, what to download), without
+    /// asking about big artists: for callers that confirm in their own way,
+    /// such as Siri.
+    public func resolve(_ source: SongSource) async throws(SubsonicError) -> Resolved {
+        switch source {
+        case .songs(let songs):
+            return Resolved(songs: songs, download: nil)
+        case .album(let id):
+            let album = try await server.album(id)
+            return Resolved(songs: album.songs, download: DownloadCollection(album: album))
+        case .playlist(let id):
+            let playlist = try await server.playlist(id)
+            return Resolved(songs: playlist.songs, download: DownloadCollection(playlist: playlist))
+        case .artist(let id):
+            let artist = try await server.artist(id)
+            return Resolved(songs: try await songs(of: Self.oldestFirst(artist.albums)), download: nil)
+        }
+    }
+
+    /// An artist's song count from their album list, for deciding whether to ask.
+    public func songCount(ofArtist id: String) async throws(SubsonicError) -> (artist: Artist, count: Int) {
+        let artist = try await server.artist(id)
+        return (artist, artist.albums.reduce(0) { $0 + ($1.songCount ?? 0) })
+    }
+
     public func perform(_ action: Action, on source: SongSource) async {
         // A second choice for the same thing while it loads would act twice.
         guard inFlight.insert(source.key).inserted else { return }
         defer { inFlight.remove(source.key) }
         error = nil
         do {
-            switch source {
-            case .songs(let songs):
-                finish(action, Resolved(songs: songs, download: nil))
-            case .album(let id):
-                let album = try await server.album(id)
-                finish(action, Resolved(songs: album.songs, download: DownloadCollection(album: album)))
-            case .playlist(let id):
-                let playlist = try await server.playlist(id)
-                finish(action, Resolved(songs: playlist.songs, download: DownloadCollection(playlist: playlist)))
-            case .artist(let id):
-                let artist = try await server.artist(id)
-                let count = artist.albums.reduce(0) { $0 + ($1.songCount ?? 0) }
+            if case .artist(let id) = source {
+                let (artist, count) = try await songCount(ofArtist: id)
                 if count > Self.confirmationThreshold {
                     confirmation = Confirmation(action: action, artist: artist, songCount: count)
                 } else {
                     try await finishArtist(action, artist)
                 }
+            } else {
+                finish(action, try await resolve(source))
             }
         } catch {
             if Task.isCancelled { return }

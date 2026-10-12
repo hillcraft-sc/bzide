@@ -24,6 +24,10 @@ extension SubsonicClient {
         try await request("getAlbum", parameters: [.init(name: "id", value: id)], as: ItemPayload<Album, AlbumKey>.self).item
     }
 
+    public func song(id: String) async throws(SubsonicError) -> Song {
+        try await request("getSong", parameters: [.init(name: "id", value: id)], as: ItemPayload<Song, SongKey>.self).item
+    }
+
     /// `size` is capped at 500 by the server.
     public func albumList(_ type: AlbumListType, size: Int = 20, offset: Int = 0) async throws(SubsonicError) -> [Album] {
         let parameters = type.queryItems + [
@@ -155,6 +159,7 @@ struct OptionalItemPayload<Item: Decodable, Key: ItemKey>: Decodable {
 enum ArtistKey: ItemKey { static let key = "artist" }
 enum AlbumKey: ItemKey { static let key = "album" }
 enum PlaylistKey: ItemKey { static let key = "playlist" }
+enum SongKey: ItemKey { static let key = "song" }
 
 /// `getArtistInfo2` may omit `artistInfo2`, or send it empty.
 struct ArtistInfoPayload: Decodable {

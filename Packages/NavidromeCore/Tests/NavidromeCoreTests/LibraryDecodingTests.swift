@@ -20,6 +20,16 @@ struct LibraryDecodingTests {
         #expect(artist.albums[1].coverArtID == nil)
     }
 
+    @Test func songByID() async throws {
+        let transport = try FakeTransport(fixture: "getSong")
+        let song = try await TestServer.client(transport).song(id: "so-1")
+        #expect(song.title == "Dawn")
+        #expect(song.artistID == "ar-1")
+        let url = try #require(await transport.requests.first?.url)
+        #expect(url.path() == "/rest/getSong")
+        #expect(url.queryParameters["id"] == "so-1")
+    }
+
     @Test func albumIncludesSongsWithAllFields() async throws {
         let album = try await TestServer.client(FakeTransport(fixture: "getAlbum")).album(id: "al-1")
         #expect(album.name == "First Light")

@@ -138,6 +138,19 @@ struct QuickActionsTests {
         #expect(handled.songIDs.first?.count == 101)
     }
 
+    @Test func resolveDoesNotAskAboutBigArtists() async throws {
+        addArtist("ar-1", albums: [Self.album("b", year: 2001, songs: 1...60), Self.album("a", year: 2000, songs: 1...60)])
+        let model = makeModel(Handled())
+        let resolved = try await model.resolve(.artist(id: "ar-1"))
+        #expect(resolved.songs.count == 120)
+        #expect(resolved.songs.first?.id == "a-1")
+        #expect(model.confirmation == nil)
+
+        let (artist, count) = try await model.songCount(ofArtist: "ar-1")
+        #expect(artist.id == "ar-1")
+        #expect(count == 120)
+    }
+
     @Test func aBigArtistCanBeCancelled() async {
         addArtist("ar-1", albums: [Self.album("a", year: 2000, songs: 1...101)])
         let handled = Handled()
