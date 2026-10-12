@@ -95,6 +95,35 @@ public struct PlaybackQueue: Sendable, Equatable, Codable {
         entries.removeSubrange((currentIndex + 1)...)
     }
 
+    /// Removes one upcoming entry. The current entry and the ones already
+    /// played can't be removed this way. Returns `false` if nothing was removed.
+    @discardableResult
+    public mutating func removeUpcoming(_ entryID: QueueEntry.ID) -> Bool {
+        guard let currentIndex,
+              let index = entries.firstIndex(where: { $0.id == entryID }),
+              index > currentIndex else { return false }
+        entries.remove(at: index)
+        return true
+    }
+
+    /// Reorders the upcoming entries. Offsets count within `upNext` (0 is the
+    /// next entry), as a list's move gives them: the moved entries land before
+    /// whatever was at `destination`, keeping their order.
+    public mutating func moveUpcoming(fromOffsets offsets: IndexSet, toOffset destination: Int) {
+        guard let currentIndex else { return }
+        var upcoming = Array(entries[(currentIndex + 1)...])
+        let valid = offsets.filter { upcoming.indices.contains($0) }
+        guard !valid.isEmpty else { return }
+        let moving = valid.map { upcoming[$0] }
+        let clamped = min(max(destination, 0), upcoming.count)
+        let target = clamped - valid.filter { $0 < clamped }.count
+        for offset in valid.reversed() {
+            upcoming.remove(at: offset)
+        }
+        upcoming.insert(contentsOf: moving, at: target)
+        entries.replaceSubrange((currentIndex + 1)..., with: upcoming)
+    }
+
     /// Adds songs to the end. If the queue was empty, the first added song becomes current.
     public mutating func append(_ songs: [Song]) {
         entries.append(contentsOf: songs.map { QueueEntry(song: $0) })

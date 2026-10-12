@@ -276,6 +276,28 @@ public final class PlaybackEngine {
         saveSnapshot()
     }
 
+    /// Takes one upcoming song out of the queue (the current one plays on). If
+    /// it was the buffered next track, the new next one takes its place.
+    public func removeFromQueue(_ entryID: QueueEntry.ID) {
+        defer { publishNowPlaying() }
+        let nextBefore = preloadEntry?.id
+        guard queue.removeUpcoming(entryID) else { return }
+        refreshUpcomingIfChanged(from: nextBefore)
+        saveSnapshot()
+    }
+
+    /// Reorders the upcoming songs; offsets count within `queue.upNext`. The
+    /// buffered next track is only swapped if a different song now comes next.
+    public func moveUpcoming(fromOffsets offsets: IndexSet, toOffset destination: Int) {
+        defer { publishNowPlaying() }
+        let before = queue
+        let nextBefore = preloadEntry?.id
+        queue.moveUpcoming(fromOffsets: offsets, toOffset: destination)
+        guard queue != before else { return }
+        refreshUpcomingIfChanged(from: nextBefore)
+        saveSnapshot()
+    }
+
     public func seek(to target: TimeInterval) {
         defer { publishNowPlaying() }
         guard !queue.isEmpty else { return }
@@ -641,6 +663,13 @@ public final class PlaybackEngine {
         } else {
             player.removeUpcoming()
         }
+    }
+
+    /// Like `refreshUpcoming`, but leaves the player alone when the same entry
+    /// still comes next, so a reorder further down never touches the buffer.
+    private func refreshUpcomingIfChanged(from previousNext: QueueEntry.ID?) {
+        guard preloadEntry?.id != previousNext else { return }
+        refreshUpcoming()
     }
 
     /// Plays the current entry from the start: a new play.
