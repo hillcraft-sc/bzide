@@ -53,7 +53,10 @@ struct SearchView: View {
                                 Button {
                                     library.engine.play(songs: results.songs, startIndex: index)
                                 } label: {
-                                    SongRow(song: song, isCurrent: song.id == library.engine.queue.current?.song.id)
+                                    SongRow(
+                                        song: song, isCurrent: song.id == library.engine.queue.current?.song.id,
+                                        isFavorite: library.isFavorite(song), rating: library.rating(of: song)
+                                    )
                                 }
                                 .foregroundStyle(.primary)
                                 .contextMenu { SongActions(library: library, song: song) }

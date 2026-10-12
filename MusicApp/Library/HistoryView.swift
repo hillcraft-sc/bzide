@@ -17,7 +17,10 @@ struct HistoryView: View {
                         Button {
                             library.engine.play(songs: [item.entry.song])
                         } label: {
-                            HistoryRow(item: item, isCurrent: item.entry.song.id == library.engine.queue.current?.song.id)
+                            HistoryRow(
+                                item: item, isCurrent: item.entry.song.id == library.engine.queue.current?.song.id,
+                                isFavorite: library.isFavorite(item.entry.song), rating: library.rating(of: item.entry.song)
+                            )
                         }
                         .foregroundStyle(.primary)
                         .contextMenu { SongActions(library: library, song: item.entry.song) }
@@ -88,6 +91,8 @@ struct HistoryView: View {
 private struct HistoryRow: View {
     let item: HistoryItem
     let isCurrent: Bool
+    let isFavorite: Bool
+    let rating: Rating?
 
     private var entry: PlayHistoryEntry { item.entry }
 
@@ -103,6 +108,7 @@ private struct HistoryRow: View {
                     .lineLimit(1)
             }
             Spacer()
+            SongMarks(isFavorite: isFavorite, rating: rating)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(entry.playedAt.formatted(date: .omitted, time: .shortened))
                 if item.playCount > 1 {

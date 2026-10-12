@@ -64,6 +64,9 @@ struct SongRow: View {
     let song: Song
     let isCurrent: Bool
     var showsTrackNumber = false
+    /// See `SongMarks`; the caller reads them from the shared models.
+    var isFavorite = false
+    var rating: Rating?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -87,6 +90,7 @@ struct SongRow: View {
                     .foregroundStyle(.tint)
                     .accessibilityLabel("Now playing")
             }
+            SongMarks(isFavorite: isFavorite, rating: rating)
             if let duration = song.duration {
                 Text(formatDuration(TimeInterval(duration)))
                     .font(.caption.monospacedDigit())
@@ -94,6 +98,41 @@ struct SongRow: View {
             }
         }
         .contentShape(.rect)
+    }
+}
+
+/// A song's favorite heart and rating face, shown in lists. Display only: they're
+/// changed from the song's menu, not by tapping these.
+struct SongMarks: View {
+    let isFavorite: Bool
+    let rating: Rating?
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if isFavorite {
+                Image(systemName: "heart.fill")
+                    .font(.caption)
+                    .foregroundStyle(.tint)
+                    .accessibilityLabel("Favorite")
+            }
+            if let rating {
+                Text(rating.face)
+                    .font(.caption)
+                    .accessibilityLabel("Rated \(rating.title)")
+            }
+        }
+    }
+}
+
+extension Library {
+    /// The heart as the user last set it, in this session or on the server.
+    func isFavorite(_ song: Song) -> Bool {
+        stars.isStarred(.song(id: song.id), fromServer: song.isStarred)
+    }
+
+    /// The rating as the user last set it, in this session or on the server.
+    func rating(of song: Song) -> Rating? {
+        ratings.rating(.song(id: song.id), fromServer: song.userRating)
     }
 }
 
