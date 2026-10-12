@@ -238,7 +238,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Favorite an album, an artist and a song (heart): each stays favorited after reopening, and shows as a favorite in Navidrome's web UI. Unfavorite one: it clears there too. (2026-10-11)
 - [x] Rate a song, an album and an artist Meh, Don't Hate It and Rocks: Navidrome's web UI shows 2, 3 and 5 stars. Choose the same rating again: it clears in the app and on the web. (2026-10-11)
 - [x] In the web UI, give an album 4 stars. Reopen it in the app: it shows Rocks (checkmark in Rate). (2026-10-11)
-- [ ] Open an artist with a picture in Navidrome: the image is at the top, then the name and three lines of biography, then the albums. More shows the whole biography, Less shortens it again; a short biography has no More.
+- [x] Open an artist with a picture in Navidrome: the image is at the top, then the name and three lines of biography, then the albums. More shows the whole biography, Less shortens it again; a short biography has no More. (2026-10-12)
 - [ ] Open an artist with no picture or biography: a placeholder image, the name and the albums, with no gap or error where the biography would be.
 - [x] Rate in Airplane Mode: the rating goes back and "Couldn't Change Rating" explains why. (2026-10-11)
 - [x] The mini player always shows the current track and its play/pause and next work. Tapping it opens Now Playing, which matches the lock screen. (2026-10-11)
