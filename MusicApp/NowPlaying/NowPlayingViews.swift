@@ -59,10 +59,14 @@ struct NowPlayingView: View {
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
                     TransportControls(engine: engine)
-                    // A station isn't on the server, so it can't be favorited or rated.
-                    if let song = engine.queue.current?.song, !song.isLive {
+                    if let song = engine.queue.current?.song {
                         HStack(spacing: 32) {
-                            MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
+                            // A station isn't on the server, so it can't be favorited or rated.
+                            if !song.isLive {
+                                MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
+                            }
+                            AirPlayButton()
+                                .frame(width: 32, height: 32)
                         }
                         .labelStyle(.iconOnly)
                         .font(.title3)

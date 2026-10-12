@@ -17,6 +17,9 @@ extension Color {
 extension EnvironmentValues {
     /// The Catppuccin colours in use, or `nil` for the system themes.
     @Entry var catppuccin: CatppuccinPalette?
+    /// The Catppuccin accent in use, or `nil` for the system tint. For UIKit
+    /// views, which don't pick up SwiftUI's `tint`.
+    @Entry var themeAccent: Color?
 }
 
 extension View {
@@ -48,6 +51,7 @@ private struct AppTheme: ViewModifier {
             .preferredColorScheme(appearance.settings.theme.isDark.map { $0 ? .dark : .light })
             .tint(palette.map { Color($0.accent(appearance.settings.accent)) })
             .environment(\.catppuccin, palette)
+            .environment(\.themeAccent, palette.map { Color($0.accent(appearance.settings.accent)) })
     }
 }
 
