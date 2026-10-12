@@ -60,6 +60,10 @@ struct NowPlayingView: View {
                         }
                         .labelStyle(.iconOnly)
                         .font(.title3)
+                        // Borderless, like the transport controls. With the default style a
+                        // button in a list row is drawn in the text colour instead of the
+                        // accent, and takes taps anywhere in the row.
+                        .buttonStyle(.borderless)
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
                     }
