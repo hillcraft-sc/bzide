@@ -66,8 +66,10 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 ### Visualizer
 
-- Now Playing's waveform button (in the row with the heart, rating and AirPlay) opens a full-screen visualizer: about 40 spectrum bars, bass on the left to treble on the right (60 Hz to 16 kHz, spaced like musical pitch), in the theme's accent (system tint in the system themes), on black, with the song's title and artist at the bottom and a close button. While it's open the audio tap runs and the screen doesn't dim; closing it turns both back to how they were.
+- Now Playing's waveform button (in the row with the heart, rating and AirPlay) opens a full-screen visualizer on black, with a close button and a capsule naming the current style at the top, and the song's title and artist with previous, play/pause and next at the bottom (the same commands as Now Playing: previous off for radio, next only when there's a next song), so it needn't be closed to change track. Two styles, changed by swiping left or right or from the capsule's menu: **Bars**, about 40 spectrum bars, bass on the left to treble on the right (60 Hz to 16 kHz, spaced like musical pitch); and **Waveform**, the sound wave as a glowing line across the middle.
+- Colours, from the same menu: **Accent** (the theme's accent; the system tint in the system themes) or **Multicolor**: in a Catppuccin theme its 14 accents in palette order blended across the screen; otherwise a sweep of hues starting from the accent (blue → purple → pink → orange for iOS blue). Bars take a colour each; the waveform a left-to-right gradient. Style and colours are remembered on the device. While it's open the audio tap runs and the screen doesn't dim; closing it turns both back to how they were.
 - Each frame takes the latest 2048 samples (mixed to mono), applies a Hann window and a Fourier transform, and takes each band's peak on a decibel scale (−75 dB empty to −15 dB full), so quiet passages still move. Bars rise quickly and fall at most 1.6 of their height per second. When no new audio has arrived for a quarter of a second (paused, between songs, or the tap isn't running) they fall to a sliver rather than freezing.
+- The waveform shows 512 samples (about 12 ms) starting at a rising zero crossing, so it holds still like an oscilloscope, averaged to 128 points and scaled up 2.5× for typical music levels. It eases halfway to each new frame, and flattens out when the audio stops.
 - For a radio station it shows "The visualizer isn't available for radio.", and over AirPlay "The visualizer isn't available over AirPlay." (neither can be tapped; see Audio levels). Both follow changes while it's open.
 
 ### Lock screen, Control Center and remote commands
@@ -395,6 +397,9 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Pause: the bars fall flat. Play: they come back. Leave it open a few minutes: the screen doesn't dim or lock. Close it: the screen dims normally again. (2026-10-12)
 - [x] Play a radio station and open it: "The visualizer isn't available for radio." Switch to AirPlay with a song: "…isn't available over AirPlay."; back to the iPhone: the bars return. (2026-10-12)
 - [x] Switch to Catppuccin with another accent: the bars use it. (2026-10-12)
+- [x] Swipe left or right on the visualizer: it switches between Bars and Waveform (the capsule at the top follows). The waveform moves with the music and flattens when paused. (2026-10-12)
+- [x] Tap the capsule: the menu lists Style (Bars, Waveform) and Colours (Accent, Multicolor) with checkmarks; choosing one applies it. Multicolor: bars and waveform sweep through colours from your accent; in Catppuccin, through its accents in palette order. Back to Accent: one colour. Close and reopen, and relaunch: the style and colours are kept. (2026-10-12)
+- [x] On the visualizer, previous, play/pause and next work and the title follows the song, without closing it. On radio, previous is off. (2026-10-12)
 
 ### Siri (needs Apple Intelligence)
 

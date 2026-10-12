@@ -89,6 +89,37 @@ struct SpectrumFeedTests {
         #expect(levels.allSatisfy { $0 == 0 })
     }
 
+    @Test func theWaveFollowsTheAudioAndFlattensWhenItStops() {
+        let meter = AudioLevelMeter()
+        meter.assumeFloatSamples()
+        let feed = SpectrumFeed(meter: meter)
+        let start = Date(timeIntervalSince1970: 0)
+        play(meter, frequency: 440)
+        play(meter, frequency: 440)
+        for frame in 0..<6 {
+            feed.update(at: start.addingTimeInterval(Double(frame) / 60))
+        }
+        #expect(feed.wave.count == SpectrumFeed.wavePointCount)
+        #expect((feed.wave.map(abs).max() ?? 0) > 0.3)
+        #expect(feed.wave.allSatisfy { (-1...1).contains($0) })
+
+        for frame in 6...200 {
+            feed.update(at: start.addingTimeInterval(Double(frame) / 60))
+        }
+        #expect(feed.wave.allSatisfy { $0 == 0 })
+    }
+
+    @Test func theWaveStartsAtARisingZeroCrossing() {
+        // A sine that starts falling: the picture should begin where it next rises through zero.
+        let samples = (0..<2048).map { -Float(sin(2 * .pi * Double($0) / 100)) }
+        let points = SpectrumFeed.wavePoints(from: samples)
+        #expect(points.count == SpectrumFeed.wavePointCount)
+        // Just past the crossing: at or above zero, well below the peaks, and rising.
+        #expect(points[0] >= 0 && points[0] < 0.5)
+        #expect(points[1] > points[0])
+        #expect(points.max() == 1)
+    }
+
     @Test func nothingPlayedMeansNoBars() {
         let feed = SpectrumFeed(meter: AudioLevelMeter())
         #expect(feed.update(at: Date()).allSatisfy { $0 == 0 })

@@ -125,6 +125,8 @@ public struct SpectrumSmoother: Sendable {
 @MainActor
 public final class SpectrumFeed {
     public var levels: [Float] { smoother.levels }
+    /// The sound wave for the waveform style: `wavePointCount` points, -1...1.
+    public private(set) var wave: [Float]
 
     private let meter: AudioLevelMeter
     private let analyzer: SpectrumAnalyzer
@@ -136,12 +138,19 @@ public final class SpectrumFeed {
 
     /// No new buffers for this long means the audio has stopped.
     static let staleAfter: TimeInterval = 0.25
+    public static let wavePointCount = 128
+    /// Samples the waveform shows, starting at a rising zero crossing so the
+    /// picture holds still from frame to frame like an oscilloscope's.
+    static let waveSpan = 512
+    /// Music rarely nears full scale; this makes a typical song fill the height.
+    static let waveGain: Float = 2.5
 
     public init(meter: AudioLevelMeter, bandCount: Int = 40) {
         self.meter = meter
         analyzer = SpectrumAnalyzer(bandCount: bandCount)
         smoother = SpectrumSmoother(bandCount: bandCount)
         samples = [Float](repeating: 0, count: analyzer.size)
+        wave = [Float](repeating: 0, count: Self.wavePointCount)
     }
 
     /// Advances to `time` (one call per drawn frame) and returns the bar heights.
@@ -153,15 +162,47 @@ public final class SpectrumFeed {
             lastNewAudio = time
         }
         let target: [Float]
-        if time.timeIntervalSince(lastNewAudio) < Self.staleAfter {
+        let isFresh = time.timeIntervalSince(lastNewAudio) < Self.staleAfter
+        if isFresh {
             meter.copyLatestSamples(into: &samples)
             target = analyzer.bands(of: samples, sampleRate: meter.sampleRate)
         } else {
             target = []
         }
+        updateWave(isFresh: isFresh)
         let elapsed = lastFrame.map { time.timeIntervalSince($0) } ?? 0
         lastFrame = time
         smoother.update(toward: target, elapsed: min(elapsed, 0.1))
         return smoother.levels
+    }
+
+    /// Eases the wave toward the latest samples, or toward flat when the audio
+    /// has stopped, so it neither jitters nor freezes.
+    private func updateWave(isFresh: Bool) {
+        let target = isFresh ? Self.wavePoints(from: samples) : [Float](repeating: 0, count: Self.wavePointCount)
+        for index in wave.indices {
+            wave[index] += (target[index] - wave[index]) * 0.5
+            if abs(wave[index]) < 0.001 { wave[index] = 0 }
+        }
+    }
+
+    /// `waveSpan` samples from the first rising zero crossing, averaged down to
+    /// `wavePointCount` points and scaled to -1...1.
+    static func wavePoints(from samples: [Float]) -> [Float] {
+        let span = min(waveSpan, samples.count)
+        let searchEnd = max(samples.count - span, 1)
+        var start = 0
+        for index in 1..<searchEnd where samples[index - 1] < 0 && samples[index] >= 0 {
+            start = index
+            break
+        }
+        let perPoint = max(span / wavePointCount, 1)
+        return (0..<wavePointCount).map { point in
+            let from = start + point * perPoint
+            let to = min(from + perPoint, samples.count)
+            guard from < to else { return 0 }
+            let average = samples[from..<to].reduce(0, +) / Float(to - from)
+            return min(max(average * waveGain, -1), 1)
+        }
     }
 }
