@@ -17,7 +17,13 @@ public struct DownloadCollection: Sendable, Equatable, Codable, Identifiable {
     public var songs: [Song]
     public var addedAt: Date
 
-    public var id: String { "\(kind.rawValue):\(serverID)" }
+    public var id: String { Self.id(kind, serverID: serverID) }
+
+    /// The id a collection of this kind and server id has, to look it up
+    /// without fetching it.
+    public static func id(_ kind: Kind, serverID: String) -> String {
+        "\(kind.rawValue):\(serverID)"
+    }
 
     public init(kind: Kind, serverID: String, name: String, artist: String? = nil, coverArtID: String? = nil, songs: [Song], addedAt: Date = Date()) {
         self.kind = kind

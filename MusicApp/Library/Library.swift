@@ -6,10 +6,10 @@ final class Library {
     let engine: PlaybackEngine
     let stars: StarModel
     let ratings: RatingModel
-    let albumQueue: AlbumQueueModel
+    let quickActions: QuickActions
     let playlistEditor: PlaylistEditor
     /// Which songs the Add to Playlist sheet is open for.
-    let addToPlaylist = AddToPlaylistRequest()
+    let addToPlaylist: AddToPlaylistRequest
     let artwork: ArtworkCache
     let settings: StreamingSettingsModel
     let downloads: DownloadManager
@@ -39,17 +39,25 @@ final class Library {
         self.playlistEditor = PlaylistEditor(username: username, server: PlaylistEditor.Server(
             playlists: { [client] () async throws(SubsonicError) in try await client.playlists() },
             playlist: { [client] id async throws(SubsonicError) in try await client.playlist(id: id) },
-            albumSongs: { [client] id async throws(SubsonicError) in try await client.album(id: id).songs },
             create: { [client] name, ids async throws(SubsonicError) in try await client.createPlaylist(name: name, songIDs: ids) },
             add: { [client] id, ids async throws(SubsonicError) in try await client.addToPlaylist(id: id, songIDs: ids) }
         ))
-        self.albumQueue = AlbumQueueModel(
-            fetch: { [client] id async throws(SubsonicError) in try await client.album(id: id).songs },
-            perform: { [engine] action, songs in
+        let addToPlaylist = AddToPlaylistRequest()
+        self.addToPlaylist = addToPlaylist
+        self.quickActions = QuickActions(
+            server: QuickActions.Server(
+                album: { [client] id async throws(SubsonicError) in try await client.album(id: id) },
+                playlist: { [client] id async throws(SubsonicError) in try await client.playlist(id: id) },
+                artist: { [client] id async throws(SubsonicError) in try await client.artist(id: id) }
+            ),
+            handle: { [engine, downloads] action, resolved in
                 switch action {
-                case .play: engine.play(songs: songs)
-                case .playNext: engine.playNext(songs)
-                case .addToQueue: engine.append(songs)
+                case .play: engine.play(songs: resolved.songs)
+                case .shuffle: engine.playShuffled(resolved.songs)
+                case .playNext: engine.playNext(resolved.songs)
+                case .addToQueue: engine.append(resolved.songs)
+                case .addToPlaylist: addToPlaylist.open(resolved.songs)
+                case .download: if let collection = resolved.download { downloads.download(collection) }
                 }
             }
         )

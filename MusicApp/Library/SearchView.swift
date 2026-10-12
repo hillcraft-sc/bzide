@@ -18,6 +18,7 @@ struct SearchView: View {
                         Section("Artists") {
                             ForEach(results.artists) { artist in
                                 NavigationLink(artist.name.isEmpty ? "Unknown Artist" : artist.name, value: LibraryRoute.artist(id: artist.id))
+                                    .contextMenu { ArtistRowMenu(library: library, artist: artist) }
                             }
                         }
                     }
@@ -27,6 +28,7 @@ struct SearchView: View {
                                 NavigationLink(value: LibraryRoute.album(id: album.id)) {
                                     AlbumRow(library: library, album: album)
                                 }
+                                .contextMenu { AlbumRowMenu(library: library, album: album) }
                             }
                         }
                     }

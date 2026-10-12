@@ -9,7 +9,7 @@ import SwiftUI
 final class AddToPlaylistRequest {
     struct Pending: Identifiable {
         let id = UUID()
-        let source: PlaylistEditor.Source
+        let songs: [Song]
         let title: String
     }
 
@@ -18,19 +18,20 @@ final class AddToPlaylistRequest {
     /// The sheet shows its own errors while open.
     var isOpen: Bool { pending != nil }
 
-    func open(_ source: PlaylistEditor.Source, title: String = "Add to Playlist") {
-        pending = Pending(source: source, title: title)
+    func open(_ songs: [Song], title: String = "Add to Playlist") {
+        pending = Pending(songs: songs, title: title)
     }
 }
 
-/// "Add to Playlist…" for a menu.
+/// "Add to Playlist…" for songs at hand. For an album, playlist or artist that
+/// isn't loaded, `QuickActionButtons` fetches the songs first.
 struct AddToPlaylistButton: View {
     let library: Library
-    let source: PlaylistEditor.Source
+    let songs: [Song]
 
     var body: some View {
         Button("Add to Playlist…", systemImage: "music.note.list") {
-            library.addToPlaylist.open(source)
+            library.addToPlaylist.open(songs)
         }
     }
 }
@@ -111,7 +112,7 @@ private struct AddToPlaylistSheet: View {
             }
             .alert("New Playlist", isPresented: $isNaming) {
                 TextField("Name", text: $newName)
-                Button("Create") { run { await editor.create(named: newName, with: pending.source) } }
+                Button("Create") { run { await editor.create(named: newName, with: pending.songs) } }
                     .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
                 Button("Cancel", role: .cancel) {}
             }
@@ -141,7 +142,7 @@ private struct AddToPlaylistSheet: View {
         case .loaded(let playlists):
             ForEach(playlists) { playlist in
                 Button {
-                    run { await editor.add(pending.source, to: playlist) }
+                    run { await editor.add(pending.songs, to: playlist) }
                 } label: {
                     PlaylistRow(library: library, playlist: playlist)
                 }

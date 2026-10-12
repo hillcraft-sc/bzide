@@ -65,7 +65,7 @@ struct RecentlyAddedSection: View {
                             AlbumCard(library: library, album: album)
                         }
                         .buttonStyle(.plain)
-                        .contextMenu { AlbumQueueActions(library: library, albumID: album.id) }
+                        .contextMenu { AlbumRowMenu(library: library, album: album) }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -99,22 +99,5 @@ private struct AlbumCard: View {
         .frame(width: side, alignment: .leading)
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
-    }
-}
-
-/// Play or queue an album that isn't open: its songs are fetched first.
-struct AlbumQueueActions: View {
-    let library: Library
-    let albumID: String
-
-    var body: some View {
-        Button("Play", systemImage: "play.fill") { run(.play) }
-        Button("Play Next", systemImage: "text.insert") { run(.playNext) }
-        Button("Add to Queue", systemImage: "text.append") { run(.addToQueue) }
-        AddToPlaylistButton(library: library, source: .album(id: albumID))
-    }
-
-    private func run(_ action: AlbumQueueModel.Action) {
-        Task { await library.albumQueue.perform(action, albumID: albumID) }
     }
 }

@@ -7,7 +7,6 @@ import Testing
 private final class FakePlaylistServer: Sendable {
     struct State {
         var playlists: [Playlist] = []
-        var albums: [String: [Song]] = [:]
         var creates: [(name: String, songIDs: [String])] = []
         var adds: [(playlistID: String, songIDs: [String])] = []
         var listCalls = 0
@@ -32,9 +31,6 @@ private final class FakePlaylistServer: Sendable {
                     guard let playlist = state.playlists.first(where: { $0.id == id }) else { throw .server(code: 70, message: "Not found") }
                     return playlist
                 }
-            },
-            albumSongs: { id async throws(SubsonicError) in
-                self.state.withLock { $0.albums[id] ?? [] }
             },
             create: { name, songIDs async throws(SubsonicError) in
                 try self.state.withLock { state throws(SubsonicError) in
@@ -91,7 +87,7 @@ struct PlaylistEditorTests {
         fake.state.withLock { $0.playlists = [morning] }
         let editor = makeEditor()
         // so-2 is in the playlist; so-3 is offered twice.
-        let worked = await editor.add(.songs(Self.songs(2...3) + Self.songs(3...4)), to: morning)
+        let worked = await editor.add(Self.songs(2...3) + Self.songs(3...4), to: morning)
 
         #expect(worked)
         let adds = fake.state.withLock { $0.adds }
@@ -104,30 +100,19 @@ struct PlaylistEditorTests {
     @Test func nothingNewSendsNothing() async {
         fake.state.withLock { $0.playlists = [morning] }
         let editor = makeEditor()
-        await editor.add(.songs(Self.songs(1...2)), to: morning)
+        await editor.add(Self.songs(1...2), to: morning)
         #expect(fake.state.withLock { $0.adds }.isEmpty)
         #expect(editor.confirmation == "All 2 songs are already in “Morning”.")
 
-        await editor.add(.songs(Self.songs(1...1)), to: morning)
+        await editor.add(Self.songs(1...1), to: morning)
         #expect(editor.confirmation == "That song is already in “Morning”.")
-    }
-
-    @Test func anAlbumIsFetchedThenAdded() async {
-        fake.state.withLock {
-            $0.playlists = [morning]
-            $0.albums["al-1"] = Self.songs(5...5)
-        }
-        let editor = makeEditor()
-        await editor.add(.album(id: "al-1"), to: morning)
-        #expect(fake.state.withLock { $0.adds }.map(\.songIDs) == [["so-5"]])
-        #expect(editor.confirmation == "Added 1 song to “Morning”.")
     }
 
     @Test func longListsGoInChunks() async {
         let empty = Playlist(id: "pl-1", name: "Big", owner: "listener")
         fake.state.withLock { $0.playlists = [empty] }
         let editor = makeEditor()
-        await editor.add(.songs(Self.songs(1...250)), to: empty)
+        await editor.add(Self.songs(1...250), to: empty)
         let chunks = fake.state.withLock { $0.adds }.map(\.songIDs)
         #expect(chunks.map(\.count) == [100, 100, 50])
         #expect(chunks.flatMap { $0 } == Self.songs(1...250).map(\.id))
@@ -136,7 +121,7 @@ struct PlaylistEditorTests {
     @Test func createKeepsTheSongsInOrderWithRepeats() async {
         let editor = makeEditor()
         let queue = Self.songs(1...2) + Self.songs(1...1)
-        let worked = await editor.create(named: "  Road Trip ", with: .songs(queue))
+        let worked = await editor.create(named: "  Road Trip ", with: queue)
 
         #expect(worked)
         let creates = fake.state.withLock { $0.creates }
@@ -147,7 +132,7 @@ struct PlaylistEditorTests {
 
     @Test func aLongNewPlaylistIsCreatedThenFilled() async {
         let editor = makeEditor()
-        await editor.create(named: "Long", with: .songs(Self.songs(1...150)))
+        await editor.create(named: "Long", with: Self.songs(1...150))
         #expect(fake.state.withLock { $0.creates }.map(\.songIDs.count) == [100])
         let adds = fake.state.withLock { $0.adds }
         #expect(adds.map(\.playlistID) == ["pl-new"])
@@ -157,25 +142,25 @@ struct PlaylistEditorTests {
     @Test func aLongNewPlaylistNeedsTheServerToReturnIt() async {
         fake.state.withLock { $0.createReturnsNothing = true }
         let editor = makeEditor()
-        let worked = await editor.create(named: "Long", with: .songs(Self.songs(1...150)))
+        let worked = await editor.create(named: "Long", with: Self.songs(1...150))
         #expect(!worked)
         #expect(editor.error != nil)
         #expect(editor.confirmation == nil)
 
         // A short one doesn't need the id.
-        #expect(await editor.create(named: "Short", with: .songs(Self.songs(1...3))))
+        #expect(await editor.create(named: "Short", with: Self.songs(1...3)))
     }
 
     @Test func anEmptyPlaylistCanBeCreated() async {
         let editor = makeEditor()
-        #expect(await editor.create(named: "Later", with: .songs([])))
+        #expect(await editor.create(named: "Later", with: []))
         #expect(fake.state.withLock { $0.creates }.map(\.songIDs) == [[]])
         #expect(editor.confirmation == "Created “Later”.")
     }
 
     @Test func aBlankNameCreatesNothing() async {
         let editor = makeEditor()
-        #expect(await editor.create(named: "   ", with: .songs(Self.songs(1...3))) == false)
+        #expect(await editor.create(named: "   ", with: Self.songs(1...3)) == false)
         #expect(fake.state.withLock { $0.creates }.isEmpty)
     }
 
@@ -183,7 +168,7 @@ struct PlaylistEditorTests {
         let refused = SubsonicError.server(code: 50, message: "Not allowed")
         fake.state.withLock { $0.failure = refused }
         let editor = makeEditor()
-        let worked = await editor.add(.songs(Self.songs(1...1)), to: morning)
+        let worked = await editor.add(Self.songs(1...1), to: morning)
         #expect(!worked)
         #expect(editor.error == refused.localizedDescription)
         #expect(editor.confirmation == nil)
@@ -195,7 +180,7 @@ struct PlaylistEditorTests {
     @Test func playlistsReloadAfterAChange() async {
         fake.state.withLock { $0.playlists = [morning] }
         let editor = makeEditor()
-        await editor.create(named: "New", with: .songs(Self.songs(1...1)))
+        await editor.create(named: "New", with: Self.songs(1...1))
         #expect(fake.state.withLock { $0.listCalls } == 1)
         guard case .loaded(let playlists) = editor.playlists else {
             Issue.record("Expected playlists")

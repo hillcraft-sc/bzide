@@ -58,7 +58,7 @@ struct AlbumView: View {
                     Menu("More", systemImage: "ellipsis") {
                         Button("Play Next", systemImage: "text.insert") { library.engine.playNext(album.songs) }
                         Button("Add to Queue", systemImage: "text.append") { library.engine.append(album.songs) }
-                        AddToPlaylistButton(library: library, source: .songs(album.songs))
+                        AddToPlaylistButton(library: library, songs: album.songs)
                         MarkActions(library: library, target: .album(id: album.id), isStarred: album.isStarred, userRating: album.userRating)
                         if let artistID = album.artistID {
                             NavigationLink("Go to Artist", value: LibraryRoute.artist(id: artistID))
@@ -101,7 +101,7 @@ struct PlaylistView: View {
                     Menu("More", systemImage: "ellipsis") {
                         Button("Play Next", systemImage: "text.insert") { library.engine.playNext(playlist.songs) }
                         Button("Add to Queue", systemImage: "text.append") { library.engine.append(playlist.songs) }
-                        AddToPlaylistButton(library: library, source: .songs(playlist.songs))
+                        AddToPlaylistButton(library: library, songs: playlist.songs)
                     }
                 }
             }
@@ -139,6 +139,7 @@ struct ArtistView: View {
                         NavigationLink(value: LibraryRoute.album(id: album.id)) {
                             AlbumRow(library: library, album: album)
                         }
+                        .contextMenu { AlbumRowMenu(library: library, album: album, showsGoToArtist: false) }
                     }
                     if artist.albums.isEmpty {
                         Text("No Albums").foregroundStyle(.secondary)
@@ -151,7 +152,7 @@ struct ArtistView: View {
             .toolbar {
                 ToolbarItem {
                     Menu("More", systemImage: "ellipsis") {
-                        MarkActions(library: library, target: .artist(id: artist.id), isStarred: artist.isStarred, userRating: artist.userRating)
+                        ArtistRowMenu(library: library, artist: artist)
                     }
                 }
             }

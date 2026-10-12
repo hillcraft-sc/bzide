@@ -54,6 +54,7 @@ struct DownloadsView: View {
                 } label: {
                     DownloadRow(library: library, collection: collection)
                 }
+                .contextMenu { DownloadRowMenu(library: library, collection: collection) }
                 .swipeActions {
                     Button("Remove", systemImage: "trash", role: .destructive) {
                         downloads.remove(collectionID: collection.id)

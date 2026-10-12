@@ -11,29 +11,20 @@ import Observation
 @MainActor
 @Observable
 public final class PlaylistEditor {
-    /// What's being added: songs already at hand, or an album to fetch first.
-    public enum Source: Sendable, Equatable {
-        case songs([Song])
-        case album(id: String)
-    }
-
     public struct Server: Sendable {
         public var playlists: @Sendable () async throws(SubsonicError) -> [Playlist]
         public var playlist: @Sendable (_ id: String) async throws(SubsonicError) -> Playlist
-        public var albumSongs: @Sendable (_ albumID: String) async throws(SubsonicError) -> [Song]
         public var create: @Sendable (_ name: String, _ songIDs: [String]) async throws(SubsonicError) -> Playlist?
         public var add: @Sendable (_ playlistID: String, _ songIDs: [String]) async throws(SubsonicError) -> Void
 
         public init(
             playlists: @escaping @Sendable () async throws(SubsonicError) -> [Playlist],
             playlist: @escaping @Sendable (_ id: String) async throws(SubsonicError) -> Playlist,
-            albumSongs: @escaping @Sendable (_ albumID: String) async throws(SubsonicError) -> [Song],
             create: @escaping @Sendable (_ name: String, _ songIDs: [String]) async throws(SubsonicError) -> Playlist?,
             add: @escaping @Sendable (_ playlistID: String, _ songIDs: [String]) async throws(SubsonicError) -> Void
         ) {
             self.playlists = playlists
             self.playlist = playlist
-            self.albumSongs = albumSongs
             self.create = create
             self.add = add
         }
@@ -75,9 +66,8 @@ public final class PlaylistEditor {
 
     /// Adds the songs to the end of `playlist`. Returns whether it worked.
     @discardableResult
-    public func add(_ source: Source, to playlist: Playlist) async -> Bool {
+    public func add(_ songs: [Song], to playlist: Playlist) async -> Bool {
         await save { () async throws(SubsonicError) -> String in
-            let songs = try await self.songs(from: source)
             let existing = Set(try await self.server.playlist(playlist.id).songs.map(\.id))
             var seen = existing
             let new = songs.map(\.id).filter { seen.insert($0).inserted }
@@ -91,11 +81,11 @@ public final class PlaylistEditor {
     /// A new playlist holding the songs in order, repeats included (a queue
     /// saved as a playlist keeps its shape). Returns whether it worked.
     @discardableResult
-    public func create(named name: String, with source: Source) async -> Bool {
+    public func create(named name: String, with songs: [Song]) async -> Bool {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return false }
         return await save { () async throws(SubsonicError) -> String in
-            let ids = try await self.songs(from: source).map(\.id)
+            let ids = songs.map(\.id)
             let chunks = ids.chunks(of: Self.chunkSize)
             let created = try await self.server.create(name, chunks.first ?? [])
             if chunks.count > 1 {
@@ -124,13 +114,6 @@ public final class PlaylistEditor {
         // it refuses the change if it's not ours.
         guard let owner = playlist.owner else { return true }
         return owner == username
-    }
-
-    private func songs(from source: Source) async throws(SubsonicError) -> [Song] {
-        switch source {
-        case .songs(let songs): songs
-        case .album(let id): try await server.albumSongs(id)
-        }
     }
 
     /// Runs one change at a time and reports how it went. The playlists are

@@ -95,6 +95,7 @@ struct ArtistsView: View {
                             NavigationLink(value: LibraryRoute.artist(id: artist.id)) {
                                 Text(artist.name.isEmpty ? "Unknown Artist" : artist.name)
                             }
+                            .contextMenu { ArtistRowMenu(library: library, artist: artist) }
                         }
                     }
                     .sectionIndexLabel(section.name)
@@ -126,6 +127,7 @@ struct AlbumsView: View {
                     NavigationLink(value: LibraryRoute.album(id: album.id)) {
                         AlbumRow(library: library, album: album)
                     }
+                    .contextMenu { AlbumRowMenu(library: library, album: album) }
                     .task { await model.loadMoreIfNeeded(after: album) }
                 }
                 .themedRows()
@@ -184,6 +186,7 @@ struct PlaylistsView: View {
                 NavigationLink(value: LibraryRoute.playlist(id: playlist.id)) {
                     PlaylistRow(library: library, playlist: playlist)
                 }
+                .contextMenu { PlaylistRowMenu(library: library, playlist: playlist) }
                 .themedRows()
             }
             .listStyle(.plain)
@@ -207,7 +210,7 @@ struct PlaylistsView: View {
             TextField("Name", text: $newName)
             Button("Create") {
                 Task {
-                    if await library.playlistEditor.create(named: newName, with: .songs([])) {
+                    if await library.playlistEditor.create(named: newName, with: []) {
                         await model.load()
                     }
                 }

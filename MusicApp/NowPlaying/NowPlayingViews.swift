@@ -92,7 +92,7 @@ struct NowPlayingView: View {
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Save Queue as Playlist", systemImage: "text.badge.plus") {
-                        library.addToPlaylist.open(.songs(engine.queue.entries.map(\.song)), title: "Save Queue")
+                        library.addToPlaylist.open(engine.queue.entries.map(\.song), title: "Save Queue")
                     }
                     .disabled(engine.queue.isEmpty)
                 }

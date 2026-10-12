@@ -40,10 +40,21 @@ struct RootView: View {
         } message: {
             Text(library.ratings.error ?? "")
         }
-        .alert("Couldn't Load Album", isPresented: albumQueueErrorShown) {
-            Button("OK") { library.albumQueue.dismissError() }
+        .alert("Couldn't Load Songs", isPresented: quickActionsErrorShown) {
+            Button("OK") { library.quickActions.dismissError() }
         } message: {
-            Text(library.albumQueue.error ?? "")
+            Text(library.quickActions.error ?? "")
+        }
+        .confirmationDialog(
+            confirmationTitle,
+            isPresented: confirmationShown,
+            titleVisibility: .visible,
+            presenting: library.quickActions.confirmation
+        ) { confirmation in
+            Button(Self.confirmButton(confirmation.action)) {
+                Task { await library.quickActions.confirm() }
+            }
+            Button("Cancel", role: .cancel) { library.quickActions.cancelConfirmation() }
         }
     }
 
@@ -51,8 +62,40 @@ struct RootView: View {
         Binding(get: { library.stars.error != nil }, set: { if !$0 { library.stars.dismissError() } })
     }
 
-    private var albumQueueErrorShown: Binding<Bool> {
-        Binding(get: { library.albumQueue.error != nil }, set: { if !$0 { library.albumQueue.dismissError() } })
+    private var quickActionsErrorShown: Binding<Bool> {
+        Binding(get: { library.quickActions.error != nil }, set: { if !$0 { library.quickActions.dismissError() } })
+    }
+
+    private var confirmationShown: Binding<Bool> {
+        Binding(
+            get: { library.quickActions.confirmation != nil },
+            set: { if !$0 { library.quickActions.cancelConfirmation() } }
+        )
+    }
+
+    /// "Add 340 songs by Artist to the queue?"
+    private var confirmationTitle: String {
+        guard let confirmation = library.quickActions.confirmation else { return "" }
+        let songs = "\(confirmation.songCount) songs by \(confirmation.artist.name)"
+        return switch confirmation.action {
+        case .play: "Play \(songs)?"
+        case .shuffle: "Shuffle \(songs)?"
+        case .playNext: "Play \(songs) next?"
+        case .addToQueue: "Add \(songs) to the queue?"
+        case .addToPlaylist: "Add \(songs) to a playlist?"
+        case .download: "Download \(songs)?"
+        }
+    }
+
+    private static func confirmButton(_ action: QuickActions.Action) -> String {
+        switch action {
+        case .play: "Play"
+        case .shuffle: "Shuffle"
+        case .playNext: "Play Next"
+        case .addToQueue: "Add to Queue"
+        case .addToPlaylist: "Choose Playlist"
+        case .download: "Download"
+        }
     }
 
     private var ratingErrorShown: Binding<Bool> {
