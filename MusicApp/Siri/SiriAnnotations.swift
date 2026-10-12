@@ -23,12 +23,13 @@ extension View {
         appEntityIdentifier(EntityIdentifier(for: PlaylistEntity.self, identifier: id))
     }
 
-    /// A download is an album or a playlist on the server.
+    /// A download is an album, a playlist or a song on the server.
     func siriEntity(download collection: DownloadCollection) -> some View {
-        appEntityIdentifier(
-            collection.kind == .album
-                ? EntityIdentifier(for: AlbumEntity.self, identifier: collection.serverID)
-                : EntityIdentifier(for: PlaylistEntity.self, identifier: collection.serverID)
-        )
+        let identifier: EntityIdentifier = switch collection.kind {
+        case .album: EntityIdentifier(for: AlbumEntity.self, identifier: collection.serverID)
+        case .playlist: EntityIdentifier(for: PlaylistEntity.self, identifier: collection.serverID)
+        case .song: EntityIdentifier(for: SongEntity.self, identifier: collection.serverID)
+        }
+        return appEntityIdentifier(identifier)
     }
 }

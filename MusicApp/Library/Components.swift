@@ -184,7 +184,31 @@ struct SongActions: View {
         Button("Play Next", systemImage: "text.insert") { library.engine.playNext([song]) }
         Button("Add to Queue", systemImage: "text.append") { library.engine.append([song]) }
         AddToPlaylistButton(library: library, songs: [song])
+        SongDownloadButton(downloads: library.downloads, song: song)
         MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
+    }
+}
+
+/// Download one song, or remove it. A song already on the phone as part of a
+/// downloaded album or playlist shows that instead: it goes when they do.
+struct SongDownloadButton: View {
+    let downloads: DownloadManager
+    let song: Song
+
+    var body: some View {
+        switch downloads.membership(ofSong: song.id) {
+        case .none:
+            Button("Download", systemImage: "arrow.down.circle") {
+                downloads.download(DownloadCollection(song: song))
+            }
+        case .own:
+            Button("Remove Download", systemImage: "trash", role: .destructive) {
+                downloads.remove(collectionID: DownloadCollection.id(.song, serverID: song.id))
+            }
+        case .inCollection:
+            Button("Downloaded", systemImage: "arrow.down.circle.fill") {}
+                .disabled(true)
+        }
     }
 }
 

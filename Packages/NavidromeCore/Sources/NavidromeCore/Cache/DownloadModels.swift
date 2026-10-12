@@ -1,11 +1,13 @@
 import Foundation
 
-/// An album or playlist the user downloaded, with its songs as they were at the
-/// time. Kept so it can be listed and played without the server.
+/// An album, playlist or single song the user downloaded, with its songs as
+/// they were at the time. Kept so it can be listed and played without the server.
 public struct DownloadCollection: Sendable, Equatable, Codable, Identifiable {
     public enum Kind: String, Sendable, Codable {
         case album
         case playlist
+        /// One song downloaded on its own.
+        case song
     }
 
     public let kind: Kind
@@ -44,6 +46,10 @@ public struct DownloadCollection: Sendable, Equatable, Codable, Identifiable {
         return fields.contains { $0?.localizedStandardContains(query) == true }
     }
 
+    public init(song: Song) {
+        self.init(kind: .song, serverID: song.id, name: song.title, artist: song.artist, coverArtID: song.coverArtID, songs: [song])
+    }
+
     public init(album: Album) {
         self.init(kind: .album, serverID: album.id, name: album.name, artist: album.artist, coverArtID: album.coverArtID, songs: album.songs)
     }
@@ -51,6 +57,15 @@ public struct DownloadCollection: Sendable, Equatable, Codable, Identifiable {
     public init(playlist: Playlist) {
         self.init(kind: .playlist, serverID: playlist.id, name: playlist.name, coverArtID: playlist.coverArtID, songs: playlist.songs)
     }
+}
+
+/// How a song is downloaded. See `DownloadManager.membership(ofSong:)`.
+public enum SongDownloadMembership: Sendable, Equatable {
+    /// Downloaded on its own (it may also be in a downloaded album or playlist).
+    case own
+    /// Only as part of a downloaded album or playlist.
+    case inCollection
+    case none
 }
 
 /// Where one song's download stands.

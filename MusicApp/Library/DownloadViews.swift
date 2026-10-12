@@ -48,6 +48,20 @@ struct DownloadsView: View {
 
     var body: some View {
         List {
+            let songs = downloads.songDownloads(matching: query)
+            if !songs.isEmpty {
+                NavigationLink {
+                    DownloadedSongsView(library: library)
+                } label: {
+                    // One row for every song downloaded on its own, counted together.
+                    DownloadRow(library: library, collection: DownloadCollection(
+                        kind: .song, serverID: "all", name: "Downloaded Songs",
+                        songs: songs.flatMap(\.songs)
+                    ), symbol: "music.note")
+                }
+                .contextMenu { QuickActionButtons(library: library, source: .songs(songs.flatMap(\.songs))) }
+                .themedRows()
+            }
             ForEach(downloads.collections(matching: query)) { collection in
                 NavigationLink {
                     DownloadedCollectionView(library: library, collectionID: collection.id)
@@ -71,9 +85,9 @@ struct DownloadsView: View {
                 ContentUnavailableView(
                     "No Downloads",
                     systemImage: "arrow.down.circle",
-                    description: Text("Download albums and playlists to play them without a connection.")
+                    description: Text("Download albums, playlists and songs to play them without a connection.")
                 )
-            } else if downloads.collections(matching: query).isEmpty {
+            } else if downloads.collections(matching: query).isEmpty, downloads.songDownloads(matching: query).isEmpty {
                 ContentUnavailableView.search(text: query)
             }
         }
@@ -85,11 +99,22 @@ struct DownloadsView: View {
 private struct DownloadRow: View {
     let library: Library
     let collection: DownloadCollection
+    /// Shown instead of a cover, for the Downloaded Songs row.
+    var symbol: String?
 
     var body: some View {
         let status = library.downloads.status(of: collection)
         HStack(spacing: 12) {
-            ArtworkView(library: library, coverArtID: collection.coverArtID, side: 48)
+            if let symbol {
+                Image(systemName: symbol)
+                    .font(.title2)
+                    .foregroundStyle(.tint)
+                    .frame(width: 48, height: 48)
+                    .background(.quaternary, in: .rect(cornerRadius: 6))
+                    .accessibilityHidden(true)
+            } else {
+                ArtworkView(library: library, coverArtID: collection.coverArtID, side: 48)
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(collection.name.isEmpty ? "Untitled" : collection.name).lineLimit(1)
                 Text(detail(status))
@@ -128,6 +153,29 @@ struct DownloadedCollectionView: View {
             }
         } else {
             ContentUnavailableView("Removed", systemImage: "arrow.down.circle")
+        }
+    }
+}
+
+/// Every song downloaded on its own, newest first. Each is removed from its
+/// long-press menu (Remove Download).
+struct DownloadedSongsView: View {
+    let library: Library
+
+    var body: some View {
+        let songs = library.downloads.songDownloads(matching: "").flatMap(\.songs)
+        SongListView(library: library, songs: songs, showsTrackNumbers: false) {
+            SongListHeader(
+                library: library, coverArtID: nil, title: "Downloaded Songs",
+                subtitle: songs.count == 1 ? "1 song" : "\(songs.count) songs"
+            )
+        }
+        .navigationTitle("Downloaded Songs")
+        .navigationBarTitleDisplayMode(.inline)
+        .overlay {
+            if songs.isEmpty {
+                ContentUnavailableView("No Downloaded Songs", systemImage: "music.note")
+            }
         }
     }
 }

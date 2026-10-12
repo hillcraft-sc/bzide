@@ -85,8 +85,23 @@ public final class DownloadManager: DownloadedTrackLookup {
     }
 
     /// Newest download first, filtered by `DownloadCollection.matches(_:)`.
+    /// Downloaded albums and playlists, newest first. Songs downloaded on their
+    /// own are listed separately (`songDownloads(matching:)`).
     public func collections(matching query: String) -> [DownloadCollection] {
-        collections.filter { $0.matches(query) }.sorted { $0.addedAt > $1.addedAt }
+        collections.filter { $0.kind != .song && $0.matches(query) }.sorted { $0.addedAt > $1.addedAt }
+    }
+
+    /// Songs downloaded on their own, newest first.
+    public func songDownloads(matching query: String) -> [DownloadCollection] {
+        collections.filter { $0.kind == .song && $0.matches(query) }.sorted { $0.addedAt > $1.addedAt }
+    }
+
+    /// How a song is kept on the phone, for its menu: on its own, only as part
+    /// of a downloaded album or playlist, or not at all.
+    public func membership(ofSong songID: String) -> SongDownloadMembership {
+        if collections.contains(where: { $0.id == DownloadCollection.id(.song, serverID: songID) }) { return .own }
+        if collections.contains(where: { $0.songs.contains { $0.id == songID } }) { return .inCollection }
+        return .none
     }
 
     public func collection(id: String) -> DownloadCollection? {

@@ -209,6 +209,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 ### Downloads
 
 - The user downloads a whole album or playlist. Its song list is saved as it was at that moment, so it can be listed and played with no server. Downloading it again updates the list: new songs are fetched, songs no longer in it are dropped.
+- **Single songs.** A song's long-press menu offers Download, which downloads that one song as its own download (`song:<id>`), with the same quality, cellular, ordering and storage rules. Once downloaded it offers Remove Download. A song that's only on the phone as part of a downloaded album or playlist shows a greyed-out "Downloaded" instead: it's removed with them. Library > Downloaded lists songs downloaded on their own as one "Downloaded Songs" row at the top (with their count and progress; its long-press plays or queues them all), which opens the list, newest first. The Downloaded search matches them by title and artist too.
 - **Download quality** (Settings > Downloads, Original by default, same choices as streaming quality). At Original, songs are downloaded in their original format (`download` endpoint, never transcoded). Below it, they're fetched from `stream` with that `maxBitRate` and `format=mp3`, so the server converts them as they download; the size isn't known in advance, so such a song shows as downloading without a percentage until it's done. The quality is fixed for each song when its download starts and saved with the download index, so changing the setting mid-download, or a relaunch before a converted song finishes, never mislabels a file. Songs already downloaded are kept as they are: a change applies to songs downloaded afterwards.
 - Files go to `Application Support/Downloads/Files/<song id>.<extension>`, excluded from iCloud backup. A converted song is `.mp3`; an original takes the extension from the song's metadata, else from the server's file name.
 - Each song is stored once, however many downloaded albums or playlists contain it. Removing an album or playlist deletes only files no other download still uses, and stops their running downloads.
@@ -338,6 +339,8 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Download an album, then turn on Airplane Mode and force-quit and relaunch the app. Library > Downloaded, the album screen, Now Playing and the lock screen all show its artwork. (2026-10-11)
 - [x] Settings > Downloads > Download Quality: 128 kbps. Download an album: it finishes, plays offline, and Storage Used grows much less than for the same album at Original. (2026-10-12)
 - [x] With some songs of that album still downloading, switch back to Original: the album finishes and every song plays. Albums downloaded earlier aren't downloaded again. (2026-10-12)
+- [ ] Long-press a song (in an album, search, history…) > Download: Library > Downloaded shows "Downloaded Songs" at the top with it inside, and it plays in Airplane Mode. Its long-press now says Remove Download, which removes it.
+- [ ] Long-press a song from an album you've downloaded: it shows "Downloaded", greyed out.
 
 ### Appearance
 
