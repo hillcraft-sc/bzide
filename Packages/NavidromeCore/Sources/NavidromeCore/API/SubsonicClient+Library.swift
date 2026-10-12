@@ -42,6 +42,22 @@ extension SubsonicClient {
         try await request("getPlaylist", parameters: [.init(name: "id", value: id)], as: ItemPayload<Playlist, PlaylistKey>.self).item
     }
 
+    /// A new playlist with these songs, in order. Navidrome answers with the
+    /// playlist; older Subsonic servers answer with nothing, hence `nil`.
+    /// A long list belongs in several calls (see `PlaylistEditor`): every id
+    /// goes in the URL, which servers and proxies limit in length.
+    public func createPlaylist(name: String, songIDs: [String]) async throws(SubsonicError) -> Playlist? {
+        let parameters = [URLQueryItem(name: "name", value: name)] + songIDs.map { URLQueryItem(name: "songId", value: $0) }
+        return try await request("createPlaylist", parameters: parameters, as: OptionalItemPayload<Playlist, PlaylistKey>.self).item
+    }
+
+    /// Appends songs to the end of a playlist. Only the owner may; the server
+    /// refuses others (and smart playlists).
+    public func addToPlaylist(id: String, songIDs: [String]) async throws(SubsonicError) {
+        let parameters = [URLQueryItem(name: "playlistId", value: id)] + songIDs.map { URLQueryItem(name: "songIdToAdd", value: $0) }
+        _ = try await request("updatePlaylist", parameters: parameters, as: EmptyPayload.self)
+    }
+
     public func search(
         _ query: String, artistCount: Int = 20, albumCount: Int = 20, songCount: Int = 20
     ) async throws(SubsonicError) -> SearchResult {
@@ -124,6 +140,15 @@ struct ItemPayload<Item: Decodable, Key: ItemKey>: Decodable {
 
     init(from decoder: any Decoder) throws {
         item = try decoder.container(keyedBy: AnyKey.self).decode(Item.self, forKey: AnyKey(Key.key))
+    }
+}
+
+/// A single item the server may leave out.
+struct OptionalItemPayload<Item: Decodable, Key: ItemKey>: Decodable {
+    let item: Item?
+
+    init(from decoder: any Decoder) throws {
+        item = try? decoder.container(keyedBy: AnyKey.self).decodeIfPresent(Item.self, forKey: AnyKey(Key.key))
     }
 }
 
