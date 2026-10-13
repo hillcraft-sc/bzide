@@ -29,6 +29,7 @@ struct VisualizerView: View {
     @State private var isChoosingColors = false
     @State private var grooveState = GrooveState()
     @State private var tapestryState = TapestryState()
+    @State private var weatherState = WeatherState()
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -130,6 +131,11 @@ struct VisualizerView: View {
                     colors: colors(TapestryRecorder.threadCount), state: tapestryState
                 )
                 .padding(drawingInsets(landscape: landscape))
+            case .weather:
+                WeatherView(
+                    feed: feed, date: timeline.date, colors: fourColors,
+                    insets: drawingInsets(landscape: landscape), landscape: landscape, state: weatherState
+                )
             case .bars, .waveform:
                 let wave = feed.wave
                 Canvas { context, size in
@@ -148,7 +154,7 @@ struct VisualizerView: View {
 
     /// The Plasma shader (Plasma.metal) over the whole screen, behind the controls.
     private func plasma(flow: Double, beat: Float, energy: SpectrumEnergy, landscape: Bool) -> some View {
-        let colors = plasmaColors
+        let colors = fourColors
         // Wrapped so the shader's single-precision maths stays smooth for hours.
         let flow = Float(flow.truncatingRemainder(dividingBy: 10_000))
         return GeometryReader { geometry in
@@ -185,9 +191,9 @@ struct VisualizerView: View {
         .ignoresSafeArea()
     }
 
-    /// Four colors for the plasma's palette loop: shades of the accent, or
-    /// four from the multicolor sweep.
-    private var plasmaColors: [Color] {
+    /// Four colors for Plasma's palette loop and Weather's sky and hills:
+    /// shades of the accent, or four from the multicolor sweep.
+    private var fourColors: [Color] {
         switch effectiveMode {
         case .multicolor, .custom:
             return colors(4)
@@ -380,7 +386,7 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, groove, livingCover, tapestry
+    case bars, waveform, plasma, groove, livingCover, tapestry, weather
 
     var title: String {
         switch self {
@@ -390,6 +396,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .groove: "Groove"
         case .livingCover: "Living Cover"
         case .tapestry: "Tapestry"
+        case .weather: "Weather"
         }
     }
 
@@ -401,6 +408,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .groove: "opticaldisc"
         case .livingCover: "square.grid.3x3.fill"
         case .tapestry: "scribble.variable"
+        case .weather: "cloud.bolt.rain.fill"
         }
     }
 
