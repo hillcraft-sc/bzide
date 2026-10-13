@@ -1,0 +1,11 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.16.1",
+    "lyrics": {
+      "artist": "The Placeholders",
+      "title": "Morning Static",
+      "value": "\nWake up to the morning static\r\nCoffee going cold again\n\nSecond verse, same as the first\n"
+    }
+  }
+}

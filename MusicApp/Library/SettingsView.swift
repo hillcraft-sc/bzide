@@ -49,6 +49,14 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Find Lyrics Online", isOn: $settings.settings.findLyricsOnline)
+            } header: {
+                Text("Lyrics")
+            } footer: {
+                Text("When your server has no lyrics for a song, or only unsynced ones, look them up on LRCLIB (lrclib.net), a free lyrics database. This sends the song's title, artist, album and length there.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 Picker("Keep History For", selection: $history.retention) {
                     ForEach(HistoryRetention.allCases, id: \.self) { retention in
                         Text(retention.title).tag(retention)

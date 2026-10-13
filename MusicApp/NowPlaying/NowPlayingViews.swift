@@ -46,6 +46,7 @@ struct NowPlayingView: View {
     let library: Library
     @Environment(\.dismiss) private var dismiss
     @State private var isVisualizerOpen = false
+    @State private var isLyricsOpen = false
 
     private var engine: PlaybackEngine { library.engine }
 
@@ -69,6 +70,7 @@ struct NowPlayingView: View {
                             }
                             AirPlayButton()
                                 .frame(width: 32, height: 32)
+                            Button("Lyrics", systemImage: "quote.bubble") { isLyricsOpen = true }
                             Button("Visualizer", systemImage: "waveform") { isVisualizerOpen = true }
                         }
                         .labelStyle(.iconOnly)
@@ -115,6 +117,9 @@ struct NowPlayingView: View {
             .playlistConfirmation(library.playlistEditor)
             .fullScreenCover(isPresented: $isVisualizerOpen) {
                 VisualizerView(model: model, engine: engine)
+            }
+            .fullScreenCover(isPresented: $isLyricsOpen) {
+                LyricsView(library: library)
             }
             // Tells Siri which song this screen is about ("add this to my
             // running playlist").

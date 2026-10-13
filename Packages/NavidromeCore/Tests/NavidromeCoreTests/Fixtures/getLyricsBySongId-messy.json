@@ -1,0 +1,18 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.16.1",
+    "lyricsList": {
+      "structuredLyrics": [
+        {
+          "synced": true,
+          "line": [
+            { "start": 1000, "value": "A line with a time" },
+            { "value": "A line without one" },
+            "not a line at all"
+          ]
+        }
+      ]
+    }
+  }
+}

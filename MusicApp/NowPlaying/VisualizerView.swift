@@ -338,17 +338,8 @@ struct VisualizerView: View {
     /// Not on Typeset, which is the title already.
     @ViewBuilder
     private var nowPlayingTitle: some View {
-        if let title = engine.currentTitle, style != .typeset {
-            VStack(spacing: 2) {
-                Text(title).font(.headline)
-                if let subtitle = engine.currentSubtitle {
-                    Text(subtitle).font(.subheadline).foregroundStyle(ink.opacity(0.7))
-                }
-            }
-            .foregroundStyle(ink)
-            .lineLimit(1)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal)
+        if style != .typeset {
+            OverlayTitle(engine: engine, ink: ink)
         }
     }
 
@@ -395,28 +386,8 @@ struct VisualizerView: View {
         }
     }
 
-    /// Previous, play/pause and next, as in Now Playing.
     private var controls: some View {
-        HStack(spacing: 48) {
-            Button("Previous", systemImage: "backward.fill") { engine.previous() }
-                .font(.title)
-                .disabled(engine.isLive || engine.queue.isEmpty)
-            Button(engine.status.isActive ? "Pause" : "Play",
-                   systemImage: engine.status.isActive ? "pause.fill" : "play.fill") {
-                engine.togglePlayPause()
-            }
-            .font(.title)
-            .foregroundStyle(isOnPaper ? .white : .black)
-            .frame(width: 72, height: 72)
-            .background(ink, in: .circle)
-            .disabled(engine.queue.isEmpty)
-            Button("Next", systemImage: "forward.fill") { engine.next() }
-                .font(.title)
-                .disabled(!engine.canGoNext)
-        }
-        .labelStyle(.iconOnly)
-        .buttonStyle(.borderless)
-        .foregroundStyle(ink)
+        OverlayTransport(engine: engine, ink: ink, iconOnCircle: isOnPaper ? .white : .black)
     }
 
     private static func isRoutedToAirPlay() -> Bool {

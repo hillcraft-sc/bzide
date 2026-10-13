@@ -1,0 +1,35 @@
+{
+  "subsonic-response": {
+    "status": "ok",
+    "version": "1.16.1",
+    "type": "navidrome",
+    "openSubsonic": true,
+    "lyricsList": {
+      "structuredLyrics": [
+        {
+          "displayArtist": "The Placeholders",
+          "displayTitle": "Morning Static",
+          "lang": "xxx",
+          "synced": false,
+          "line": [
+            { "value": "Wake up to the morning static" },
+            { "value": "Coffee going cold again" }
+          ]
+        },
+        {
+          "displayArtist": "The Placeholders",
+          "displayTitle": "Morning Static",
+          "lang": "eng",
+          "offset": -500,
+          "synced": true,
+          "line": [
+            { "start": 12500, "value": "Wake up to the morning static" },
+            { "start": 16000, "value": "<00:16.00>Coffee <00:16.60>going <00:17.10>cold <00:17.50>again" },
+            { "start": 20000, "value": "" },
+            { "start": 30000 }
+          ]
+        }
+      ]
+    }
+  }
+}

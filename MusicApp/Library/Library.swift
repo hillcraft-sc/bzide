@@ -20,6 +20,7 @@ final class Library {
     let settings: StreamingSettingsModel
     let downloads: DownloadManager
     let history: PlayHistory
+    let lyrics: LyricsModel
     private let client: SubsonicClient
 
     init(
@@ -59,6 +60,12 @@ final class Library {
         self.genreCovers = GenreCovers { [client] genre async throws(SubsonicError) in
             try await client.albumList(.byGenre(genre), size: 1).first?.coverArtID
         }
+        // LRCLIB is on the open internet: no shared cache or cookies.
+        let lyricsSession = URLSession(configuration: .ephemeral)
+        self.lyrics = LyricsModel(sources: .live(
+            client: client,
+            lrclib: LRCLIBClient(transport: URLSessionTransport(session: lyricsSession))
+        ))
         // Station playlist files live on the open internet: no shared cache or cookies.
         let playlistSession = URLSession(configuration: .ephemeral)
         self.radio = RadioPlayer(

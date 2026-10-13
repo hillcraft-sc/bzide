@@ -28,19 +28,24 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     public var downloadOverCellular: Bool
     /// Original by default. Applies to songs downloaded after it changes.
     public var downloadQuality: StreamQuality
+    /// Off by default: when the server has no lyrics for a song, look them up
+    /// on LRCLIB. That sends the song's title, artist, album and length there.
+    public var findLyricsOnline: Bool
 
     public init(
         wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
-        downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original
+        downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original,
+        findLyricsOnline: Bool = false
     ) {
         self.wifiQuality = wifiQuality
         self.cellularQuality = cellularQuality
         self.downloadOverCellular = downloadOverCellular
         self.downloadQuality = downloadQuality
+        self.findLyricsOnline = findLyricsOnline
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -52,6 +57,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         cellularQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .cellularQuality) ?? defaults.cellularQuality
         downloadOverCellular = try c.decodeIfPresent(Bool.self, forKey: .downloadOverCellular) ?? defaults.downloadOverCellular
         downloadQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .downloadQuality) ?? defaults.downloadQuality
+        findLyricsOnline = try c.decodeIfPresent(Bool.self, forKey: .findLyricsOnline) ?? defaults.findLyricsOnline
     }
 }
 

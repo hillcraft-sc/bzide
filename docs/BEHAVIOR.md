@@ -79,6 +79,18 @@ How the app behaves, written so the web and Android clients can be ported from t
 - The waveform shows 512 samples (about 12 ms) starting at a rising zero crossing, so it holds still like an oscilloscope, averaged to 128 points and scaled up 2.5× for typical music levels. It eases halfway to each new frame, and flattens out when the audio stops.
 - For a radio station it shows "The visualizer isn't available for radio.", and over AirPlay "The visualizer isn't available over AirPlay." (neither can be tapped; see Audio levels). Both follow changes while it's open.
 
+### Lyrics
+
+- Now Playing's speech-bubble button (between AirPlay and the visualizer's waveform) opens the song's lyrics full screen over a blurred, darkened copy of its cover (a dark gradient without one), with a close button at the top and the title, artist, previous, play/pause and next at the bottom. It follows the queue: skipping changes the lyrics.
+- **Where they come from**, in order, the first that has them winning: (1) the server's synced lyrics, (2) LRCLIB's synced lyrics, (3) the server's plain lyrics, (4) LRCLIB's plain lyrics. So synced lyrics win wherever they come from, and the server wins between equals. The server is asked for synced lyrics with OpenSubsonic `getLyricsBySongId` only if it advertises the `songLyrics` extension (checked once per sign-in; a failed check is tried again), and otherwise, or when it has none, for plain lyrics with classic `getLyrics` (by artist and title). Navidrome reads lyrics from the music files' tags and `.lrc` files beside them. A set marked synced with any untimed line is treated as plain; a structured set's `offset` (milliseconds) shifts its lines and word times.
+- **LRCLIB** (lrclib.net, a free lyrics database) is asked only when Settings > Lyrics > Find Lyrics Online is on (off by default) and the server has no synced lyrics. A request sends the song's title, artist, album and length (`/api/get`); with no exact match, or no artist, it searches by title and artist (`/api/search`) and keeps a result within 3 seconds of the song's length, synced lyrics first. It identifies the app in its User-Agent, uses its own cookie-less session, and sends nothing else. LRCLIB's lyrics are credited ("Lyrics from LRCLIB") at the end.
+- Results are kept for the session (per song and setting), so reopening is instant; a failure isn't kept, so it's tried again.
+- **Synced lyrics** (LRC: `[mm:ss.xx]` line times, several times for a repeated line, `[offset:±ms]`, metadata tags skipped): lines are big and bold, left-aligned. The current line is the last to have started, shown 0.15 s early so the eye arrives with the voice; it's bright and sharp, its letters lighting up as each word is sung (60% bright before, full once sung), and the view scrolls smoothly to keep it about a third of the way down. Other lines are dimmed (35%), slightly smaller and softened, more so further away (up to 3 lines). An empty line is an instrumental break: three dots that breathe while it's current, otherwise almost no space. Lines fade out toward the top and bottom bars.
+- **Word timing**: exact where the lyrics have word times (enhanced LRC, `<mm:ss.xx>` before each word, in a server line or an LRCLIB file); each word lasts until the next, the last at most 1.5 s. Otherwise estimated: a line's words share the time until the next line by their rough syllable counts (groups of vowels, a silent final "e" not counted), taking at most 90% of the gap and no more than 0.32 s a syllable plus 0.6 s, so a line before a long break isn't stretched out. Song time runs smoothly between the engine's position updates and follows seeks.
+- Tapping a line jumps the song to it. Scrolling by hand stops the view following for 3 seconds after the scroll ends, then it returns to the current line.
+- **Plain lyrics** scroll freely, all lines bright, verses separated, under a note that they aren't synced.
+- With no lyrics anywhere: "No Lyrics: There are no lyrics for this song." An instrumental (LRCLIB says so): "Instrumental: This song has no words." Radio: "Lyrics aren't available for radio." If neither source could be reached: "Couldn't Load Lyrics" with a hint to check the connection.
+
 ### Lock screen, Control Center and remote commands
 
 - Now Playing shows the current track's title, artist, album, artwork, duration and elapsed time. An empty queue clears it.
@@ -420,6 +432,15 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Choose Polygraph: paper fills the screen and four needles reach down from the top edge, drawing on it as it runs down; the first three lines swing with the bass, mids and treble (the bass pen kicks on drum hits), the fourth hatches with the loudness. Pause: the paper keeps running and the needles settle to center, drawing flat lines; play again: the lines pick up without a jolt. Sideways: the needles reach in from the left and the paper runs right. The paper fills the screen and the controls (dark, over the paper) stay readable. Try Multicolor: one ink per pen, all readable on the paper. (2026-10-13)
 - [ ] Scroll quickly through Albums and skip songs fast: every row and Now Playing always shows the right cover.
 - [x] In a Catppuccin theme, the visualizer menu offers Accent, Multicolor and Custom, and "Choose Custom Colors…": pick a few accents (at least two stay), Done: the bars, waveform and plasma use just those, in palette order. Switch to a non-Catppuccin theme: Custom isn't offered and the colors show as Multicolor. (2026-10-13)
+
+### Lyrics
+
+- [x] Play a song with synced lyrics on the server and tap the speech bubble in Now Playing: lyrics over the blurred cover, the current line bright with its words lighting up as they're sung, the view scrolling along with the song; the other lines dim. (2026-10-13)
+- [ ] Tap an earlier line: the song jumps there and the lyrics follow. Scroll away by hand: the view stays put, then returns to the current line a few seconds after you stop.
+- [ ] A song whose server lyrics are plain only: they scroll freely under "These lyrics aren't synced to the music." A song with none: "No Lyrics". Radio: "Lyrics aren't available for radio."
+- [x] Turn on Settings > Lyrics > Find Lyrics Online, open lyrics for a song the server has none for: LRCLIB's lyrics appear, credited at the end. Turn it off: back to the server's lyrics or "No Lyrics". (2026-10-13)
+- [ ] Skip songs with the lyrics open: they change with the song, and the previous song's lyrics never show for the new one.
+- [ ] Watch a song with estimated word timing (no word times in its lyrics): the words light up roughly with the singing and finish before the next line.
 
 ### Siri (needs Apple Intelligence)
 
