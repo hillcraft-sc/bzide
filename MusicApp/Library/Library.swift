@@ -111,6 +111,10 @@ final class Library {
         LoadModel { [client] () async throws(SubsonicError) in try await client.albumList(.newest, size: 15) }
     }
 
+    func favoritesModel() -> LoadModel<SearchResult> {
+        LoadModel { [client] () async throws(SubsonicError) in try await client.favorites() }
+    }
+
     func genresModel() -> LoadModel<[Genre]> {
         LoadModel { [client] () async throws(SubsonicError) in Genre.forBrowsing(try await client.genres()) }
     }

@@ -8,6 +8,8 @@ struct SettingsView: View {
     @Bindable var appearance: AppearanceModel
     let account: AccountSummary?
     let signOut: () -> Void
+    /// The bare player screen kept for exercising playback.
+    let debugPlayer: () -> DebugPlayerView
     @State private var isConfirmingRemoveAll = false
     @State private var isConfirmingSignOut = false
     @State private var isConfirmingClearHistory = false
@@ -68,6 +70,18 @@ struct SettingsView: View {
                 Text("Play History")
             } footer: {
                 Text("History is kept on this iPhone only. A song is added once it has played for half its length or 4 minutes.")
+            }
+            .themedRows(grouped: true)
+            Section {
+                NavigationLink {
+                    debugPlayer()
+                } label: {
+                    Label("Debug Player", systemImage: "ladybug")
+                }
+            } header: {
+                Text("Developer")
+            } footer: {
+                Text("A bare player for testing playback.")
             }
             .themedRows(grouped: true)
         }

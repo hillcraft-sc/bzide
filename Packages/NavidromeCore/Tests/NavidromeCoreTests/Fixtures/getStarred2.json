@@ -1,0 +1,5 @@
+{"subsonic-response":{"status":"ok","version":"1.16.1","starred2":{
+  "artist":[{"id":"ar-1","name":"Aurora Lines","albumCount":2,"starred":"2026-01-02T10:00:00Z"}],
+  "album":[{"id":"al-1","name":"First Light","artist":"Aurora Lines","starred":"2026-01-03T10:00:00Z"},{"name":"No id, dropped"}],
+  "song":[{"id":"so-1","title":"Dawn","starred":"2026-01-04T10:00:00Z"},{"id":"so-3","title":"Dusk","starred":"2026-01-05T10:00:00Z"}]
+}}}

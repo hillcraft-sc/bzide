@@ -1,4 +1,5 @@
-/// Results from `search3`.
+/// Artists, albums and songs together: results from `search3`, and the
+/// favorites from `getStarred2`.
 public struct SearchResult: Sendable, Equatable, Decodable {
     public var artists: [Artist]
     public var albums: [Album]

@@ -74,6 +74,11 @@ extension SubsonicClient {
         return try await request("search3", parameters: parameters, as: SearchPayload.self).result
     }
 
+    /// Everything the user has favorited (starred): artists, albums and songs.
+    public func favorites() async throws(SubsonicError) -> SearchResult {
+        try await request("getStarred2", as: StarredPayload.self).result
+    }
+
     public func genres() async throws(SubsonicError) -> [Genre] {
         try await request("getGenres", as: ListPayload<Genre, GenresKeys>.self).elements
     }
@@ -203,6 +208,18 @@ struct SearchPayload: Decodable {
     init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: Keys.self)
         result = (try? c.decodeIfPresent(SearchResult.self, forKey: .searchResult3)) ?? SearchResult()
+    }
+}
+
+/// `getStarred2` with nothing starred may omit `starred2` entirely.
+struct StarredPayload: Decodable {
+    let result: SearchResult
+
+    private enum Keys: String, CodingKey { case starred2 }
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: Keys.self)
+        result = (try? c.decodeIfPresent(SearchResult.self, forKey: .starred2)) ?? SearchResult()
     }
 }
 

@@ -153,6 +153,10 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 ## Library
 
+- **The Library screen** shows, by default and in this order: Recently Added, Random Mix, then links to Artists, Albums, Playlists, Favorites, Genres, Radio, Downloaded and History (links next to each other are grouped in one block). **Edit** (top right, beside Settings) opens Edit Library: tap an item to show or hide it, drag to reorder; Reset restores the default. The layout is saved on this device and kept across sign-outs. A layout saved by another version still loads: unknown items and repeats are dropped, and items added since appear, shown, at the end. With everything hidden, the screen says to tap Edit. Recently Added is only fetched while it's shown.
+- **Favorites** (a Library link) lists everything favorited, from `getStarred2`: songs first (Play, Shuffle, tap a song to play the list from it, the song row menu), then albums and artists (with their row menus). It reloads each time it opens; anything unfavorited in this session, here or elsewhere, leaves the list at once. With nothing favorited it says how to add some.
+- **Genres** is also a Library link, opening the same genre grid as Search.
+- **Settings > Developer > Debug Player** opens the bare player kept for testing playback (it used to be a toolbar button on Library).
 - **Loading.** Each screen fetches what it shows when it appears. Until that arrives it shows loading; if it fails with nothing to show, the error and a retry. A refresh keeps the current content on screen; if the refresh fails, the content stays and the error is reported alongside it. A load that's still running when the screen goes away is dropped, and runs again when the screen comes back.
 - **Recently Added.** The top of Library shows the 15 newest albums (`getAlbumList2`, type `newest`) as a row of covers with name and artist. Tapping a cover opens the album; long-pressing gives the album's row menu (below). See All opens the album list in Recently Added order. Tapping the heading collapses or expands the row; this is remembered on the device. The row reloads whenever Library is shown or pulled to refresh, keeping the old covers on screen meanwhile; if it can't load, it says why with Try Again.
 - **Row menus.** Long-pressing a row acts on it without opening it:
@@ -309,6 +313,11 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Lock the phone during all of the above. Recovery works the same with the screen off.
 
 ### Library
+- [ ] Library's toolbar shows Edit and Settings (no ladybug); Settings > Developer > Debug Player opens the debug player.
+- [ ] Edit: hide Radio and History, drag Artists and Albums above Recently Added, Done: Library shows exactly that, with Artists and Albums in one block at the top. Force quit and relaunch: kept. Edit > Reset: back to the default.
+- [ ] Hide everything: Library says to tap Edit.
+- [ ] Favorites: your hearted songs (Play and Shuffle work), albums and artists. Unheart a song from its long-press menu: it leaves the list. Heart an album elsewhere, come back: it's there.
+- [ ] Genres from Library opens the genre grid; a tile opens its genre.
 - [x] Artists: the A–Z index scrolls and jumps by letter; an artist shows their albums; an album shows its tracks in order with numbers. (2026-10-11)
 - [x] Albums: scroll a long list to the end. More albums load without a visible stop and none repeat. Switch sort orders; each shows the right list. (2026-10-11)
 - [x] Turn on Airplane Mode and open a screen that hasn't loaded yet: it shows the error and Try Again. Turn it off and press Try Again: it loads. Pull to refresh with Airplane Mode on: the content stays. (2026-10-11)

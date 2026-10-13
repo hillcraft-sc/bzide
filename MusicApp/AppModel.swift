@@ -33,6 +33,8 @@ final class AppModel {
 
     /// Device-wide, so the theme also applies to the sign-in screen and survives sign-out.
     let appearance = AppearanceModel()
+    /// What the Library screen shows, and in what order.
+    let libraryLayout = LibraryLayoutModel()
 
     @ObservationIgnored private var client: SubsonicClient?
     @ObservationIgnored private var scrobbler: Scrobbler?

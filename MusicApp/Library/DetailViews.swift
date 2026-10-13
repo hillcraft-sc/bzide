@@ -10,6 +10,8 @@ enum LibraryRoute: Hashable {
     case downloads
     case history
     case radio
+    case favorites
+    case genres
     case genre(String)
     case artist(id: String)
     case album(id: String)
@@ -26,6 +28,8 @@ extension View {
             case .downloads: DownloadsView(library: library)
             case .history: HistoryView(library: library)
             case .radio: RadioView(library: library)
+            case .favorites: FavoritesView(library: library)
+            case .genres: GenreGrid(library: library).navigationTitle("Genres")
             case .genre(let name): GenreView(library: library, genre: name)
             case .artist(let id): ArtistView(library: library, id: id)
             case .album(let id): AlbumView(library: library, id: id)

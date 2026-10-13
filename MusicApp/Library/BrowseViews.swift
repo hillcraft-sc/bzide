@@ -2,11 +2,14 @@ import NavidromeCore
 import SwiftUI
 
 /// The Library tab's first screen.
+/// The Library tab: Recently Added, Random Mix and links to each kind of
+/// list, shown and ordered as the user chooses (Edit).
 struct LibraryView: View {
     let model: AppModel
     let library: Library
     @State private var randomMix: RandomMixModel
     @State private var recentlyAdded: LoadModel<[Album]>
+    @State private var isEditing = false
     /// Remembered on this device: a display preference, nothing to sync.
     @AppStorage("recentlyAddedCollapsed") private var isRecentlyAddedCollapsed = false
 
@@ -17,63 +20,165 @@ struct LibraryView: View {
         _recentlyAdded = State(initialValue: library.recentlyAddedModel())
     }
 
+    private var layout: LibraryLayout { model.libraryLayout.layout }
+
     var body: some View {
         List {
-            RecentlyAddedSection(library: library, model: recentlyAdded, isCollapsed: $isRecentlyAddedCollapsed)
-                .themedRows(grouped: true)
-            Section {
-                Button {
-                    Task { await randomMix.start() }
-                } label: {
-                    HStack {
-                        Label("Random Mix", systemImage: "shuffle")
-                        Spacer()
-                        if randomMix.isLoading { ProgressView() }
+            ForEach(Array(layout.groups.enumerated()), id: \.offset) { _, group in
+                switch group {
+                case .recentlyAdded:
+                    RecentlyAddedSection(library: library, model: recentlyAdded, isCollapsed: $isRecentlyAddedCollapsed)
+                        .themedRows(grouped: true)
+                case .randomMix:
+                    randomMixSection
+                case .links(let items):
+                    Section {
+                        ForEach(items, id: \.self) { item in
+                            if let route = item.route {
+                                NavigationLink(value: route) { Label(item.title, systemImage: item.symbol) }
+                            }
+                        }
                     }
-                }
-                .disabled(randomMix.isLoading)
-            } footer: {
-                if let error = randomMix.error {
-                    Text(error).foregroundStyle(.red)
-                } else if let notice = randomMix.notice {
-                    Text(notice)
+                    .themedRows(grouped: true)
                 }
             }
-            .themedRows(grouped: true)
-            Section {
-                NavigationLink(value: LibraryRoute.artists) { Label("Artists", systemImage: "music.microphone") }
-                NavigationLink(value: LibraryRoute.albums) { Label("Albums", systemImage: "square.stack") }
-                NavigationLink(value: LibraryRoute.playlists) { Label("Playlists", systemImage: "music.note.list") }
-                NavigationLink(value: LibraryRoute.radio) { Label("Radio", systemImage: "dot.radiowaves.left.and.right") }
-                NavigationLink(value: LibraryRoute.downloads) { Label("Downloaded", systemImage: "arrow.down.circle") }
-                NavigationLink(value: LibraryRoute.history) { Label("History", systemImage: "clock.arrow.circlepath") }
-            }
-            .themedRows(grouped: true)
         }
         .themedList(grouped: true)
         .navigationTitle("Library")
+        .overlay {
+            if layout.shown.isEmpty {
+                ContentUnavailableView {
+                    Label("Nothing Shown", systemImage: "eye.slash")
+                } description: {
+                    Text("Tap Edit to choose what Library shows.")
+                }
+            }
+        }
         // Each return to Library checks for new albums; the row stays on screen meanwhile.
-        .task { await recentlyAdded.load() }
+        .task {
+            if layout.shown.contains(.recentlyAdded) { await recentlyAdded.load() }
+        }
         .refreshable { await recentlyAdded.load() }
         .toolbar {
+            ToolbarItem {
+                Button("Edit") { isEditing = true }
+            }
             ToolbarItem {
                 NavigationLink {
                     SettingsView(
                         settings: library.settings, downloads: library.downloads, history: library.history,
-                        appearance: model.appearance, account: model.account, signOut: model.signOut
+                        appearance: model.appearance, account: model.account, signOut: model.signOut,
+                        debugPlayer: { DebugPlayerView(model: model, engine: library.engine) }
                     )
                 } label: {
                     Label("Settings", systemImage: "gear")
                 }
             }
-            ToolbarItem {
-                // Kept for exercising playback during development.
-                NavigationLink {
-                    DebugPlayerView(model: model, engine: library.engine)
-                } label: {
-                    Label("Debug Player", systemImage: "ladybug")
+        }
+        .sheet(isPresented: $isEditing) {
+            EditLibrarySheet(layout: model.libraryLayout)
+        }
+    }
+
+    private var randomMixSection: some View {
+        Section {
+            Button {
+                Task { await randomMix.start() }
+            } label: {
+                HStack {
+                    Label("Random Mix", systemImage: "shuffle")
+                    Spacer()
+                    if randomMix.isLoading { ProgressView() }
                 }
             }
+            .disabled(randomMix.isLoading)
+        } footer: {
+            if let error = randomMix.error {
+                Text(error).foregroundStyle(.red)
+            } else if let notice = randomMix.notice {
+                Text(notice)
+            }
+        }
+        .themedRows(grouped: true)
+    }
+}
+
+/// Chooses what Library shows and in what order: tap a row to show or hide
+/// it, drag to move it.
+private struct EditLibrarySheet: View {
+    @Bindable var layout: LibraryLayoutModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(layout.layout.entries, id: \.item) { entry in
+                        Button {
+                            layout.layout.setShown(entry.item, !entry.isShown)
+                        } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: entry.isShown ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3)
+                                    .foregroundStyle(entry.isShown ? Color.accentColor : .secondary)
+                                Label(entry.item.title, systemImage: entry.item.symbol)
+                                    .foregroundStyle(.primary)
+                            }
+                        }
+                        .accessibilityValue(entry.isShown ? "Shown" : "Hidden")
+                    }
+                    .onMove { source, destination in
+                        layout.layout.move(fromOffsets: source, toOffset: destination)
+                    }
+                } footer: {
+                    Text("Tap to show or hide. Drag to reorder.")
+                }
+                .themedRows(grouped: true)
+            }
+            .themedList(grouped: true)
+            .environment(\.editMode, .constant(.active))
+            .navigationTitle("Edit Library")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Reset") { layout.reset() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+extension LibraryFeature {
+    var symbol: String {
+        switch self {
+        case .recentlyAdded: "clock.badge"
+        case .randomMix: "shuffle"
+        case .artists: "music.microphone"
+        case .albums: "square.stack"
+        case .playlists: "music.note.list"
+        case .favorites: "heart"
+        case .genres: "guitars"
+        case .radio: "dot.radiowaves.left.and.right"
+        case .downloads: "arrow.down.circle"
+        case .history: "clock.arrow.circlepath"
+        }
+    }
+
+    /// Where a link opens; `nil` for the sections that aren't links.
+    var route: LibraryRoute? {
+        switch self {
+        case .artists: .artists
+        case .albums: .albums
+        case .playlists: .playlists
+        case .favorites: .favorites
+        case .genres: .genres
+        case .radio: .radio
+        case .downloads: .downloads
+        case .history: .history
+        case .recentlyAdded, .randomMix: nil
         }
     }
 }
