@@ -28,6 +28,7 @@ struct VisualizerView: View {
     @AppStorage("visualizerCustomColors") private var customColorNames = VisualizerPalette.defaultCustom
     @State private var isChoosingColors = false
     @State private var grooveState = GrooveState()
+    @State private var tapestryState = TapestryState()
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -121,6 +122,12 @@ struct VisualizerView: View {
                 GrooveView(
                     engine: engine, library: model.library, feed: feed, date: timeline.date,
                     colors: effectiveMode == .accent ? [accent] : colors(24), state: grooveState
+                )
+                .padding(drawingInsets(landscape: landscape))
+            case .tapestry:
+                TapestryView(
+                    engine: engine, feed: feed, date: timeline.date,
+                    colors: colors(TapestryRecorder.threadCount), state: tapestryState
                 )
                 .padding(drawingInsets(landscape: landscape))
             case .bars, .waveform:
@@ -373,7 +380,7 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, groove, livingCover
+    case bars, waveform, plasma, groove, livingCover, tapestry
 
     var title: String {
         switch self {
@@ -382,6 +389,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .plasma: "Plasma"
         case .groove: "Groove"
         case .livingCover: "Living Cover"
+        case .tapestry: "Tapestry"
         }
     }
 
@@ -392,6 +400,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .plasma: "flame"
         case .groove: "opticaldisc"
         case .livingCover: "square.grid.3x3.fill"
+        case .tapestry: "scribble.variable"
         }
     }
 

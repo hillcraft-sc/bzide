@@ -7,15 +7,12 @@ import Foundation
 public struct GrooveRecorder: Sendable {
     /// Levels per second of song time.
     public static let samplesPerSecond = 20
-    /// Further apart than this, the engine's position is a seek, not drift.
-    static let resyncThreshold: TimeInterval = 1.0
-
     /// One entry per 1/`samplesPerSecond` of the song so far, 0...1, or `nil`
     /// where it wasn't heard.
     public private(set) var levels: [Float?] = []
     /// Seconds into the song, kept smooth between the engine's position updates.
-    public private(set) var songTime: TimeInterval = 0
-    private var entryID: QueueEntry.ID?
+    public var songTime: TimeInterval { clock.songTime }
+    private var clock = SongClock()
 
     public init() {}
 
@@ -24,18 +21,8 @@ public struct GrooveRecorder: Sendable {
     public mutating func update(
         entryID: QueueEntry.ID?, position: TimeInterval, isPlaying: Bool, level: Float, elapsed: TimeInterval
     ) {
-        if entryID != self.entryID {
-            self.entryID = entryID
+        if clock.update(entryID: entryID, position: position, isPlaying: isPlaying, elapsed: elapsed) {
             levels = []
-            songTime = position
-        }
-        if isPlaying {
-            songTime += max(elapsed, 0)
-        }
-        // Follow the engine when it moves somewhere else (a seek), but not for
-        // the small lag between its updates.
-        if abs(songTime - position) > Self.resyncThreshold {
-            songTime = position
         }
         guard isPlaying, entryID != nil else { return }
         let index = Int(songTime * Double(Self.samplesPerSecond))
