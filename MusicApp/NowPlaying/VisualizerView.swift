@@ -31,6 +31,7 @@ struct VisualizerView: View {
     @State private var tapestryState = TapestryState()
     @State private var weatherState = WeatherState()
     @State private var chromeState = ChromeState()
+    @State private var typesetState = TypesetState()
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -143,6 +144,13 @@ struct VisualizerView: View {
                     levels: levels, beat: feed.beat, date: timeline.date, colors: fourColors, state: chromeState
                 )
                 .padding(drawingInsets(landscape: landscape))
+            case .typeset:
+                TypesetView(
+                    title: engine.currentTitle ?? "", artist: engine.currentSubtitle,
+                    levels: levels, energy: feed.energy, beat: feed.beat, date: timeline.date,
+                    colors: effectiveMode == .accent ? [accent] : colors(24),
+                    insets: drawingInsets(landscape: landscape), state: typesetState
+                )
             case .bars, .waveform:
                 let wave = feed.wave
                 Canvas { context, size in
@@ -305,9 +313,10 @@ struct VisualizerView: View {
         .tint(.white)
     }
 
+    /// Not on Typeset, which is the title already.
     @ViewBuilder
     private var nowPlayingTitle: some View {
-        if let title = engine.currentTitle {
+        if let title = engine.currentTitle, style != .typeset {
             VStack(spacing: 2) {
                 Text(title).font(.headline)
                 if let subtitle = engine.currentSubtitle {
@@ -394,7 +403,7 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, groove, livingCover, tapestry, weather, chrome
+    case bars, waveform, plasma, groove, livingCover, tapestry, weather, chrome, typeset
 
     var title: String {
         switch self {
@@ -406,6 +415,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .tapestry: "Tapestry"
         case .weather: "Weather"
         case .chrome: "Chrome"
+        case .typeset: "Typeset"
         }
     }
 
@@ -419,6 +429,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .tapestry: "scribble.variable"
         case .weather: "cloud.bolt.rain.fill"
         case .chrome: "drop.fill"
+        case .typeset: "textformat.size"
         }
     }
 
