@@ -110,6 +110,13 @@ struct VisualizerView: View {
             switch style {
             case .plasma:
                 plasma(flow: feed.flow, beat: feed.beat, energy: feed.energy, landscape: landscape)
+            case .livingCover:
+                LivingCoverView(
+                    library: model.library, coverArtID: engine.queue.current?.song.coverArtID,
+                    levels: levels, energy: feed.energy, beat: feed.beat,
+                    colors: effectiveMode == .accent ? [accent] : colors(8),
+                    insets: drawingInsets(landscape: landscape)
+                )
             case .groove:
                 GrooveView(
                     engine: engine, library: model.library, feed: feed, date: timeline.date,
@@ -366,7 +373,7 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, groove
+    case bars, waveform, plasma, groove, livingCover
 
     var title: String {
         switch self {
@@ -374,6 +381,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .waveform: "Waveform"
         case .plasma: "Plasma"
         case .groove: "Groove"
+        case .livingCover: "Living Cover"
         }
     }
 
@@ -383,6 +391,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .waveform: "waveform.path"
         case .plasma: "flame"
         case .groove: "opticaldisc"
+        case .livingCover: "square.grid.3x3.fill"
         }
     }
 

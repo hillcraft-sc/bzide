@@ -25,7 +25,11 @@ struct ArtworkView: View {
         .task(id: coverArtID) {
             image = nil
             guard let coverArtID else { return }
-            image = await library.artwork.image(for: coverArtID, pixels: Int(side * displayScale))
+            let loaded = await library.artwork.image(for: coverArtID, pixels: Int(side * displayScale))
+            // Shown something else meanwhile (a reused row, a skipped song): this
+            // image is for the old one, so it must not overwrite the new.
+            guard !Task.isCancelled else { return }
+            image = loaded
         }
     }
 }
