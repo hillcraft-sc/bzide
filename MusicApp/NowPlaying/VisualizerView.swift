@@ -27,6 +27,7 @@ struct VisualizerView: View {
     /// The Catppuccin accents chosen for Custom, as comma-separated names.
     @AppStorage("visualizerCustomColors") private var customColorNames = VisualizerPalette.defaultCustom
     @State private var isChoosingColors = false
+    @State private var grooveState = GrooveState()
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -35,17 +36,22 @@ struct VisualizerView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-            if let message = unavailableMessage {
-                ContentUnavailableView(message, systemImage: "waveform.slash")
-                    .foregroundStyle(.white)
-            } else {
-                visualization
-                    .contentShape(.rect)
-                    .gesture(swipeToChangeStyle)
+        GeometryReader { geometry in
+            // Sideways, the controls move to a panel on the right so the
+            // visualization can use the full height.
+            let landscape = geometry.size.width > geometry.size.height
+            ZStack {
+                Color.black.ignoresSafeArea()
+                if let message = unavailableMessage {
+                    ContentUnavailableView(message, systemImage: "waveform.slash")
+                        .foregroundStyle(.white)
+                } else {
+                    visualization(landscape: landscape)
+                        .contentShape(.rect)
+                        .gesture(swipeToChangeStyle)
+                }
+                overlay(landscape: landscape)
             }
-            overlay
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
@@ -88,12 +94,28 @@ struct VisualizerView: View {
 
     // MARK: - Drawing
 
-    private var visualization: some View {
+    /// The space left for drawing, around the menu at the top and the title
+    /// and controls (below in portrait, in a side panel in landscape).
+    private func drawingInsets(landscape: Bool) -> EdgeInsets {
+        landscape
+            ? EdgeInsets(top: 56, leading: 16, bottom: 16, trailing: Self.sidePanelWidth + 16)
+            : EdgeInsets(top: 105, leading: 12, bottom: 230, trailing: 12)
+    }
+
+    static let sidePanelWidth: CGFloat = 260
+
+    private func visualization(landscape: Bool) -> some View {
         TimelineView(.animation) { timeline in
             let levels = feed.update(at: timeline.date)
             switch style {
             case .plasma:
-                plasma(flow: feed.flow, beat: feed.beat, energy: feed.energy)
+                plasma(flow: feed.flow, beat: feed.beat, energy: feed.energy, landscape: landscape)
+            case .groove:
+                GrooveView(
+                    engine: engine, library: model.library, feed: feed, date: timeline.date,
+                    colors: effectiveMode == .accent ? [accent] : colors(24), state: grooveState
+                )
+                .padding(drawingInsets(landscape: landscape))
             case .bars, .waveform:
                 let wave = feed.wave
                 Canvas { context, size in
@@ -103,9 +125,7 @@ struct VisualizerView: View {
                         drawWave(wave, in: &context, size: size)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 230)
-                .padding(.top, 100)
+                .padding(drawingInsets(landscape: landscape))
             }
         }
         .accessibilityLabel("\(style.title) visualizer")
@@ -113,7 +133,7 @@ struct VisualizerView: View {
     }
 
     /// The Plasma shader (Plasma.metal) over the whole screen, behind the controls.
-    private func plasma(flow: Double, beat: Float, energy: SpectrumEnergy) -> some View {
+    private func plasma(flow: Double, beat: Float, energy: SpectrumEnergy, landscape: Bool) -> some View {
         let colors = plasmaColors
         // Wrapped so the shader's single-precision maths stays smooth for hours.
         let flow = Float(flow.truncatingRemainder(dividingBy: 10_000))
@@ -126,7 +146,8 @@ struct VisualizerView: View {
                     .color(colors[0]), .color(colors[1]), .color(colors[2]), .color(colors[3])
                 ))
         }
-        // Darker at the top and bottom, so the white controls stay readable.
+        // Darker where the controls are (top and bottom, or the right-hand
+        // panel sideways), so the white text and buttons stay readable.
         .overlay {
             LinearGradient(
                 stops: [
@@ -137,6 +158,15 @@ struct VisualizerView: View {
                 ],
                 startPoint: .top, endPoint: .bottom
             )
+            .opacity(landscape ? 0 : 1)
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0.5),
+                    .init(color: .black.opacity(0.75), location: 1),
+                ],
+                startPoint: .leading, endPoint: .trailing
+            )
+            .opacity(landscape ? 1 : 0)
         }
         .ignoresSafeArea()
     }
@@ -210,7 +240,7 @@ struct VisualizerView: View {
         }
     }
 
-    private var overlay: some View {
+    private func overlay(landscape: Bool) -> some View {
         VStack {
             ZStack {
                 styleMenu
@@ -224,24 +254,43 @@ struct VisualizerView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.top, 12)
-            Spacer()
-            if let title = engine.currentTitle {
-                VStack(spacing: 2) {
-                    Text(title).font(.headline)
-                    if let subtitle = engine.currentSubtitle {
-                        Text(subtitle).font(.subheadline).foregroundStyle(.white.opacity(0.7))
+            .padding(.top, landscape ? 8 : 12)
+            if landscape {
+                // Title and controls in a panel on the right, vertically centered.
+                HStack {
+                    Spacer()
+                    VStack(spacing: 20) {
+                        nowPlayingTitle
+                        controls
                     }
+                    .frame(width: Self.sidePanelWidth)
                 }
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .padding(.horizontal)
+                .frame(maxHeight: .infinity)
+            } else {
+                Spacer()
+                nowPlayingTitle
+                controls
+                    .padding(.top, 16)
+                    .padding(.bottom, 32)
             }
-            controls
-                .padding(.top, 16)
-                .padding(.bottom, 32)
         }
         .tint(.white)
+    }
+
+    @ViewBuilder
+    private var nowPlayingTitle: some View {
+        if let title = engine.currentTitle {
+            VStack(spacing: 2) {
+                Text(title).font(.headline)
+                if let subtitle = engine.currentSubtitle {
+                    Text(subtitle).font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                }
+            }
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal)
+        }
     }
 
     /// The current style's icon and name; opens the choice of style and colors.
@@ -317,13 +366,14 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma
+    case bars, waveform, plasma, groove
 
     var title: String {
         switch self {
         case .bars: "Bars"
         case .waveform: "Waveform"
         case .plasma: "Plasma"
+        case .groove: "Groove"
         }
     }
 
@@ -332,6 +382,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .bars: "chart.bar.fill"
         case .waveform: "waveform.path"
         case .plasma: "flame"
+        case .groove: "opticaldisc"
         }
     }
 
