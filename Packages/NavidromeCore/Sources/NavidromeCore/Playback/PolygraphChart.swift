@@ -1,6 +1,6 @@
 import Foundation
 
-/// The Lie Detector visualizer's chart: four pens on springy arms drawing on
+/// The Polygraph visualizer's chart: four pens on springy arms drawing on
 /// paper that runs past them while the music plays.
 ///
 /// - Pens 0–2 follow the bass, mid-range and treble. Each swings either way

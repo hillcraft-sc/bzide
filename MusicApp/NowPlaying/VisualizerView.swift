@@ -32,7 +32,7 @@ struct VisualizerView: View {
     @State private var weatherState = WeatherState()
     @State private var chromeState = ChromeState()
     @State private var typesetState = TypesetState()
-    @State private var lieDetectorState = LieDetectorState()
+    @State private var polygraphState = PolygraphState()
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -109,10 +109,10 @@ struct VisualizerView: View {
 
     static let sidePanelWidth: CGFloat = 260
 
-    /// Lie Detector's white paper fills the screen, so the controls over it
+    /// Polygraph's white paper fills the screen, so the controls over it
     /// are drawn in dark ink instead of white.
     private var isOnPaper: Bool {
-        style == .lieDetector && unavailableMessage == nil
+        style == .polygraph && unavailableMessage == nil
     }
 
     /// The color for text and buttons over the visualization.
@@ -163,11 +163,11 @@ struct VisualizerView: View {
                     colors: effectiveMode == .accent ? [accent] : colors(24),
                     insets: drawingInsets(landscape: landscape), state: typesetState
                 )
-            case .lieDetector:
-                LieDetectorView(
+            case .polygraph:
+                PolygraphView(
                     engine: engine, feed: feed, levels: levels, date: timeline.date,
                     colors: effectiveMode == .accent ? [accent] : colors(4),
-                    insets: drawingInsets(landscape: landscape), landscape: landscape, state: lieDetectorState
+                    insets: drawingInsets(landscape: landscape), landscape: landscape, state: polygraphState
                 )
             case .bars, .waveform:
                 let wave = feed.wave
@@ -331,8 +331,8 @@ struct VisualizerView: View {
         .tint(ink)
         // On the paper, a halo of paper around the text and buttons keeps
         // them clear of the ink running underneath.
-        .shadow(color: isOnPaper ? LieDetectorView.paper : .clear, radius: 3)
-        .shadow(color: isOnPaper ? LieDetectorView.paper : .clear, radius: 6)
+        .shadow(color: isOnPaper ? PolygraphView.paper : .clear, radius: 3)
+        .shadow(color: isOnPaper ? PolygraphView.paper : .clear, radius: 6)
     }
 
     /// Not on Typeset, which is the title already.
@@ -425,20 +425,20 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, groove, livingCover, tapestry, weather, chrome, typeset, lieDetector
+    case bars, waveform, plasma, polygraph, groove, livingCover, tapestry, weather, chrome, typeset
 
     var title: String {
         switch self {
         case .bars: "Bars"
         case .waveform: "Waveform"
         case .plasma: "Plasma"
+        case .polygraph: "Polygraph"
         case .groove: "Groove"
         case .livingCover: "Living Cover"
         case .tapestry: "Tapestry"
         case .weather: "Weather"
         case .chrome: "Chrome"
         case .typeset: "Typeset"
-        case .lieDetector: "Lie Detector"
         }
     }
 
@@ -447,13 +447,13 @@ enum VisualizerStyle: String, CaseIterable {
         case .bars: "chart.bar.fill"
         case .waveform: "waveform.path"
         case .plasma: "flame"
+        case .polygraph: "waveform.path.ecg.rectangle"
         case .groove: "opticaldisc"
         case .livingCover: "square.grid.3x3.fill"
         case .tapestry: "scribble.variable"
         case .weather: "cloud.bolt.rain.fill"
         case .chrome: "drop.fill"
         case .typeset: "textformat.size"
-        case .lieDetector: "waveform.path.ecg.rectangle"
         }
     }
 

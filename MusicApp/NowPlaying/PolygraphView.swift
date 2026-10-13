@@ -1,14 +1,14 @@
 import NavidromeCore
 import SwiftUI
 
-/// The Lie Detector visualizer: a polygraph. Chart paper fills the screen,
+/// The Polygraph visualizer, after a lie detector. Chart paper fills the screen,
 /// running past four steel needles that swing with the music
 /// (`PolygraphChart` moves them): bass, mid-range and treble as wandering
 /// lines, loudness as dense hatching. In portrait the needles reach down from
 /// above the top edge and the paper runs down; sideways they reach in from
 /// the left and it runs right, away from the controls panel. The controls
 /// float over the paper in dark ink.
-struct LieDetectorView: View {
+struct PolygraphView: View {
     let engine: PlaybackEngine
     let feed: SpectrumFeed
     let levels: [Float]
@@ -18,7 +18,7 @@ struct LieDetectorView: View {
     /// The space between the menu and the controls, where the pens' lanes go.
     let insets: EdgeInsets
     let landscape: Bool
-    let state: LieDetectorState
+    let state: PolygraphState
 
     static let paper = Color(red: 0.97, green: 0.96, blue: 0.93)
     private static let gridLine = Color(red: 0.62, green: 0.7, blue: 0.78)
@@ -211,7 +211,7 @@ struct PolygraphLayout {
 /// Keeps the chart between frames. A class so the drawing can advance it each
 /// frame without changing view state mid-update.
 @MainActor
-final class LieDetectorState {
+final class PolygraphState {
     private var chart = PolygraphChart()
     private var lastFrame: Date?
 
