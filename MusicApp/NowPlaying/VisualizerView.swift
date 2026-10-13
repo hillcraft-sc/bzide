@@ -32,6 +32,7 @@ struct VisualizerView: View {
     @State private var weatherState = WeatherState()
     @State private var chromeState = ChromeState()
     @State private var typesetState = TypesetState()
+    @State private var lieDetectorState = LieDetectorState()
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -108,6 +109,17 @@ struct VisualizerView: View {
 
     static let sidePanelWidth: CGFloat = 260
 
+    /// Lie Detector's white paper fills the screen, so the controls over it
+    /// are drawn in dark ink instead of white.
+    private var isOnPaper: Bool {
+        style == .lieDetector && unavailableMessage == nil
+    }
+
+    /// The color for text and buttons over the visualization.
+    private var ink: Color {
+        isOnPaper ? Color(white: 0.12) : .white
+    }
+
     private func visualization(landscape: Bool) -> some View {
         TimelineView(.animation) { timeline in
             let levels = feed.update(at: timeline.date)
@@ -150,6 +162,12 @@ struct VisualizerView: View {
                     levels: levels, energy: feed.energy, beat: feed.beat, date: timeline.date,
                     colors: effectiveMode == .accent ? [accent] : colors(24),
                     insets: drawingInsets(landscape: landscape), state: typesetState
+                )
+            case .lieDetector:
+                LieDetectorView(
+                    engine: engine, feed: feed, levels: levels, date: timeline.date,
+                    colors: effectiveMode == .accent ? [accent] : colors(4),
+                    insets: drawingInsets(landscape: landscape), landscape: landscape, state: lieDetectorState
                 )
             case .bars, .waveform:
                 let wave = feed.wave
@@ -285,7 +303,7 @@ struct VisualizerView: View {
                         .labelStyle(.iconOnly)
                         .font(.body.weight(.semibold))
                         .frame(width: 36, height: 36)
-                        .background(.white.opacity(0.15), in: .circle)
+                        .background(ink.opacity(isOnPaper ? 0.08 : 0.15), in: .circle)
                     Spacer()
                 }
             }
@@ -310,7 +328,11 @@ struct VisualizerView: View {
                     .padding(.bottom, 32)
             }
         }
-        .tint(.white)
+        .tint(ink)
+        // On the paper, a halo of paper around the text and buttons keeps
+        // them clear of the ink running underneath.
+        .shadow(color: isOnPaper ? LieDetectorView.paper : .clear, radius: 3)
+        .shadow(color: isOnPaper ? LieDetectorView.paper : .clear, radius: 6)
     }
 
     /// Not on Typeset, which is the title already.
@@ -320,10 +342,10 @@ struct VisualizerView: View {
             VStack(spacing: 2) {
                 Text(title).font(.headline)
                 if let subtitle = engine.currentSubtitle {
-                    Text(subtitle).font(.subheadline).foregroundStyle(.white.opacity(0.7))
+                    Text(subtitle).font(.subheadline).foregroundStyle(ink.opacity(0.7))
                 }
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(ink)
             .lineLimit(1)
             .multilineTextAlignment(.center)
             .padding(.horizontal)
@@ -358,10 +380,10 @@ struct VisualizerView: View {
         } label: {
             Label(style.title, systemImage: style.symbol)
                 .font(.body.weight(.medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(ink)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(.white.opacity(0.15), in: .capsule)
+                .background(ink.opacity(isOnPaper ? 0.08 : 0.15), in: .capsule)
         }
         .accessibilityHint("Choose the style and colors")
         .sheet(isPresented: $isChoosingColors) {
@@ -384,9 +406,9 @@ struct VisualizerView: View {
                 engine.togglePlayPause()
             }
             .font(.title)
-            .foregroundStyle(.black)
+            .foregroundStyle(isOnPaper ? .white : .black)
             .frame(width: 72, height: 72)
-            .background(.white, in: .circle)
+            .background(ink, in: .circle)
             .disabled(engine.queue.isEmpty)
             Button("Next", systemImage: "forward.fill") { engine.next() }
                 .font(.title)
@@ -394,7 +416,7 @@ struct VisualizerView: View {
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.borderless)
-        .foregroundStyle(.white)
+        .foregroundStyle(ink)
     }
 
     private static func isRoutedToAirPlay() -> Bool {
@@ -403,7 +425,7 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, groove, livingCover, tapestry, weather, chrome, typeset
+    case bars, waveform, plasma, groove, livingCover, tapestry, weather, chrome, typeset, lieDetector
 
     var title: String {
         switch self {
@@ -416,6 +438,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .weather: "Weather"
         case .chrome: "Chrome"
         case .typeset: "Typeset"
+        case .lieDetector: "Lie Detector"
         }
     }
 
@@ -430,6 +453,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .weather: "cloud.bolt.rain.fill"
         case .chrome: "drop.fill"
         case .typeset: "textformat.size"
+        case .lieDetector: "waveform.path.ecg.rectangle"
         }
     }
 
