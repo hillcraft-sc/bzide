@@ -6,6 +6,7 @@ struct RootView: View {
     let model: AppModel
     let library: Library
     @State private var isNowPlayingOpen = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         TabView {
@@ -29,6 +30,12 @@ struct RootView: View {
             NowPlayingView(model: model, library: library)
         }
         .addToPlaylistSheet(library, isEnabled: !isNowPlayingOpen)
+        // Each return to the app checks downloaded playlists for changes (at
+        // most every 15 minutes; see PlaylistDownloadRefresher).
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            guard phase == .active else { return }
+            Task { await library.playlistRefresher.refreshAllIfDue() }
+        }
         .playlistConfirmation(library.playlistEditor)
         .alert("Couldn't Change Favorite", isPresented: favoriteErrorShown) {
             Button("OK") { library.stars.dismissError() }

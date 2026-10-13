@@ -22,6 +22,8 @@ final class Library {
     let history: PlayHistory
     let lyrics: LyricsModel
     let profile: ProfileModel
+    /// Keeps downloaded playlists in step with the server.
+    let playlistRefresher: PlaylistDownloadRefresher
     private let client: SubsonicClient
 
     init(
@@ -30,6 +32,10 @@ final class Library {
     ) {
         self.downloads = downloads
         self.history = history
+        let playlistRefresher = PlaylistDownloadRefresher(downloads: downloads) { [client] id async throws(SubsonicError) in
+            try await client.playlist(id: id)
+        }
+        self.playlistRefresher = playlistRefresher
         self.client = client
         self.engine = engine
         self.artwork = artwork
@@ -48,7 +54,11 @@ final class Library {
             playlists: { [client] () async throws(SubsonicError) in try await client.playlists() },
             playlist: { [client] id async throws(SubsonicError) in try await client.playlist(id: id) },
             create: { [client] name, ids async throws(SubsonicError) in try await client.createPlaylist(name: name, songIDs: ids) },
-            add: { [client] id, ids async throws(SubsonicError) in try await client.addToPlaylist(id: id, songIDs: ids) }
+            add: { [client] id, ids async throws(SubsonicError) in
+                try await client.addToPlaylist(id: id, songIDs: ids)
+                // A downloaded playlist gets the new songs too.
+                await playlistRefresher.refresh(playlistID: id)
+            }
         ))
         self.siriLookup = SiriLookup(
             artist: { [client] id async throws(SubsonicError) in try await client.artist(id: id) },
@@ -169,7 +179,12 @@ final class Library {
     }
 
     func playlistModel(id: String) -> LoadModel<Playlist> {
-        LoadModel { [client] () async throws(SubsonicError) in try await client.playlist(id: id) }
+        LoadModel { [client, playlistRefresher] () async throws(SubsonicError) in
+            let playlist = try await client.playlist(id: id)
+            // Opening a downloaded playlist brings its download up to date.
+            await playlistRefresher.refresh(playlist)
+            return playlist
+        }
     }
 
     func albumsModel(sort: AlbumSort = .newest) -> AlbumsModel {

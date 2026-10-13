@@ -164,6 +164,21 @@ public final class DownloadManager: DownloadedTrackLookup {
         startWaitingDownloads()
     }
 
+    /// Brings a downloaded playlist up to date with the server's copy: its
+    /// songs, order, name and cover. New songs download, removed ones' files
+    /// go (unless another download keeps them). Returns whether anything
+    /// changed; a playlist that isn't downloaded is left alone.
+    @discardableResult
+    public func refresh(_ playlist: Playlist) -> Bool {
+        let id = DownloadCollection.id(.playlist, serverID: playlist.id)
+        guard let current = collections.first(where: { $0.id == id }) else { return false }
+        var updated = DownloadCollection(playlist: playlist)
+        updated.addedAt = current.addedAt
+        guard updated != current else { return false }
+        download(updated)
+        return true
+    }
+
     public func remove(collectionID: String) {
         collections.removeAll { $0.id == collectionID }
         deleteUnusedFiles()
