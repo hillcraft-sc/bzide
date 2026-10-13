@@ -21,6 +21,7 @@ final class Library {
     let downloads: DownloadManager
     let history: PlayHistory
     let lyrics: LyricsModel
+    let profile: ProfileModel
     private let client: SubsonicClient
 
     init(
@@ -60,6 +61,7 @@ final class Library {
         self.genreCovers = GenreCovers { [client] genre async throws(SubsonicError) in
             try await client.albumList(.byGenre(genre), size: 1).first?.coverArtID
         }
+        self.profile = Self.makeProfile(client: client, username: username)
         // LRCLIB is on the open internet: no shared cache or cookies.
         let lyricsSession = URLSession(configuration: .ephemeral)
         self.lyrics = LyricsModel(sources: .live(
@@ -92,6 +94,33 @@ final class Library {
                 }
             }
         )
+    }
+
+    /// The profile picture settings, saved with the account's other data.
+    private static func makeProfile(client: SubsonicClient, username: String) -> ProfileModel {
+        let fileManager = FileManager.default
+        let support = try? fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let caches = try? fileManager.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        // Gravatar is on the open internet: no shared cache or cookies.
+        let session = URLSession(configuration: .ephemeral)
+        return ProfileModel(
+            fileURL: support?.appending(path: ProfileModel.fileName),
+            picturesDirectory: support?.appending(path: ProfileModel.picturesDirectoryName),
+            cacheDirectory: caches?.appending(path: ProfileModel.cacheDirectoryName),
+            services: .init(
+                serverEmail: { try await client.userEmail(username: username) },
+                image: { url in try await fetchGravatar(url, session: session) }
+            )
+        )
+    }
+
+    /// The picture, or `nil` when Gravatar has none (it answers 404).
+    nonisolated private static func fetchGravatar(_ url: URL, session: URLSession) async throws -> Data? {
+        let (data, response) = try await session.data(from: url)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if http.statusCode == 404 { return nil }
+        guard (200..<300).contains(http.statusCode) else { throw URLError(.badServerResponse) }
+        return data
     }
 
     func artistsModel() -> LoadModel<[ArtistSection]> {

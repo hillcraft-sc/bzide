@@ -112,6 +112,9 @@ final class AppModel {
         )
         account = AccountSummary(credentials: credentials)
         self.client = client
+        if let library {
+            Task { await library.profile.refresh() }
+        }
         self.scrobbler = scrobbler
         // Send anything left over from a previous run.
         Task { await scrobbler.flush() }

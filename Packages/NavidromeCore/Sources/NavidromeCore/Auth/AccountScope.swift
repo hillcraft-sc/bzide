@@ -3,10 +3,11 @@ import Foundation
 
 /// Keeps one account's data from leaking into another's.
 ///
-/// Downloads, the saved queue, unsent scrobbles, play history and cached cover
-/// art all belong to the server and user they came from. Signing out leaves them
-/// in place, so signing back in to the same account keeps everything. Signing
-/// in to a different server or user deletes them first.
+/// Downloads, the saved queue, unsent scrobbles, play history, cached cover
+/// art, and the profile (its settings and pictures) all belong to the server
+/// and user they came from. Signing out leaves them in place, so signing back
+/// in to the same account keeps everything. Signing in to a different server
+/// or user deletes them first.
 ///
 /// The owning account is remembered as a fingerprint (a hash of server address
 /// and username), so neither is stored outside the Keychain.
@@ -32,6 +33,9 @@ public struct AccountScope {
             support.appending(path: PlayHistory.fileName),
             support.appending(path: DownloadManager.directoryName),
             caches.appending(path: CoverArtStore.directoryName),
+            support.appending(path: ProfileModel.fileName),
+            support.appending(path: ProfileModel.picturesDirectoryName),
+            caches.appending(path: ProfileModel.cacheDirectoryName),
         ]
     }
 

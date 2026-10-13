@@ -67,11 +67,19 @@ struct LibraryView: View {
                 NavigationLink {
                     SettingsView(
                         settings: library.settings, downloads: library.downloads, history: library.history,
-                        appearance: model.appearance, account: model.account, signOut: model.signOut,
+                        appearance: model.appearance, profile: library.profile, account: model.account, signOut: model.signOut,
                         debugPlayer: { DebugPlayerView(model: model, engine: library.engine) }
                     )
                 } label: {
-                    Label("Settings", systemImage: "gear")
+                    // The user's Gravatar, if they've turned it on and one was found.
+                    // Drawn as a view, not a label icon, which the toolbar would flatten.
+                    if let avatar = library.profile.avatar {
+                        AvatarImage(data: avatar, side: 30)
+                            .accessibilityHidden(false)
+                            .accessibilityLabel("Settings")
+                    } else {
+                        Label("Settings", systemImage: "gear")
+                    }
                 }
             }
         }

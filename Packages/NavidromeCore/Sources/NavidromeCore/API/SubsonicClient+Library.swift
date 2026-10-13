@@ -74,6 +74,20 @@ extension SubsonicClient {
         return try await request("search3", parameters: parameters, as: SearchPayload.self).result
     }
 
+    /// The email on the user's account, or `nil` if it has none. Navidrome
+    /// fills this from the user's profile.
+    public func userEmail(username: String) async throws(SubsonicError) -> String? {
+        struct Payload: Decodable {
+            struct User: Decodable {
+                let email: String?
+            }
+            let user: User?
+        }
+        let email = try await request("getUser", parameters: [.init(name: "username", value: username)], as: Payload.self).user?.email
+        guard let email, !email.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        return email
+    }
+
     /// Everything the user has favorited (starred): artists, albums and songs.
     public func favorites() async throws(SubsonicError) -> SearchResult {
         try await request("getStarred2", as: StarredPayload.self).result
