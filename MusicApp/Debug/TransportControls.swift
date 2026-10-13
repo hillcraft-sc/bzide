@@ -49,8 +49,8 @@ struct TransportControls: View {
                 .foregroundStyle(.secondary)
             }
 
-            // Previous, play and next are centred under the progress bar; shuffle
-            // and repeat sit at the edges as overlays so they don't pull them off centre.
+            // Previous, play and next are centered under the progress bar; shuffle
+            // and repeat sit at the edges as overlays so they don't pull them off center.
             HStack(spacing: 44) {
                 Button("Previous", systemImage: "backward.fill") { engine.previous() }
                     .disabled(engine.isLive)

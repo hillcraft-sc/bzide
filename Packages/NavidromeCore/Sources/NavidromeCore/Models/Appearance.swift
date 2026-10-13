@@ -1,5 +1,5 @@
 /// How the app looks: the phone's own light or dark mode, one of them forced,
-/// or a Catppuccin flavour.
+/// or a Catppuccin flavor.
 public enum AppTheme: String, CaseIterable, Codable, Sendable {
     case system, light, dark
     case latte, frappe, macchiato, mocha
@@ -26,7 +26,7 @@ public enum AppTheme: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// `nil` follows the phone. Each flavour is made for one mode, so it forces it.
+    /// `nil` follows the phone. Each flavor is made for one mode, so it forces it.
     public var isDark: Bool? {
         switch self {
         case .system: nil
@@ -40,11 +40,11 @@ public enum AppTheme: String, CaseIterable, Codable, Sendable {
 public enum CatppuccinFlavor: String, CaseIterable, Sendable {
     case latte, frappe, macchiato, mocha
 
-    /// Latte is the light flavour; the others are dark.
+    /// Latte is the light flavor; the others are dark.
     public var isDark: Bool { self != .latte }
 }
 
-/// Catppuccin's accent colours, in the palette's order.
+/// Catppuccin's accent colors, in the palette's order.
 public enum CatppuccinAccent: String, CaseIterable, Codable, Sendable {
     case rosewater, flamingo, pink, mauve, red, maroon, peach, yellow
     case green, teal, sky, sapphire, blue, lavender
@@ -52,17 +52,32 @@ public enum CatppuccinAccent: String, CaseIterable, Codable, Sendable {
     public var title: String { rawValue.capitalized }
 }
 
+/// The accent for the System, Light and Dark themes: the red from the app's
+/// icon by default, or one of iOS's standard colors. The app turns these into
+/// colors; Bzide Red's are in the app target.
+public enum SystemAccent: String, CaseIterable, Codable, Sendable {
+    case bzide
+    case red, orange, yellow, green, mint, teal, cyan, blue, indigo, purple, pink, brown
+
+    public var title: String {
+        self == .bzide ? "Bzide Red" : rawValue.capitalized
+    }
+}
+
 public struct AppearanceSettings: Codable, Sendable, Equatable {
     public var theme: AppTheme
     /// Only used by the Catppuccin themes; kept when switching away and back.
     public var accent: CatppuccinAccent
+    /// Only used by the System, Light and Dark themes; kept likewise.
+    public var systemAccent: SystemAccent
 
-    public init(theme: AppTheme = .system, accent: CatppuccinAccent = .mauve) {
+    public init(theme: AppTheme = .system, accent: CatppuccinAccent = .mauve, systemAccent: SystemAccent = .bzide) {
         self.theme = theme
         self.accent = accent
+        self.systemAccent = systemAccent
     }
 
-    private enum CodingKeys: String, CodingKey { case theme, accent }
+    private enum CodingKeys: String, CodingKey { case theme, accent, systemAccent }
 
     /// Each setting falls back to its default on its own if it's missing or
     /// unknown (say, saved by a newer version), keeping the other.
@@ -71,5 +86,6 @@ public struct AppearanceSettings: Codable, Sendable, Equatable {
         let defaults = AppearanceSettings()
         theme = (try? c.decodeIfPresent(AppTheme.self, forKey: .theme)) ?? defaults.theme
         accent = (try? c.decodeIfPresent(CatppuccinAccent.self, forKey: .accent)) ?? defaults.accent
+        systemAccent = (try? c.decodeIfPresent(SystemAccent.self, forKey: .systemAccent)) ?? defaults.systemAccent
     }
 }

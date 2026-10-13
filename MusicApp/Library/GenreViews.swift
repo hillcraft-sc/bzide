@@ -1,7 +1,7 @@
 import NavidromeCore
 import SwiftUI
 
-/// The library's genres as coloured tiles, biggest first, shown on Search
+/// The library's genres as colored tiles, biggest first, shown on Search
 /// before anything is typed. Tapping one opens its page; long-press plays it.
 struct GenreGrid: View {
     let library: Library
@@ -45,7 +45,7 @@ struct GenreGrid: View {
     }
 }
 
-/// A colour block with the genre's name and one of its covers tilted in the corner.
+/// A color block with the genre's name and one of its covers tilted in the corner.
 private struct GenreTile: View {
     let library: Library
     let genre: Genre
@@ -78,8 +78,8 @@ private struct GenreTile: View {
     }
 }
 
-/// Tile colours: the Catppuccin accents in a Catppuccin theme, otherwise
-/// system colours. Each genre keeps its colour from launch to launch.
+/// Tile colors: the Catppuccin accents in a Catppuccin theme, otherwise
+/// system colors. Each genre keeps its color from launch to launch.
 private enum GenreColors {
     private static let system: [Color] = [.blue, .purple, .pink, .orange, .teal, .indigo, .red, .green, .cyan, .mint, .brown]
 
@@ -93,7 +93,7 @@ private enum GenreColors {
         return system[index % system.count]
     }
 
-    /// Catppuccin's dark flavours have pastel accents, which need dark text.
+    /// Catppuccin's dark flavors have pastel accents, which need dark text.
     static func textColor(palette: CatppuccinPalette?) -> Color {
         guard let palette, palette != .latte else { return .white }
         return Color(palette.crust)

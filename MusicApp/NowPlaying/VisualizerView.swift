@@ -3,12 +3,12 @@ import NavidromeCore
 import SwiftUI
 
 /// Full-screen visualizer following what's playing: spectrum bars or the sound
-/// wave, in the theme's accent or in many colours. Swipe to change style, or
-/// pick style and colours from the menu at the top; both are remembered.
+/// wave, in the theme's accent or in many colors. Swipe to change style, or
+/// pick style and colors from the menu at the top; both are remembered.
 /// Playback controls at the bottom work without leaving it.
 ///
 /// The audio tap measures only while this is open, and the screen stays awake.
-/// Radio and AirPlay can't be analysed (see docs/BEHAVIOR.md), so they get a
+/// Radio and AirPlay can't be analyzed (see docs/BEHAVIOR.md), so they get a
 /// message instead.
 struct VisualizerView: View {
     let model: AppModel
@@ -24,6 +24,9 @@ struct VisualizerView: View {
     /// Display preferences for this device.
     @AppStorage("visualizerStyle") private var style = VisualizerStyle.bars
     @AppStorage("visualizerColors") private var colorMode = VisualizerColorMode.accent
+    /// The Catppuccin accents chosen for Custom, as comma-separated names.
+    @AppStorage("visualizerCustomColors") private var customColorNames = VisualizerPalette.defaultCustom
+    @State private var isChoosingColors = false
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -68,6 +71,19 @@ struct VisualizerView: View {
 
     private var accent: Color {
         themeAccent ?? Color(uiColor: .tintColor)
+    }
+
+    /// Custom is for Catppuccin's accents; in the other themes it shows as Multicolor.
+    private var effectiveMode: VisualizerColorMode {
+        colorMode == .custom && palette == nil ? .multicolor : colorMode
+    }
+
+    private var customAccents: [CatppuccinAccent] {
+        VisualizerPalette.accents(from: customColorNames)
+    }
+
+    private func colors(_ count: Int) -> [Color] {
+        VisualizerPalette.colors(count: count, mode: effectiveMode, accent: accent, catppuccin: palette, custom: customAccents)
     }
 
     // MARK: - Drawing
@@ -125,12 +141,12 @@ struct VisualizerView: View {
         .ignoresSafeArea()
     }
 
-    /// Four colours for the plasma's palette loop: shades of the accent, or
-    /// four from the multicolour sweep.
+    /// Four colors for the plasma's palette loop: shades of the accent, or
+    /// four from the multicolor sweep.
     private var plasmaColors: [Color] {
-        switch colorMode {
-        case .multicolor:
-            return VisualizerPalette.colors(count: 4, mode: .multicolor, accent: accent, catppuccin: palette)
+        switch effectiveMode {
+        case .multicolor, .custom:
+            return colors(4)
         case .accent:
             let base = UIColor(accent)
             return [
@@ -145,7 +161,7 @@ struct VisualizerView: View {
     /// Bars across the width, growing up from the bottom, bass on the left.
     private func drawBars(_ levels: [Float], in context: inout GraphicsContext, size: CGSize) {
         guard !levels.isEmpty else { return }
-        let colors = VisualizerPalette.colors(count: levels.count, mode: colorMode, accent: accent, catppuccin: palette)
+        let colors = colors(levels.count)
         let gap: CGFloat = 3
         let width = (size.width - gap * CGFloat(levels.count - 1)) / CGFloat(levels.count)
         let maxHeight = size.height * 0.85
@@ -171,12 +187,11 @@ struct VisualizerView: View {
             index == 0 ? path.move(to: point) : path.addLine(to: point)
         }
         let shading: GraphicsContext.Shading
-        switch colorMode {
+        switch effectiveMode {
         case .accent:
             shading = .color(accent)
-        case .multicolor:
-            let colors = VisualizerPalette.colors(count: 16, mode: .multicolor, accent: accent, catppuccin: palette)
-            shading = .linearGradient(Gradient(colors: colors), startPoint: .zero, endPoint: CGPoint(x: size.width, y: 0))
+        case .multicolor, .custom:
+            shading = .linearGradient(Gradient(colors: colors(16)), startPoint: .zero, endPoint: CGPoint(x: size.width, y: 0))
         }
         var glow = context
         glow.opacity = 0.3
@@ -229,7 +244,7 @@ struct VisualizerView: View {
         .tint(.white)
     }
 
-    /// The current style's icon and name; opens the choice of style and colours.
+    /// The current style's icon and name; opens the choice of style and colors.
     private var styleMenu: some View {
         Menu {
             Section("Style") {
@@ -240,13 +255,19 @@ struct VisualizerView: View {
                 }
                 .pickerStyle(.inline)
             }
-            Section("Colours") {
-                Picker("Colours", selection: $colorMode) {
-                    ForEach(VisualizerColorMode.allCases, id: \.self) { mode in
+            Section("Colors") {
+                Picker("Colors", selection: $colorMode) {
+                    // Custom picks from Catppuccin's accents, so only in its themes.
+                    ForEach(palette == nil ? [.accent, .multicolor] : VisualizerColorMode.allCases, id: \.self) { mode in
                         Label(mode.title, systemImage: mode.symbol).tag(mode)
                     }
                 }
                 .pickerStyle(.inline)
+                if palette != nil {
+                    Button("Choose Custom Colors…", systemImage: "slider.horizontal.3") {
+                        isChoosingColors = true
+                    }
+                }
             }
         } label: {
             Label(style.title, systemImage: style.symbol)
@@ -256,7 +277,14 @@ struct VisualizerView: View {
                 .padding(.vertical, 8)
                 .background(.white.opacity(0.15), in: .capsule)
         }
-        .accessibilityHint("Choose the style and colours")
+        .accessibilityHint("Choose the style and colors")
+        .sheet(isPresented: $isChoosingColors) {
+            if let palette {
+                CustomColorsSheet(palette: palette, names: $customColorNames) {
+                    colorMode = .custom
+                }
+            }
+        }
     }
 
     /// Previous, play/pause and next, as in Now Playing.
@@ -319,12 +347,13 @@ enum VisualizerStyle: String, CaseIterable {
 }
 
 enum VisualizerColorMode: String, CaseIterable {
-    case accent, multicolor
+    case accent, multicolor, custom
 
     var title: String {
         switch self {
         case .accent: "Accent"
         case .multicolor: "Multicolor"
+        case .custom: "Custom"
         }
     }
 
@@ -332,20 +361,83 @@ enum VisualizerColorMode: String, CaseIterable {
         switch self {
         case .accent: "circle.fill"
         case .multicolor: "paintpalette"
+        case .custom: "swatchpalette"
         }
     }
 }
 
-/// The colours a visualizer draws with, left to right.
+/// Picks which Catppuccin accents Custom uses, at least two, shown in the
+/// current flavor. They're always used in palette order.
+private struct CustomColorsSheet: View {
+    let palette: CatppuccinPalette
+    @Binding var names: String
+    /// Called on Done, to switch the visualizer to Custom.
+    let done: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var chosen: [CatppuccinAccent] { VisualizerPalette.accents(from: names) }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    SwatchGrid(
+                        options: CatppuccinAccent.allCases,
+                        color: { Color(palette.accent($0)) },
+                        title: \.title,
+                        isSelected: { chosen.contains($0) },
+                        checkmark: Color(palette.base),
+                        choose: toggle
+                    )
+                    .padding(.vertical, 6)
+                } footer: {
+                    Text("The visualizer blends the chosen colors in this order. Choose at least two.")
+                }
+                .themedRows(grouped: true)
+            }
+            .themedList(grouped: true)
+            .navigationTitle("Custom Colors")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        done()
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func toggle(_ accent: CatppuccinAccent) {
+        var set = Set(chosen)
+        if set.contains(accent) {
+            // Blending needs two colors; the last two stay.
+            guard set.count > 2 else { return }
+            set.remove(accent)
+        } else {
+            set.insert(accent)
+        }
+        names = VisualizerPalette.names(of: set)
+    }
+}
+
+/// The colors a visualizer draws with, left to right.
 enum VisualizerPalette {
     /// Accent: the accent throughout. Multicolor: in a Catppuccin theme, its 14
     /// accents in palette order, blended across; otherwise a sweep of hues
     /// starting from the accent (blue → purple → pink → orange for iOS blue).
-    static func colors(count: Int, mode: VisualizerColorMode, accent: Color, catppuccin: CatppuccinPalette?) -> [Color] {
+    /// Custom: the chosen Catppuccin accents, blended the same way.
+    static func colors(
+        count: Int, mode: VisualizerColorMode, accent: Color, catppuccin: CatppuccinPalette?, custom: [CatppuccinAccent] = []
+    ) -> [Color] {
         guard count > 0 else { return [] }
-        guard mode == .multicolor else { return Array(repeating: accent, count: count) }
+        guard mode != .accent else { return Array(repeating: accent, count: count) }
         if let catppuccin {
-            let accents = CatppuccinAccent.allCases.map { catppuccin.accent($0) }
+            let chosen = mode == .custom && custom.count >= 2 ? custom : CatppuccinAccent.allCases
+            let accents = chosen.map { catppuccin.accent($0) }
             return (0..<count).map { index in
                 blend(accents, at: count == 1 ? 0 : Double(index) / Double(count - 1))
             }
@@ -359,7 +451,20 @@ enum VisualizerPalette {
         }
     }
 
-    /// The colour `position` (0...1) of the way along `colors`, mixed between neighbours.
+    /// A warm-to-cool mix to start Custom from.
+    static let defaultCustom = names(of: [.mauve, .pink, .peach, .teal, .blue])
+
+    /// Saved names to accents, in palette order; unknown names are ignored.
+    static func accents(from names: String) -> [CatppuccinAccent] {
+        let set = Set(names.split(separator: ",").compactMap { CatppuccinAccent(rawValue: String($0)) })
+        return CatppuccinAccent.allCases.filter(set.contains)
+    }
+
+    static func names(of accents: Set<CatppuccinAccent>) -> String {
+        CatppuccinAccent.allCases.filter(accents.contains).map(\.rawValue).joined(separator: ",")
+    }
+
+    /// The color `position` (0...1) of the way along `colors`, mixed between neighbors.
     private static func blend(_ colors: [RGBColor], at position: Double) -> Color {
         let scaled = position * Double(colors.count - 1)
         let low = min(Int(scaled), colors.count - 1)
@@ -375,7 +480,7 @@ enum VisualizerPalette {
 }
 
 private extension UIColor {
-    /// This colour moved `amount` (0...1) of the way toward `other`.
+    /// This color moved `amount` (0...1) of the way toward `other`.
     func mixed(with other: UIColor, amount: CGFloat) -> UIColor {
         var (r1, g1, b1, a1): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
         var (r2, g2, b2, a2): (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)

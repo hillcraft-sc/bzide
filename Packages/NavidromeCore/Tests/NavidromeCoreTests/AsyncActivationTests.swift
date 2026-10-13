@@ -3,7 +3,7 @@ import Testing
 @testable import NavidromeCore
 
 /// The audio session activates asynchronously; the player must start only once
-/// it's active, and never for a request the user has since replaced or cancelled.
+/// it's active, and never for a request the user has since replaced or canceled.
 @MainActor
 struct AsyncActivationTests {
     private let player = FakeAudioPlayer()

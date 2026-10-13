@@ -154,7 +154,7 @@ struct AlbumRow: View {
     }
 }
 
-/// Favourite toggle (a Subsonic star). Reads and writes through the shared `StarModel`.
+/// Favorite toggle (a Subsonic star). Reads and writes through the shared `StarModel`.
 struct FavoriteButton: View {
     let stars: StarModel
     let target: StarTarget
@@ -201,7 +201,7 @@ extension Rating {
     }
 }
 
-/// Favourite and rate: the same pair everywhere an item can be marked.
+/// Favorite and rate: the same pair everywhere an item can be marked.
 struct MarkActions: View {
     let library: Library
     let target: StarTarget
@@ -214,7 +214,7 @@ struct MarkActions: View {
     }
 }
 
-/// Song context menu: queue, playlist, download, favourite and rate, and the
+/// Song context menu: queue, playlist, download, favorite and rate, and the
 /// way to its album and artist.
 struct SongActions: View {
     let library: Library
@@ -268,4 +268,43 @@ struct SongDownloadButton: View {
 
 func formatDuration(_ seconds: TimeInterval) -> String {
     Duration.seconds(seconds.rounded(.down)).formatted(.time(pattern: .minuteSecond))
+}
+
+/// Color swatches in rows of seven, each ticked when selected. Used for the
+/// accent pickers and the visualizer's custom colors.
+struct SwatchGrid<Option: Hashable>: View {
+    let options: [Option]
+    let color: (Option) -> Color
+    let title: (Option) -> String
+    let isSelected: (Option) -> Bool
+    /// Drawn on a selected swatch; pick one that shows on the swatch colors.
+    let checkmark: Color
+    let choose: (Option) -> Void
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(options, id: \.self) { option in
+                let selected = isSelected(option)
+                Button {
+                    choose(option)
+                } label: {
+                    Circle()
+                        .fill(color(option))
+                        .frame(width: 32, height: 32)
+                        .overlay {
+                            if selected {
+                                Image(systemName: "checkmark")
+                                    .font(.footnote.bold())
+                                    .foregroundStyle(checkmark)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(title(option))
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+    }
 }

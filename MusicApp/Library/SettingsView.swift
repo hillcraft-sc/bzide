@@ -89,13 +89,45 @@ struct SettingsView: View {
                 }
             }
             if let palette = appearance.palette {
-                AccentPicker(palette: palette, selection: $appearance.settings.accent)
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Accent")
+                        Spacer()
+                        Text(appearance.settings.accent.title).foregroundStyle(.secondary)
+                    }
+                    SwatchGrid(
+                        options: CatppuccinAccent.allCases,
+                        color: { Color(palette.accent($0)) },
+                        title: \.title,
+                        isSelected: { $0 == appearance.settings.accent },
+                        checkmark: Color(palette.base),
+                        choose: { appearance.settings.accent = $0 }
+                    )
+                }
+                .padding(.vertical, 4)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Accent")
+                        Spacer()
+                        Text(appearance.settings.systemAccent.title).foregroundStyle(.secondary)
+                    }
+                    SwatchGrid(
+                        options: SystemAccent.allCases,
+                        color: \.color,
+                        title: \.title,
+                        isSelected: { $0 == appearance.settings.systemAccent },
+                        checkmark: .white,
+                        choose: { appearance.settings.systemAccent = $0 }
+                    )
+                }
+                .padding(.vertical, 4)
             }
         } header: {
             Text("Appearance")
         } footer: {
             if appearance.palette != nil {
-                Text("Colours from Catppuccin (catppuccin.com).")
+                Text("Colors from Catppuccin (catppuccin.com).")
             }
         }
         .themedRows(grouped: true)
@@ -107,46 +139,5 @@ struct SettingsView: View {
                 Text(quality.title).tag(quality)
             }
         }
-    }
-}
-
-/// Catppuccin's 14 accents as swatches in the current flavour, the chosen one ticked.
-private struct AccentPicker: View {
-    let palette: CatppuccinPalette
-    @Binding var selection: CatppuccinAccent
-
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Accent")
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(CatppuccinAccent.allCases, id: \.self) { accent in
-                    swatch(accent)
-                }
-            }
-        }
-        .padding(.vertical, 4)
-    }
-
-    private func swatch(_ accent: CatppuccinAccent) -> some View {
-        let isSelected = accent == selection
-        return Button {
-            selection = accent
-        } label: {
-            Circle()
-                .fill(Color(palette.accent(accent)))
-                .frame(width: 32, height: 32)
-                .overlay {
-                    if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.footnote.bold())
-                            .foregroundStyle(Color(palette.base))
-                    }
-                }
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(accent.title)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

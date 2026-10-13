@@ -91,7 +91,7 @@ These must all work and each needs automated tests where feasible and a manual c
 - Playback logic (queue, state machine, prefetch decisions) is tested through protocol abstractions around `AVPlayer`, so it runs without audio hardware.
 - Run the full test suite before declaring any task done. Report failures honestly; do not skip or weaken tests to make them pass.
 - Real-world playback quality can only be judged on a physical device. When a change affects playback, list what the owner should manually test.
-- On device, install with ⌘R, then press Stop and launch the app from the Home Screen for testing. With the Xcode 27 beta debugger attached, launch stalls (black screen) and the app feels slow, so behaviour and responsiveness under the debugger are not representative (see `docs/ISSUES.md`). Use the debugger only when you need it, e.g. to pause and read a stuck thread.
+- On device, install with ⌘R, then press Stop and launch the app from the Home Screen for testing. With the Xcode 27 beta debugger attached, launch stalls (black screen) and the app feels slow, so behavior and responsiveness under the debugger are not representative (see `docs/ISSUES.md`). Use the debugger only when you need it, e.g. to pause and read a stuck thread.
 
 Build and test commands:
 

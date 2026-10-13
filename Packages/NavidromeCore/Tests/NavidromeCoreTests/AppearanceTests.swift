@@ -25,6 +25,21 @@ struct AppearanceTests {
         #expect(second.palette == .mocha)
     }
 
+    @Test func theSystemAccentDefaultsToBzideRedAndIsKept() {
+        let defaults = freshDefaults()
+        let first = AppearanceModel(defaults: defaults)
+        #expect(first.settings.systemAccent == .bzide)
+        #expect(SystemAccent.bzide.title == "Bzide Red")
+        first.settings.systemAccent = .teal
+        #expect(AppearanceModel(defaults: defaults).settings.systemAccent == .teal)
+    }
+
+    @Test func settingsSavedBeforeTheSystemAccentKeepTheirChoices() {
+        let defaults = freshDefaults()
+        defaults.set(Data("{\"theme\": \"dark\", \"accent\": \"peach\"}".utf8), forKey: AppearanceModel.key)
+        #expect(AppearanceModel(defaults: defaults).settings == AppearanceSettings(theme: .dark, accent: .peach, systemAccent: .bzide))
+    }
+
     @Test func unknownThemeFallsBackButKeepsTheAccent() {
         let defaults = freshDefaults()
         defaults.set(Data("{\"theme\": \"neon\", \"accent\": \"teal\"}".utf8), forKey: AppearanceModel.key)
@@ -66,7 +81,7 @@ struct AppearanceTests {
         }
     }
 
-    @Test func colourComponents() {
+    @Test func colorComponents() {
         let color = RGBColor(0xff8000)
         #expect(color.red == 1)
         #expect(abs(color.green - 128.0 / 255) < 0.0001)

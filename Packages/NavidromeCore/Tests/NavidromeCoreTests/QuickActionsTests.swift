@@ -164,7 +164,7 @@ struct QuickActionsTests {
         #expect(count == 120)
     }
 
-    @Test func aBigArtistCanBeCancelled() async {
+    @Test func aBigArtistCanBeCanceled() async {
         addArtist("ar-1", albums: [Self.album("a", year: 2000, songs: 1...101)])
         let handled = Handled()
         let model = makeModel(handled)

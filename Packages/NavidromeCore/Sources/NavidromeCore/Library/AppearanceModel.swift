@@ -20,7 +20,7 @@ public final class AppearanceModel {
             ?? AppearanceSettings()
     }
 
-    /// The Catppuccin colours in use, or `nil` for the system themes.
+    /// The Catppuccin colors in use, or `nil` for the system themes.
     public var palette: CatppuccinPalette? {
         settings.theme.flavor?.palette
     }

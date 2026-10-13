@@ -12,7 +12,7 @@ final class FakeDownloadTransport: DownloadTransport {
 
     var onEvent: (@MainActor (DownloadEvent) -> Void)?
     private(set) var started: [Start] = []
-    private(set) var cancelled: [String] = []
+    private(set) var canceled: [String] = []
     /// What the system reports as still running, for relaunch tests.
     var systemActive: Set<String> = []
     private let scratch: URL
@@ -28,7 +28,7 @@ final class FakeDownloadTransport: DownloadTransport {
     }
 
     func cancel(songID: String) {
-        cancelled.append(songID)
+        canceled.append(songID)
     }
 
     func activeSongIDs() async -> Set<String> {
@@ -141,11 +141,11 @@ struct DownloadManagerTests {
         #expect(relaunched.localFile(forSongID: "so-1") != nil)
     }
 
-    @Test func systemDownloadsNothingWantsAreCancelledOnRelaunch() async {
+    @Test func systemDownloadsNothingWantsAreCanceledOnRelaunch() async {
         transport.systemActive = ["so-99"]
         let manager = makeManager()
         await manager.resume()
-        #expect(transport.cancelled == ["so-99"])
+        #expect(transport.canceled == ["so-99"])
     }
 
     @Test func statusCountsDoneAndPartialProgress() {
@@ -191,7 +191,7 @@ struct DownloadManagerTests {
         let manager = makeManager()
         manager.download(album("al-1", songs(1...2)))
         manager.remove(collectionID: "album:al-1")
-        #expect(Set(transport.cancelled) == ["so-1", "so-2"])
+        #expect(Set(transport.canceled) == ["so-1", "so-2"])
         #expect(manager.state(ofSong: "so-1") == .notDownloaded)
     }
 
@@ -260,7 +260,7 @@ struct DownloadManagerTests {
         manager.removeAll()
         #expect(manager.collections.isEmpty)
         #expect(manager.localFile(forSongID: "so-1") == nil)
-        #expect(transport.cancelled == ["so-2"])
+        #expect(transport.canceled == ["so-2"])
     }
 
     @Test func coversOfDownloadedMusicAreKeptOffline() async {

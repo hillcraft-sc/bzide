@@ -1,6 +1,6 @@
 import Foundation
 
-/// What to favourite (star) or rate. Subsonic's star call uses a different
+/// What to favorite (star) or rate. Subsonic's star call uses a different
 /// parameter name for each kind; its rating call takes the plain id.
 public enum StarTarget: Sendable, Hashable {
     case song(id: String)

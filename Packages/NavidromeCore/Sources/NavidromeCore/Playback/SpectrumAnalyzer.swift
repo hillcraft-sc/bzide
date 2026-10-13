@@ -118,7 +118,7 @@ public struct SpectrumSmoother: Sendable {
     }
 }
 
-/// What the visualizer draws each frame: the meter's latest samples, analysed
+/// What the visualizer draws each frame: the meter's latest samples, analyzed
 /// and smoothed. When no new audio has arrived for a moment (paused, between
 /// items, or the tap isn't running), the bars fall to nothing instead of
 /// freezing on the last frame.

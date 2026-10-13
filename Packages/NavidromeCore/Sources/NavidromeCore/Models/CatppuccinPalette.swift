@@ -7,7 +7,7 @@
 // all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED "AS IS",
 // WITHOUT WARRANTY OF ANY KIND. Full text: https://github.com/catppuccin/palette/blob/main/LICENSE
 
-/// A colour as 0xRRGGBB. Kept free of UI frameworks so other clients can share it.
+/// A color as 0xRRGGBB. Kept free of UI frameworks so other clients can share it.
 public struct RGBColor: Sendable, Equatable, Hashable {
     public let hex: UInt32
 
@@ -15,14 +15,14 @@ public struct RGBColor: Sendable, Equatable, Hashable {
         self.hex = hex
     }
 
-    /// 0–1 components, for building a platform colour.
+    /// 0–1 components, for building a platform color.
     public var red: Double { Double((hex >> 16) & 0xFF) / 255 }
     public var green: Double { Double((hex >> 8) & 0xFF) / 255 }
     public var blue: Double { Double(hex & 0xFF) / 255 }
 }
 
-/// One Catppuccin flavour's colours. The neutrals run from `text` (foreground)
-/// down to `crust` (the darkest background in dark flavours, lightest-but-one in Latte).
+/// One Catppuccin flavor's colors. The neutrals run from `text` (foreground)
+/// down to `crust` (the darkest background in dark flavors, lightest-but-one in Latte).
 public struct CatppuccinPalette: Sendable, Equatable {
     public let text: RGBColor
     public let subtext1: RGBColor
