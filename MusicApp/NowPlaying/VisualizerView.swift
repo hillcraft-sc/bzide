@@ -30,6 +30,7 @@ struct VisualizerView: View {
     @State private var grooveState = GrooveState()
     @State private var tapestryState = TapestryState()
     @State private var weatherState = WeatherState()
+    @State private var chromeState = ChromeState()
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -136,6 +137,12 @@ struct VisualizerView: View {
                     feed: feed, date: timeline.date, colors: fourColors,
                     insets: drawingInsets(landscape: landscape), landscape: landscape, state: weatherState
                 )
+            case .chrome:
+                ChromeView(
+                    library: model.library, coverArtID: engine.queue.current?.song.coverArtID,
+                    levels: levels, beat: feed.beat, date: timeline.date, colors: fourColors, state: chromeState
+                )
+                .padding(drawingInsets(landscape: landscape))
             case .bars, .waveform:
                 let wave = feed.wave
                 Canvas { context, size in
@@ -191,7 +198,8 @@ struct VisualizerView: View {
         .ignoresSafeArea()
     }
 
-    /// Four colors for Plasma's palette loop and Weather's sky and hills:
+    /// Four colors for Plasma's palette loop, Weather's sky and hills, and
+    /// the light on Chrome's edges:
     /// shades of the accent, or four from the multicolor sweep.
     private var fourColors: [Color] {
         switch effectiveMode {
@@ -386,7 +394,7 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, groove, livingCover, tapestry, weather
+    case bars, waveform, plasma, groove, livingCover, tapestry, weather, chrome
 
     var title: String {
         switch self {
@@ -397,6 +405,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .livingCover: "Living Cover"
         case .tapestry: "Tapestry"
         case .weather: "Weather"
+        case .chrome: "Chrome"
         }
     }
 
@@ -409,6 +418,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .livingCover: "square.grid.3x3.fill"
         case .tapestry: "scribble.variable"
         case .weather: "cloud.bolt.rain.fill"
+        case .chrome: "drop.fill"
         }
     }
 
