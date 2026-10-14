@@ -6,11 +6,14 @@ public struct PlayerItem: Sendable, Equatable {
     public let url: URL
     /// A radio stream: the player reports the titles it announces.
     public let isLive: Bool
+    /// What to multiply the audio by (volume normalization); 1 for unchanged.
+    public let gain: Float
 
-    public init(entryID: QueueEntry.ID, url: URL, isLive: Bool = false) {
+    public init(entryID: QueueEntry.ID, url: URL, isLive: Bool = false, gain: Float = 1) {
         self.entryID = entryID
         self.url = url
         self.isLive = isLive
+        self.gain = gain
     }
 }
 
@@ -64,6 +67,9 @@ public protocol AudioPlayer: AnyObject {
     /// The player's own volume, 0...1 (1 is normal), on top of the system
     /// volume. For fades, such as the sleep timer's; kept across `rebuild()`.
     var volume: Float { get set }
+    /// Changes a loaded item's gain (volume normalization) at once, playing or
+    /// not, without interrupting it. Unknown entries are ignored.
+    func setGain(_ gain: Float, for entryID: QueueEntry.ID)
     /// Throws away the underlying player and everything loaded, and starts a
     /// fresh one. For after the system's audio services reset. Reports nothing
     /// about the old player.
@@ -79,10 +85,13 @@ public protocol StreamURLProviding {
     func streamURL(for song: Song) throws -> URL
     /// What `streamURL(for:)` chose, to show the listener; `nil` if unknown.
     func quality(for song: Song) -> PlaybackQuality?
+    /// What to multiply the song's audio by (volume normalization).
+    func gain(for song: Song) -> Float
 }
 
 extension StreamURLProviding {
     public func quality(for song: Song) -> PlaybackQuality? { nil }
+    public func gain(for song: Song) -> Float { 1 }
 }
 
 extension SubsonicClient: StreamURLProviding {

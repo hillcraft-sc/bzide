@@ -22,6 +22,8 @@ public struct Song: Sendable, Equatable, Identifiable, Codable {
     public var isStarred: Bool
     /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
     public var userRating: Int?
+    /// For volume normalization, when the server has it (OpenSubsonic).
+    public var replayGain: ReplayGain?
     /// Set only for a radio station playing as a queue entry: the stream to
     /// play instead of the server's. Never comes from the server.
     public var liveStreamURL: URL?
@@ -34,7 +36,7 @@ public struct Song: Sendable, Equatable, Identifiable, Codable {
         artist: String? = nil, artistID: String? = nil, track: Int? = nil, discNumber: Int? = nil,
         year: Int? = nil, genre: String? = nil, coverArtID: String? = nil, duration: Int? = nil,
         bitRate: Int? = nil, suffix: String? = nil, contentType: String? = nil, isStarred: Bool = false,
-        userRating: Int? = nil
+        userRating: Int? = nil, replayGain: ReplayGain? = nil
     ) {
         self.id = id
         self.title = title
@@ -53,13 +55,14 @@ public struct Song: Sendable, Equatable, Identifiable, Codable {
         self.contentType = contentType
         self.isStarred = isStarred
         self.userRating = userRating
+        self.replayGain = replayGain
     }
 }
 
 extension Song {
     private enum ServerKeys: String, CodingKey {
         case id, title, album, albumId, artist, artistId, track, discNumber, year, genre
-        case coverArt, duration, bitRate, suffix, contentType, starred, userRating
+        case coverArt, duration, bitRate, suffix, contentType, starred, userRating, replayGain
         /// Ours, not the server's: only in saved queues.
         case liveStreamUrl
     }
@@ -86,6 +89,7 @@ extension Song {
         // The server signals "starred" by the key being present, so write it only when true.
         if isStarred { try c.encode(true, forKey: .starred) }
         try c.encodeIfPresent(userRating, forKey: .userRating)
+        try c.encodeIfPresent(replayGain, forKey: .replayGain)
         try c.encodeIfPresent(liveStreamURL, forKey: .liveStreamUrl)
     }
 
@@ -108,7 +112,8 @@ extension Song {
             suffix: c.lenientString(.suffix),
             contentType: c.lenientString(.contentType),
             isStarred: c.contains(.starred),
-            userRating: c.rating(.userRating)
+            userRating: c.rating(.userRating),
+            replayGain: ((try? c.decodeIfPresent(ReplayGain.self, forKey: .replayGain)) ?? nil).flatMap { $0.hasGain ? $0 : nil }
         )
         liveStreamURL = c.lenientString(.liveStreamUrl).flatMap(RadioStation.webURL)
     }

@@ -12,6 +12,8 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     /// Replaced by `rebuild()` after the system's audio services reset.
     private var player = AVQueuePlayer()
     private var entryIDs: [ObjectIdentifier: QueueEntry.ID] = [:]
+    /// Each item's volume normalization, read by its tap on the audio thread.
+    private var gains: [ObjectIdentifier: TapGain] = [:]
     private var itemObservations: [ObjectIdentifier: NSKeyValueObservation] = [:]
     private var playerObservations: [NSKeyValueObservation] = []
     private var notificationTokens: [any NSObjectProtocol] = []
@@ -89,6 +91,12 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         seek(current, to: position)
     }
 
+    public func setGain(_ gain: Float, for entryID: QueueEntry.ID) {
+        for (key, id) in entryIDs where id == entryID {
+            gains[key]?.value = gain
+        }
+    }
+
     public var volume: Float = 1 {
         didSet { player.volume = volume }
     }
@@ -111,12 +119,14 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         let avItem = AVPlayerItem(url: item.url)
         let key = ObjectIdentifier(avItem)
         entryIDs[key] = item.entryID
+        let gain = TapGain(item.gain)
+        gains[key] = gain
         // KVO may call back on any thread, so the handler is @Sendable (not
         // main-actor isolated) and hops to the main actor itself.
         itemObservations[key] = avItem.observe(\.status, options: [.new]) { @Sendable [weak self] avItem, _ in
             Task { @MainActor in self?.itemStatusChanged(avItem) }
         }
-        attachLevelTap(to: avItem)
+        attachLevelTap(to: avItem, gain: gain)
         if item.isLive, let titleReader {
             // Radio streams announce what they're playing as timed metadata.
             let output = AVPlayerItemMetadataOutput(identifiers: nil)
@@ -168,6 +178,7 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         let keep = Set(kept.map(ObjectIdentifier.init))
         for key in entryIDs.keys where !keep.contains(key) {
             entryIDs[key] = nil
+            gains[key] = nil
             itemObservations[key]?.invalidate()
             itemObservations[key] = nil
             metadataOutputs[key]?.output.setDelegate(nil, queue: nil)
@@ -273,13 +284,14 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     }
 
     /// Taps a newly loaded item for `levelMeter` (measuring only while
-    /// `isMetering`). The tap goes on the item's audio track, which a streamed
-    /// item only knows once it has loaded; that's normally done while it
-    /// buffers, before it's heard. The audio passes through unchanged.
-    private func attachLevelTap(to item: AVPlayerItem) {
+    /// `isMetering`) and its volume normalization (`gain`). The tap goes on
+    /// the item's audio track, which a streamed item only knows once it has
+    /// loaded; that's normally done while it buffers, before it's heard. With
+    /// a gain of 1 the audio passes through unchanged.
+    private func attachLevelTap(to item: AVPlayerItem, gain: TapGain) {
         Task { [weak self] in
             guard let track = try? await item.asset.loadTracks(withMediaType: .audio).first,
-                  let self, let tap = self.levelMeter.makeTap() else { return }
+                  let self, let tap = self.levelMeter.makeTap(gain: gain) else { return }
             let parameters = AVMutableAudioMixInputParameters(track: track)
             parameters.audioTapProcessor = tap
             let mix = AVMutableAudioMix()

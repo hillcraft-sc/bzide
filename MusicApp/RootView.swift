@@ -32,6 +32,10 @@ struct RootView: View {
         .addToPlaylistSheet(library, isEnabled: !isNowPlayingOpen)
         // Each return to the app checks downloaded playlists for changes (at
         // most every 15 minutes; see PlaylistDownloadRefresher).
+        // A new normalization setting applies to the songs already lined up too.
+        .onChange(of: library.settings.settings.volumeNormalization) {
+            library.engine.refreshGains()
+        }
         .onChange(of: scenePhase, initial: true) { _, phase in
             guard phase == .active else { return }
             Task { await library.playlistRefresher.refreshAllIfDue() }

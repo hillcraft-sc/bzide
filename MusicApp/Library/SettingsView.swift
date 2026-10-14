@@ -53,6 +53,18 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Picker("Volume Normalization", selection: $settings.settings.volumeNormalization) {
+                    ForEach(VolumeNormalization.allCases, id: \.self) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+            } header: {
+                Text("Playback")
+            } footer: {
+                Text("Evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume. By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged. Now Playing shows the adjustment beside the quality.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 qualityPicker("Download Quality", selection: $settings.settings.downloadQuality)
                 Toggle("Download over Cellular", isOn: $settings.settings.downloadOverCellular)
                 LabeledContent("Storage Used", value: downloads.totalBytes.formatted(.byteCount(style: .file)))

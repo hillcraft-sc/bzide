@@ -83,6 +83,13 @@ How the app behaves, written so the web and Android clients can be ported from t
 - The waveform shows 512 samples (about 12 ms) starting at a rising zero crossing, so it holds still like an oscilloscope, averaged to 128 points and scaled up 2.5× for typical music levels. It eases halfway to each new frame, and flattens out when the audio stops.
 - For a radio station it shows "The visualizer isn't available for radio.", and over AirPlay "The visualizer isn't available over AirPlay." (neither can be tapped; see Audio levels). Both follow changes while it's open.
 
+### Volume normalization
+
+- Settings > Playback > Volume Normalization: Off (the default), By Track or By Album. It evens out loudness between songs with their ReplayGain (OpenSubsonic `replayGain` on each song: track and album gain in dB, and track and album peak), which Navidrome has when the music files are tagged with it; it doesn't calculate it. Songs without it, and radio, play unchanged.
+- **By Track** uses the track's gain (falling back to the album's), **By Album** the album's (falling back to the track's), so an album's quiet and loud songs keep their difference. A boost is capped so the song's peak (of the gain used) stays at full scale, so normalization never clips.
+- The gain is applied in each item's audio tap (the same one the visualizer measures with), multiplying the samples on the audio thread without locks or allocation, so it can boost as well as cut. It's set when a song is loaded; changing the setting applies at once to the current, next and (for repeat all) first songs, without interrupting playback. The tap attaches as the item loads, normally before it's heard.
+- Now Playing's quality line adds the adjustment in use, e.g. "FLAC · 964 kbps · −4.2 dB" (nothing when there's none).
+
 ### Sleep timer
 
 - Now Playing's moon button (top bar, beside Save Queue) offers 15, 30 and 45 minutes, 1 hour, and End of Song; while a timer runs it also offers Turn Off Timer, and the button shows a filled moon and when the music will stop, counting down each second in the accent: the time left on the timer ("14:53"), or for End of Song the time left in the song ("End" if its length isn't known). Choosing again replaces the running timer.
@@ -460,6 +467,12 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Choose Polygraph: paper fills the screen and four needles reach down from the top edge, drawing on it as it runs down; the first three lines swing with the bass, mids and treble (the bass pen kicks on drum hits), the fourth hatches with the loudness. Pause: the paper keeps running and the needles settle to center, drawing flat lines; play again: the lines pick up without a jolt. Sideways: the needles reach in from the left and the paper runs right. The paper fills the screen and the controls (dark, over the paper) stay readable. Try Multicolor: one ink per pen, all readable on the paper. (2026-10-13)
 - [ ] Scroll quickly through Albums and skip songs fast: every row and Now Playing always shows the right cover.
 - [x] In a Catppuccin theme, the visualizer menu offers Accent, Multicolor and Custom, and "Choose Custom Colors…": pick a few accents (at least two stay), Done: the bars, waveform and plasma use just those, in palette order. Switch to a non-Catppuccin theme: Custom isn't offered and the colors show as Multicolor. (2026-10-13)
+
+### Volume normalization
+
+- [x] Settings > Playback > Volume Normalization: By Album. Play a song with ReplayGain tags: Now Playing's quality line ends with its adjustment (e.g. "−6.1 dB") and it plays at that level; a song without tags shows none and sounds as before. (2026-10-13)
+- [ ] While a tagged song plays, switch between Off, By Track and By Album: the volume changes at once with no skip, and the quality line follows.
+- [ ] Play an album with quiet and loud songs By Album, then By Track: By Album keeps the quiet song quiet, By Track brings it up to the others.
 
 ### Sleep timer
 

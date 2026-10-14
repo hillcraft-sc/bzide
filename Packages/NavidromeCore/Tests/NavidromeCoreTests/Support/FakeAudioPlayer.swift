@@ -12,6 +12,11 @@ final class FakeAudioPlayer: AudioPlayer {
     private(set) var isPlaying = false
     private(set) var seeks: [TimeInterval] = []
     var volume: Float = 1
+    private(set) var gains: [QueueEntry.ID: Float] = [:]
+
+    func setGain(_ gain: Float, for entryID: QueueEntry.ID) {
+        gains[entryID] = gain
+    }
 
     var loadedEntryIDs: [QueueEntry.ID] { loaded.map(\.entryID) }
 
@@ -83,6 +88,12 @@ final class FakeAudioPlayer: AudioPlayer {
 
 struct FakeStreamURLs: StreamURLProviding {
     var failingSongIDs: Set<String> = []
+    /// Volume normalization per song id; 1 for others.
+    var gains: [String: Float] = [:]
+
+    func gain(for song: Song) -> Float {
+        gains[song.id] ?? 1
+    }
 
     struct NoURL: Error {}
 

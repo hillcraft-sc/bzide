@@ -11,6 +11,8 @@ public struct PlaybackQuality: Sendable, Equatable {
     public var isConverted: Bool
     /// Playing from a downloaded file rather than streaming.
     public var isDownloaded: Bool
+    /// The volume normalization applied, in decibels; `nil` for none.
+    public var normalization: Double?
 
     public init(format: String?, bitRate: Int?, isConverted: Bool = false, isDownloaded: Bool = false) {
         self.format = format?.uppercased()
@@ -26,7 +28,16 @@ public struct PlaybackQuality: Sendable, Equatable {
         if let bitRate { parts.append("\(bitRate.formatted()) kbps") }
         if isConverted { parts.append("Converted") }
         if isDownloaded { parts.append("Downloaded") }
+        if let normalization { parts.append(Self.decibels(normalization)) }
         return parts.isEmpty ? "Unknown quality" : parts.joined(separator: " · ")
+    }
+
+    /// e.g. "−4.2 dB", "+1.5 dB", "0 dB".
+    static func decibels(_ value: Double) -> String {
+        let rounded = (value * 10).rounded() / 10
+        if rounded == 0 { return "0 dB" }
+        let magnitude = abs(rounded).formatted(.number.precision(.fractionLength(1)))
+        return "\(rounded < 0 ? "\u{2212}" : "+")\(magnitude) dB"
     }
 
     /// The original, as the server describes it.

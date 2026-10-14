@@ -46,8 +46,20 @@ public final class TrackResolver: StreamURLProviding {
         return try client.streamURL(songID: song.id, maxBitRate: bitRate, format: bitRate == nil ? nil : "mp3")
     }
 
-    /// Decided the same way as `streamURL(for:)`, so it describes the same choice.
+    /// Decided the same way as `streamURL(for:)`, so it describes the same
+    /// choice, with the volume normalization applied.
     public func quality(for song: Song) -> PlaybackQuality? {
+        var quality = source(of: song)
+        quality.normalization = settings.settings.volumeNormalization.decibels(for: song.replayGain)
+        return quality
+    }
+
+    /// The volume normalization for the song, from its ReplayGain.
+    public func gain(for song: Song) -> Float {
+        settings.settings.volumeNormalization.gain(for: song.replayGain)
+    }
+
+    private func source(of song: Song) -> PlaybackQuality {
         guard let local = downloads.localFile(forSongID: song.id) else {
             return .streamed(song, cap: streamingCap)
         }

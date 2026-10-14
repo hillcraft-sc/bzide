@@ -358,6 +358,16 @@ public final class PlaybackEngine {
         saveSnapshot()
     }
 
+    /// Applies the volume normalization setting to the current and next
+    /// songs at once (later songs get it as they load). Call after it changes.
+    public func refreshGains() {
+        // The current song, the next, and the first (what repeat all wraps to).
+        let loaded = Array(queue.fromCurrent.prefix(2)) + Array(queue.entries.prefix(1))
+        for entry in loaded where !entry.song.isLive {
+            player.setGain(urls.gain(for: entry.song), for: entry.id)
+        }
+    }
+
     /// The player's volume on top of the system's, 0...1. Only for fades
     /// (the sleep timer); 1 is normal.
     public var outputVolume: Float {
@@ -844,7 +854,7 @@ public final class PlaybackEngine {
             if let live = entry.song.liveStreamURL {
                 return PlayerItem(entryID: entry.id, url: live, isLive: true)
             }
-            let item = PlayerItem(entryID: entry.id, url: try urls.streamURL(for: entry.song))
+            let item = PlayerItem(entryID: entry.id, url: try urls.streamURL(for: entry.song), gain: urls.gain(for: entry.song))
             recordQuality(of: entry)
             return item
         } catch {

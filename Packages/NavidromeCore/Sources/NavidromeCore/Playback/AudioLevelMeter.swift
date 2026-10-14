@@ -10,7 +10,8 @@ import Synchronization
 /// allocate, or touch the main actor: levels go into atomics, and samples into
 /// a buffer reserved up front, written only if its lock is free at that
 /// instant (otherwise that buffer's samples are skipped). The UI reads both
-/// whenever it draws. The audio passes through untouched.
+/// whenever it draws. Each tap can also apply a gain (volume normalization),
+/// changeable while it plays; at 1 the audio passes through untouched.
 public final class AudioLevelMeter: Sendable {
     private let leftBits = Atomic<UInt32>(0)
     private let rightBits = Atomic<UInt32>(0)
@@ -57,41 +58,63 @@ public final class AudioLevelMeter: Sendable {
         callbacks.load(ordering: .relaxed)
     }
 
-    /// A new tap feeding this meter, for one player item. The meter must outlive
-    /// it (the app keeps one for its lifetime): the tap holds it unretained.
-    func makeTap() -> MTAudioProcessingTap? {
+    /// A new tap for one player item: it applies `gain` and feeds this meter.
+    /// Its context (meter and gain) is retained by the tap and released when
+    /// the tap is finalized.
+    func makeTap(gain: TapGain = TapGain()) -> MTAudioProcessingTap? {
+        let context = Unmanaged.passRetained(TapContext(meter: self, gain: gain))
         var callbacks = MTAudioProcessingTapCallbacks(
             version: kMTAudioProcessingTapCallbacksVersion_0,
-            clientInfo: Unmanaged.passUnretained(self).toOpaque(),
+            clientInfo: context.toOpaque(),
             init: { _, clientInfo, storageOut in
                 storageOut.pointee = clientInfo
             },
-            finalize: nil,
+            finalize: { tap in
+                Unmanaged<TapContext>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).release()
+            },
             prepare: { tap, _, format in
-                let meter = AudioLevelMeter.meter(of: tap)
+                let context = AudioLevelMeter.context(of: tap)
                 let description = format.pointee
-                meter.sampleRateBits.store(description.mSampleRate.bitPattern, ordering: .relaxed)
-                meter.isFloat.store(
-                    description.mFormatFlags & kAudioFormatFlagIsFloat != 0 && description.mBitsPerChannel == 32,
-                    ordering: .relaxed
-                )
+                let isFloat = description.mFormatFlags & kAudioFormatFlagIsFloat != 0 && description.mBitsPerChannel == 32
+                context.isFloat.store(isFloat, ordering: .relaxed)
+                context.meter.sampleRateBits.store(description.mSampleRate.bitPattern, ordering: .relaxed)
+                context.meter.isFloat.store(isFloat, ordering: .relaxed)
             },
             unprepare: nil,
             process: { tap, frames, _, bufferList, framesOut, flagsOut in
-                // Pass the audio through in place, then measure it if wanted.
+                // Pass the audio through in place, apply the gain, then measure it if wanted.
                 guard MTAudioProcessingTapGetSourceAudio(tap, frames, bufferList, flagsOut, nil, framesOut) == noErr else { return }
-                let meter = AudioLevelMeter.meter(of: tap)
-                guard meter.measuring.load(ordering: .relaxed) else { return }
-                meter.measure(UnsafeMutableAudioBufferListPointer(bufferList))
+                let context = AudioLevelMeter.context(of: tap)
+                let buffers = UnsafeMutableAudioBufferListPointer(bufferList)
+                if context.isFloat.load(ordering: .relaxed) {
+                    AudioLevelMeter.apply(context.gain.value, to: buffers)
+                }
+                guard context.meter.measuring.load(ordering: .relaxed) else { return }
+                context.meter.measure(buffers)
             }
         )
         var tap: MTAudioProcessingTap?
         let status = MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks, kMTAudioProcessingTapCreationFlag_PostEffects, &tap)
-        return status == noErr ? tap : nil
+        guard status == noErr else {
+            context.release()
+            return nil
+        }
+        return tap
     }
 
-    private static func meter(of tap: MTAudioProcessingTap) -> AudioLevelMeter {
-        Unmanaged<AudioLevelMeter>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
+    private static func context(of tap: MTAudioProcessingTap) -> TapContext {
+        Unmanaged<TapContext>.fromOpaque(MTAudioProcessingTapGetStorage(tap)).takeUnretainedValue()
+    }
+
+    /// Multiplies 32-bit float samples by `gain`, in place. Real-time safe.
+    static func apply(_ gain: Float, to buffers: UnsafeMutableAudioBufferListPointer) {
+        guard gain != 1 else { return }
+        var factor = gain
+        for buffer in buffers {
+            let count = Int(buffer.mDataByteSize) / MemoryLayout<Float>.size
+            guard count > 0, let data = buffer.mData?.assumingMemoryBound(to: Float.self) else { continue }
+            vDSP_vsmul(data, 1, &factor, data, 1, vDSP_Length(count))
+        }
     }
 
     /// Real-time safe: no allocation, no locks. One buffer per channel
@@ -119,6 +142,34 @@ public final class AudioLevelMeter: Sendable {
         var result: Float = 0
         vDSP_rmsqv(data, 1, &result, vDSP_Length(count))
         return result
+    }
+}
+
+/// The gain one item's tap applies (volume normalization), changeable from
+/// the main actor while the audio thread reads it.
+public final class TapGain: Sendable {
+    private let bits: Atomic<UInt32>
+
+    public init(_ value: Float = 1) {
+        bits = Atomic(value.bitPattern)
+    }
+
+    public var value: Float {
+        get { Float(bitPattern: bits.load(ordering: .relaxed)) }
+        set { bits.store(newValue.bitPattern, ordering: .relaxed) }
+    }
+}
+
+/// What one tap needs on the audio thread: the shared meter, its own gain, and
+/// whether its format is one the gain can be applied to.
+private final class TapContext: Sendable {
+    let meter: AudioLevelMeter
+    let gain: TapGain
+    let isFloat = Atomic<Bool>(false)
+
+    init(meter: AudioLevelMeter, gain: TapGain) {
+        self.meter = meter
+        self.gain = gain
     }
 }
 
