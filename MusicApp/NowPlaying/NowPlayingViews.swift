@@ -106,6 +106,9 @@ struct NowPlayingView: View {
                     Button("Close", systemImage: "chevron.down") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
+                    SleepTimerMenu(timer: library.sleepTimer)
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Button("Save Queue as Playlist", systemImage: "text.badge.plus") {
                         library.addToPlaylist.open(savableQueue, title: "Save Queue")
                     }

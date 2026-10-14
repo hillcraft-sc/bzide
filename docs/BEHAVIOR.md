@@ -83,6 +83,13 @@ How the app behaves, written so the web and Android clients can be ported from t
 - The waveform shows 512 samples (about 12 ms) starting at a rising zero crossing, so it holds still like an oscilloscope, averaged to 128 points and scaled up 2.5× for typical music levels. It eases halfway to each new frame, and flattens out when the audio stops.
 - For a radio station it shows "The visualizer isn't available for radio.", and over AirPlay "The visualizer isn't available over AirPlay." (neither can be tapped; see Audio levels). Both follow changes while it's open.
 
+### Sleep timer
+
+- Now Playing's moon button (top bar, beside Save Queue) offers 15, 30 and 45 minutes, 1 hour, and End of Song; while a timer runs it also offers Turn Off Timer, and the button shows a filled moon and when the music will stop, counting down each second in the accent: the time left on the timer ("14:53"), or for End of Song the time left in the song ("End" if its length isn't known). Choosing again replaces the running timer.
+- **Timed:** it counts to a fixed clock time, so it stays right with the screen locked and the app in the background. Over the last 10 seconds the music fades out (the player's own volume, on top of the system volume), then pauses, and the volume goes back to normal so the next Play isn't silent.
+- **End of Song:** waits for the song playing when it was set. The song fades out over its last 4 seconds (position estimated smoothly between the engine's updates), and when it ends the music pauses: the next song, already started silently for gapless playback, is paused at once and the volume restored. Skipping to another song before the end moves the timer to that song; the queue running out ends it.
+- Pausing early doesn't cancel it; it ends quietly. Turning it off mid-fade restores the volume. The timer isn't saved, so a forgotten one can't stop the music another day. The fade volume is kept if the player is rebuilt after a media services reset.
+
 ### Lyrics
 
 - Now Playing's speech-bubble button (between AirPlay and the visualizer's waveform) opens the song's lyrics full screen over a blurred, darkened copy of its cover (a dark gradient without one), with a close button at the top and the title, artist, previous, play/pause and next at the bottom. It follows the queue: skipping changes the lyrics.
@@ -453,6 +460,12 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Choose Polygraph: paper fills the screen and four needles reach down from the top edge, drawing on it as it runs down; the first three lines swing with the bass, mids and treble (the bass pen kicks on drum hits), the fourth hatches with the loudness. Pause: the paper keeps running and the needles settle to center, drawing flat lines; play again: the lines pick up without a jolt. Sideways: the needles reach in from the left and the paper runs right. The paper fills the screen and the controls (dark, over the paper) stay readable. Try Multicolor: one ink per pen, all readable on the paper. (2026-10-13)
 - [ ] Scroll quickly through Albums and skip songs fast: every row and Now Playing always shows the right cover.
 - [x] In a Catppuccin theme, the visualizer menu offers Accent, Multicolor and Custom, and "Choose Custom Colors…": pick a few accents (at least two stay), Done: the bars, waveform and plasma use just those, in palette order. Switch to a non-Catppuccin theme: Custom isn't offered and the colors show as Multicolor. (2026-10-13)
+
+### Sleep timer
+
+- [x] Now Playing > moon > 15 Minutes: the moon shows 15:00 counting down. Lock the phone: after 15 minutes the music fades out over about 10 seconds and pauses. Press play: normal volume. (2026-10-13)
+- [x] Moon > End of Song near the end of a song: it fades out over the last few seconds and stops as the song ends, with no burst of the next song. Set it again and skip to the next song early: that song plays, and the music stops at its end. (2026-10-13)
+- [ ] Start a timer, then Moon > Turn Off Timer: the moon goes back to normal and the music keeps playing. Start one and pause before it ends: nothing happens when it runs out.
 
 ### Lyrics
 

@@ -61,6 +61,9 @@ public protocol AudioPlayer: AnyObject {
     func play()
     func pause()
     func seek(to position: TimeInterval)
+    /// The player's own volume, 0...1 (1 is normal), on top of the system
+    /// volume. For fades, such as the sleep timer's; kept across `rebuild()`.
+    var volume: Float { get set }
     /// Throws away the underlying player and everything loaded, and starts a
     /// fresh one. For after the system's audio services reset. Reports nothing
     /// about the old player.

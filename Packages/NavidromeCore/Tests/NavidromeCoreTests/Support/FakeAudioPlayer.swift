@@ -11,6 +11,7 @@ final class FakeAudioPlayer: AudioPlayer {
     private(set) var setItemsCalls: [(items: [PlayerItem], startPosition: TimeInterval)] = []
     private(set) var isPlaying = false
     private(set) var seeks: [TimeInterval] = []
+    var volume: Float = 1
 
     var loadedEntryIDs: [QueueEntry.ID] { loaded.map(\.entryID) }
 

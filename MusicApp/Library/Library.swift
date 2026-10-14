@@ -24,6 +24,7 @@ final class Library {
     let profile: ProfileModel
     /// Keeps downloaded playlists in step with the server.
     let playlistRefresher: PlaylistDownloadRefresher
+    let sleepTimer: SleepTimer
     private let client: SubsonicClient
 
     init(
@@ -38,6 +39,7 @@ final class Library {
         self.playlistRefresher = playlistRefresher
         self.client = client
         self.engine = engine
+        self.sleepTimer = SleepTimer(target: engine)
         self.artwork = artwork
         self.settings = settings
         self.stars = StarModel { [client] target, starred async throws(SubsonicError) in

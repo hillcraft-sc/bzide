@@ -358,6 +358,13 @@ public final class PlaybackEngine {
         saveSnapshot()
     }
 
+    /// The player's volume on top of the system's, 0...1. Only for fades
+    /// (the sleep timer); 1 is normal.
+    public var outputVolume: Float {
+        get { player.volume }
+        set { player.volume = newValue }
+    }
+
     public func seek(to target: TimeInterval) {
         defer { publishNowPlaying() }
         guard !queue.isEmpty, !isLive else { return }

@@ -89,6 +89,10 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         seek(current, to: position)
     }
 
+    public var volume: Float = 1 {
+        didSet { player.volume = volume }
+    }
+
     public func rebuild() {
         // Stop listening first, so tearing down the old player reports nothing.
         stopObservingPlayer()
@@ -97,6 +101,7 @@ public final class AVQueueAudioPlayer: AudioPlayer {
         forgetItems(except: [])
         pendingSeek = nil
         player = AVQueuePlayer()
+        player.volume = volume
         observePlayer()
     }
 
