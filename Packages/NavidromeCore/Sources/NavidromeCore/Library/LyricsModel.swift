@@ -9,7 +9,8 @@ import Observation
 /// 4. LRCLIB's plain lyrics, if allowed.
 ///
 /// So synced lyrics win wherever they come from, and the server wins between
-/// equals. Results are kept for the session, so reopening is instant.
+/// equals. Results are kept for the session, so reopening is instant. When
+/// nothing is found, a note says why, so a gap can be told from a bad match.
 @MainActor
 @Observable
 public final class LyricsModel {
@@ -19,7 +20,9 @@ public final class LyricsModel {
         case loaded(Lyrics)
         /// LRCLIB knows the song has no words.
         case instrumental
-        case none
+        /// Nothing found; `note` says why (online lookup off, LRCLIB had
+        /// nothing, or only a version that didn't fit).
+        case none(note: String?)
         /// Radio streams have no lyrics to look up.
         case radio
         case failed(String)
@@ -42,58 +45,72 @@ public final class LyricsModel {
     public enum OnlineLyrics: Sendable, Equatable {
         case lyrics(Lyrics)
         case instrumental
+        /// Nothing usable: the closest candidate turned down, or `nil` if
+        /// there were none.
+        case notFound(LyricsMatching.Rejection?)
     }
+
+    /// The note when lyrics could be found online but the user hasn't allowed it.
+    public static let onlineOffNote = "Turning on Find Lyrics Online in Settings > Lyrics would also search LRCLIB."
+    /// The note when LRCLIB couldn't be reached but the server answered.
+    public static let onlineFailedNote = "LRCLIB couldn't be reached to look further."
 
     public private(set) var state: State = .idle
     @ObservationIgnored private let sources: Sources
     @ObservationIgnored private var cache: [String: State] = [:]
-    @ObservationIgnored private var loadingKey: String?
+    /// Bumped by each load; only the latest load's answer is shown.
+    @ObservationIgnored private var generation = 0
 
     public init(sources: Sources) {
         self.sources = sources
     }
 
-    /// Loads lyrics for `song` unless they're already showing. A newer
-    /// request always wins: a slow answer for an earlier song is dropped.
+    /// Loads lyrics for `song` unless they're already known. A newer request
+    /// always wins: a slow answer for an earlier song is dropped. A canceled
+    /// load (the screen closed mid-search) shows and keeps nothing, so the
+    /// next one starts afresh.
     public func load(_ song: Song?, onlineAllowed: Bool) async {
+        generation += 1
+        let mine = generation
         guard let song else {
-            loadingKey = nil
-            state = .none
+            state = .none(note: nil)
             return
         }
         guard !song.isLive else {
-            loadingKey = nil
             state = .radio
             return
         }
         let key = "\(song.id)|\(onlineAllowed)"
         if let cached = cache[key] {
-            loadingKey = nil
             state = cached
             return
         }
-        guard loadingKey != key else { return }
-        loadingKey = key
         state = .loading
-        let result = await find(song, onlineAllowed: onlineAllowed)
-        // Another song may have been asked for meanwhile.
-        guard loadingKey == key else { return }
-        loadingKey = nil
-        if case .failed = result {} else {
-            cache[key] = result
-        }
-        state = result
+        let found = await find(song, onlineAllowed: onlineAllowed)
+        // Another load started meanwhile, or this one was canceled.
+        guard mine == generation, !Task.isCancelled, let found else { return }
+        // A failure is tried again next time, so a brief outage isn't kept.
+        if found.isComplete { cache[key] = found.state }
+        state = found.state
     }
 
-    private func find(_ song: Song, onlineAllowed: Bool) async -> State {
+    /// An answer, and whether every source answered (so it can be kept).
+    private struct Found {
+        var state: State
+        var isComplete: Bool
+    }
+
+    /// `nil` if a lookup was canceled.
+    private func find(_ song: Song, onlineAllowed: Bool) async -> Found? {
         var serverFailed = false
         var server: Lyrics?
         do {
             server = try await sources.server(song)
         } catch {
+            if Self.isCancellation(error) { return nil }
             serverFailed = true
         }
-        if let server, server.isSynced { return .loaded(server) }
+        if let server, server.isSynced { return Found(state: .loaded(server), isComplete: true) }
 
         var onlineFailed = false
         var online: OnlineLyrics?
@@ -101,16 +118,33 @@ public final class LyricsModel {
             do {
                 online = try await sources.online(song)
             } catch {
+                if Self.isCancellation(error) { return nil }
                 onlineFailed = true
             }
         }
-        if case .lyrics(let lyrics) = online, lyrics.isSynced { return .loaded(lyrics) }
-        if let server { return .loaded(server) }
-        if case .lyrics(let lyrics) = online { return .loaded(lyrics) }
-        if case .instrumental = online { return .instrumental }
+        let isComplete = !serverFailed && !onlineFailed
+        if case .lyrics(let lyrics) = online, lyrics.isSynced { return Found(state: .loaded(lyrics), isComplete: true) }
+        if let server { return Found(state: .loaded(server), isComplete: isComplete) }
+        if case .lyrics(let lyrics) = online { return Found(state: .loaded(lyrics), isComplete: isComplete) }
+        if case .instrumental = online { return Found(state: .instrumental, isComplete: isComplete) }
         // Nothing found: say so, unless nothing could be asked.
         let couldAsk = !serverFailed || (onlineAllowed && !onlineFailed)
-        return couldAsk ? .none : .failed("Couldn't load lyrics. Check your connection and try again.")
+        guard couldAsk else { return Found(state: .failed("Couldn't load lyrics. Check your connection and try again."), isComplete: false) }
+        let note = Self.note(onlineAllowed: onlineAllowed, onlineFailed: onlineFailed, online: online)
+        return Found(state: .none(note: note), isComplete: isComplete)
+    }
+
+    /// A canceled request isn't a failure: nobody is waiting for the answer.
+    private static func isCancellation(_ error: any Error) -> Bool {
+        error is CancellationError || (error as? URLError)?.code == .cancelled
+    }
+
+    /// Why nothing was found online, for the No Lyrics message.
+    private static func note(onlineAllowed: Bool, onlineFailed: Bool, online: OnlineLyrics?) -> String {
+        guard onlineAllowed else { return onlineOffNote }
+        guard !onlineFailed else { return onlineFailedNote }
+        if case .notFound(let rejection) = online { return LyricsMatching.explain(rejection) }
+        return LyricsMatching.explain(nil)
     }
 }
 
@@ -137,10 +171,16 @@ extension LyricsModel.Sources {
                 return Lyrics(plain: text, source: .server)
             },
             online: { song in
-                guard let found = try await lrclib.lyrics(
+                let lookup = try await lrclib.lookUp(
                     title: song.title, artist: song.artist, album: song.album, duration: song.duration
-                ) else { return nil }
-                return LyricsModel.onlineLyrics(from: found, songDuration: song.duration.map(Double.init))
+                )
+                switch lookup {
+                case .found(let found):
+                    return LyricsModel.onlineLyrics(from: found, songDuration: song.duration.map(Double.init))
+                        ?? .notFound(nil)
+                case .notFound(let rejection):
+                    return .notFound(rejection)
+                }
             }
         )
     }

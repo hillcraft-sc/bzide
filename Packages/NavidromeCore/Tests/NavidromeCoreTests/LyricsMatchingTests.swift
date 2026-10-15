@@ -65,6 +65,34 @@ struct LyricsMatchingTests {
         #expect(exact > plain)
     }
 
+    @Test func aTurnedDownCandidateSaysWhy() {
+        #expect(LyricsMatching.judge(candidate(duration: 204), for: song) == .failure(.length(difference: 4)))
+        #expect(LyricsMatching.judge(candidate(duration: 197), for: song) == .failure(.length(difference: -3)))
+        #expect(LyricsMatching.judge(candidate(title: "Slow an' Easy"), for: song) == .failure(.title("Slow an' Easy")))
+        #expect(LyricsMatching.judge(candidate(artist: "Another Band"), for: song) == .failure(.artist("Another Band")))
+        // A live take of the same song is another performance, not another song.
+        #expect(LyricsMatching.judge(candidate(title: "My Evil Ways (Live)"), for: song) == .failure(.performance(candidate: ["live"], song: [])))
+        #expect(LyricsMatching.judge(candidate(album: "Live at Donington"), for: song) == .failure(.performance(candidate: ["live"], song: [])))
+    }
+
+    @Test func theClosestReasonIsTheOneGiven() {
+        let reasons: [LyricsMatching.Rejection] = [.title("Other"), .length(difference: 9), .artist("Someone"), .length(difference: -4)]
+        #expect(LyricsMatching.closest(reasons) == .length(difference: -4))
+        #expect(LyricsMatching.closest([.title("Other"), .performance(candidate: ["live"], song: [])]) == .performance(candidate: ["live"], song: []))
+        #expect(LyricsMatching.closest([]) == nil)
+    }
+
+    @Test func reasonsReadPlainly() {
+        #expect(LyricsMatching.explain(nil) == "LRCLIB has no lyrics for this song either.")
+        #expect(LyricsMatching.explain(.length(difference: 4.2)).contains("a version 4 seconds longer"))
+        #expect(LyricsMatching.explain(.length(difference: -1)).contains("a version 1 second shorter"))
+        #expect(LyricsMatching.explain(.performance(candidate: ["live"], song: [])).contains("for a live version"))
+        #expect(LyricsMatching.explain(.performance(candidate: ["acoustic"], song: [])).contains("for an acoustic version"))
+        #expect(LyricsMatching.explain(.performance(candidate: [], song: ["live"])).contains("for a studio version"))
+        #expect(LyricsMatching.explain(.artist("Another Band")).contains("by Another Band"))
+        #expect(LyricsMatching.explain(.title("Slow an' Easy")).contains("\u{201C}Slow an' Easy\u{201D}"))
+    }
+
     @Test func accentedArtistsMatch() {
         let crue = LyricsMatching.Song(title: "Kickstart My Heart", artist: "Motley Crue", album: nil, duration: 282)
         #expect(LyricsMatching.score(candidate(title: "Kickstart My Heart", artist: "Mötley Crüe", duration: 282), for: crue) != nil)
@@ -102,6 +130,22 @@ struct LyricsMatchingTests {
         let results = "[" + Self.record("My Evil Ways (Live)", artist: "Whitesnake", duration: 260, synced: "[00:01.00] wrong") + "]"
         let transport = FakeTransport(.json("{}", status: 404), .json(results))
         #expect(try await LRCLIBClient(transport: transport).lyrics(title: "My Evil Ways", artist: "Whitesnake", album: nil, duration: 200) == nil)
+    }
+
+    @Test func noGoodMatchSaysWhyAboutTheClosest() async throws {
+        let results = "[" + [
+            Self.record("Slow an' Easy", artist: "Whitesnake", duration: 200, synced: "[00:01.00] other song"),
+            Self.record("My Evil Ways", artist: "Whitesnake", duration: 204, synced: "[00:01.00] longer"),
+        ].joined(separator: ",") + "]"
+        let transport = FakeTransport(.json("{}", status: 404), .json(results))
+        let lookup = try await LRCLIBClient(transport: transport).lookUp(title: "My Evil Ways", artist: "Whitesnake", album: nil, duration: 200)
+        #expect(lookup == .notFound(.length(difference: 4)))
+    }
+
+    @Test func nothingOnLRCLIBHasNoReason() async throws {
+        let transport = FakeTransport(.json("{}", status: 404), .json("[]"))
+        let lookup = try await LRCLIBClient(transport: transport).lookUp(title: "My Evil Ways", artist: "Whitesnake", album: nil, duration: 200)
+        #expect(lookup == .notFound(nil))
     }
 }
 

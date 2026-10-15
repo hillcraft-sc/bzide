@@ -140,8 +140,8 @@ struct LyricsView: View {
             plainLyrics(lyrics)
         case .instrumental:
             message("Instrumental", "This song has no words.", symbol: "music.note")
-        case .none:
-            message("No Lyrics", "There are no lyrics for this song.", symbol: "quote.bubble")
+        case .none(let note):
+            message("No Lyrics", ["There are no lyrics for this song.", note].compactMap(\.self).joined(separator: "\n\n"), symbol: "quote.bubble")
         case .radio:
             message("No Lyrics", "Lyrics aren't available for radio.", symbol: "headphones.sensor.tag.radiowaves.left.and.right") // dot.radiowaves.left.and.right
         case .failed(let text):

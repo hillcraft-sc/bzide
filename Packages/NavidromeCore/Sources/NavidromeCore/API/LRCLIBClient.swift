@@ -33,11 +33,26 @@ public struct LRCLIBClient: Sendable {
     /// `LyricsMatching`). A weak match is turned down: no lyrics beat lyrics
     /// for another recording.
     public func lyrics(title: String, artist: String?, album: String?, duration: Int?) async throws -> Result? {
+        if case .found(let result) = try await lookUp(title: title, artist: artist, album: album, duration: duration) {
+            return result
+        }
+        return nil
+    }
+
+    /// What a lookup found: lyrics, or why there were none.
+    public enum Lookup: Equatable, Sendable {
+        case found(Result)
+        /// The closest candidate turned down, or `nil` if LRCLIB had none.
+        case notFound(LyricsMatching.Rejection?)
+    }
+
+    /// The same as `lyrics`, saying why when nothing qualifies.
+    public func lookUp(title: String, artist: String?, album: String?, duration: Int?) async throws -> Lookup {
         let cleaned = LyricsMatching.cleanTitle(title)
         if artist != nil {
             for name in cleaned == title ? [title] : [title, cleaned] {
                 if let record = try await fetch("api/get", exactQuery(name, artist: artist, album: album, duration: duration), as: Record.self) {
-                    return record.result
+                    return .found(record.result)
                 }
             }
         }
@@ -46,10 +61,18 @@ public struct LRCLIBClient: Sendable {
         if let artist { search.append(.init(name: "artist_name", value: artist)) }
         let found = try await fetch("api/search", search, as: [Record].self) ?? []
         let song = LyricsMatching.Song(title: title, artist: artist, album: album, duration: duration)
-        let best = found
-            .compactMap { record in LyricsMatching.score(record.candidate, for: song).map { (record, $0) } }
-            .max { $0.1 < $1.1 }
-        return best?.0.result
+        var best: (record: Record, score: Double)?
+        var rejections: [LyricsMatching.Rejection] = []
+        for record in found {
+            switch LyricsMatching.judge(record.candidate, for: song) {
+            case .success(let score):
+                if score > best?.score ?? -.infinity { best = (record, score) }
+            case .failure(let rejection):
+                rejections.append(rejection)
+            }
+        }
+        if let best { return .found(best.record.result) }
+        return .notFound(LyricsMatching.closest(rejections))
     }
 
     private func exactQuery(_ title: String, artist: String?, album: String?, duration: Int?) -> [URLQueryItem] {
@@ -68,10 +91,27 @@ public struct LRCLIBClient: Sendable {
         var request = URLRequest(url: url)
         request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
         Self.logger.debug("GET \(path, privacy: .public)")
-        let (data, response) = try await transport.data(for: request)
+        // Failures are logged by kind only (no song details), to tell an
+        // outage from LRCLIB turning requests away or an unreadable reply.
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await transport.data(for: request)
+        } catch let error as URLError where error.code != .cancelled {
+            Self.logger.error("GET \(path, privacy: .public) failed: URLError \(error.code.rawValue, privacy: .public)")
+            throw error
+        }
         if response.statusCode == 404 { return nil }
-        guard (200..<300).contains(response.statusCode) else { throw URLError(.badServerResponse) }
-        return try JSONDecoder().decode(T.self, from: data)
+        guard (200..<300).contains(response.statusCode) else {
+            Self.logger.error("GET \(path, privacy: .public) failed: HTTP \(response.statusCode, privacy: .public)")
+            throw URLError(.badServerResponse)
+        }
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            Self.logger.error("GET \(path, privacy: .public) failed: unreadable reply (\(data.count, privacy: .public) bytes)")
+            throw error
+        }
     }
 
     private struct Record: Decodable {

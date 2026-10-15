@@ -80,7 +80,21 @@ struct LyricsModelTests {
     @Test func noLyricsAnywhere() async {
         let lyrics = model(server: nil, online: nil)
         await lyrics.load(song, onlineAllowed: true)
-        #expect(lyrics.state == .none)
+        #expect(lyrics.state == .none(note: "LRCLIB has no lyrics for this song either."))
+    }
+
+    @Test func noLyricsSaysWhyNothingWasFoundOnline() async {
+        let turnedDown = model(server: nil, online: .notFound(.performance(candidate: ["live"], song: [])))
+        await turnedDown.load(song, onlineAllowed: true)
+        #expect(turnedDown.state == .none(note: LyricsMatching.explain(.performance(candidate: ["live"], song: []))))
+
+        let notAllowed = model(server: nil, online: nil)
+        await notAllowed.load(song, onlineAllowed: false)
+        #expect(notAllowed.state == .none(note: LyricsModel.onlineOffNote))
+
+        let unreachable = model(server: nil, online: nil, onlineFails: true)
+        await unreachable.load(song, onlineAllowed: true)
+        #expect(unreachable.state == .none(note: LyricsModel.onlineFailedNote))
     }
 
     @Test func anUnreachableServerIsAFailureUnlessOnlineAnswered() async {
@@ -92,7 +106,7 @@ struct LyricsModelTests {
         }
         let answered = model(server: nil, online: nil, serverFails: true)
         await answered.load(song, onlineAllowed: true)
-        #expect(answered.state == .none)
+        #expect(answered.state == .none(note: "LRCLIB has no lyrics for this song either."))
     }
 
     @Test func radioHasNoLyrics() async {
@@ -114,6 +128,63 @@ struct LyricsModelTests {
         await offline.load(song, onlineAllowed: false)
         await offline.load(song, onlineAllowed: false)
         #expect(await failing.server == 2)
+    }
+
+    @Test func aFailedLookupOnlineIsTriedAgain() async {
+        let calls = Calls()
+        let lyrics = model(server: nil, online: nil, onlineFails: true, calls: calls)
+        await lyrics.load(song, onlineAllowed: true)
+        #expect(lyrics.state == .none(note: LyricsModel.onlineFailedNote))
+        await lyrics.load(song, onlineAllowed: true)
+        #expect(await calls.online == 2)
+    }
+
+    @Test func aCanceledLoadShowsAndKeepsNothing() async {
+        let calls = Calls()
+        let gate = Gate()
+        let lyrics = LyricsModel(sources: .init(
+            server: { _ in nil },
+            online: { _ in
+                await calls.countOnline()
+                await gate.wait()
+                // What URLSession throws when its task is canceled.
+                if Task.isCancelled { throw URLError(.cancelled) }
+                return .lyrics(Lyrics(plain: "Online plain", source: .lrclib))
+            }
+        ))
+        // The lyrics screen closes while LRCLIB is being searched.
+        let closed = Task { await lyrics.load(song, onlineAllowed: true) }
+        while lyrics.state != .loading { await Task.yield() }
+        closed.cancel()
+        await gate.open()
+        await closed.value
+        #expect(lyrics.state == .loading)
+        // Reopened: asked again, not a remembered failure.
+        await lyrics.load(song, onlineAllowed: true)
+        #expect(lyrics.state == .loaded(Lyrics(plain: "Online plain", source: .lrclib)))
+        #expect(await calls.online == 2)
+    }
+
+    @Test func reopeningWhileACanceledLoadIsStillRunningStillLoads() async {
+        let gate = Gate()
+        let answer = Lyrics(plain: "Online plain", source: .lrclib)
+        let lyrics = LyricsModel(sources: .init(
+            server: { _ in nil },
+            online: { _ in
+                await gate.wait()
+                if Task.isCancelled { throw URLError(.cancelled) }
+                return .lyrics(answer)
+            }
+        ))
+        let closed = Task { await lyrics.load(song, onlineAllowed: true) }
+        while lyrics.state != .loading { await Task.yield() }
+        closed.cancel()
+        // Reopened before the canceled search has ended.
+        let reopened = Task { await lyrics.load(song, onlineAllowed: true) }
+        await gate.open()
+        await closed.value
+        await reopened.value
+        #expect(lyrics.state == .loaded(answer))
     }
 
     @Test func aSlowAnswerForAnEarlierSongIsDropped() async {
