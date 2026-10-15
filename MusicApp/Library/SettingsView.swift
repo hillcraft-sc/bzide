@@ -88,6 +88,14 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Find Stations Online", isOn: $settings.settings.findStationsOnline)
+            } header: {
+                Text("Radio")
+            } footer: {
+                Text(StationSearchView.optInExplanation)
+            }
+            .themedRows(grouped: true)
+            Section {
                 Picker("Keep History For", selection: $history.retention) {
                     ForEach(HistoryRetention.allCases, id: \.self) { retention in
                         Text(retention.title).tag(retention)

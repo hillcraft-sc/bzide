@@ -11,6 +11,7 @@ struct RadioView: View {
     @State private var editing: StationEditor.Target?
     @State private var deleting: RadioStation?
     @State private var errorMessage: String?
+    @State private var isFinding = false
 
     init(library: Library) {
         self.library = library
@@ -37,9 +38,13 @@ struct RadioView: View {
         }
         .navigationTitle("Radio")
         .toolbar {
+            Button("Find Stations", systemImage: "magnifyingglass") { isFinding = true }
             if model.canEdit {
                 Button("Add Station", systemImage: "plus") { editing = .new }
             }
+        }
+        .navigationDestination(isPresented: $isFinding) {
+            StationSearchView(library: library, stations: model)
         }
         .sheet(item: $editing) { target in
             StationEditor(model: model, target: target)

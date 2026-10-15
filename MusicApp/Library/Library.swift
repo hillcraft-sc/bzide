@@ -35,6 +35,8 @@ final class Library {
     let spinOff: SpinOffModel
     private let client: SubsonicClient
     private let username: String
+    /// Radio Browser is on the open internet: no shared cache or cookies.
+    private let radioBrowser = RadioBrowserClient(transport: URLSessionTransport(session: URLSession(configuration: .ephemeral)))
 
     init(
         client: SubsonicClient, username: String, engine: PlaybackEngine, artwork: ArtworkCache,
@@ -230,6 +232,14 @@ final class Library {
             create: { [client] station async throws(SubsonicError) in try await client.createRadioStation(station) },
             update: { [client] id, station async throws(SubsonicError) in try await client.updateRadioStation(id: id, station) },
             delete: { [client] id async throws(SubsonicError) in try await client.deleteRadioStation(id: id) }
+        ))
+    }
+
+    func stationSearchModel() -> StationSearchModel {
+        StationSearchModel(sources: .init(
+            search: { [radioBrowser] text, field in try await radioBrowser.search(text, by: field) },
+            popular: { [radioBrowser] in try await radioBrowser.popular() },
+            countPlay: { [radioBrowser] id in try await radioBrowser.countPlay(of: id) }
         ))
     }
 
