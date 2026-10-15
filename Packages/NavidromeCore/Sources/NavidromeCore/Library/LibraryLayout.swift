@@ -3,12 +3,13 @@ import Observation
 
 /// Something the Library screen can show.
 public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
-    case recentlyAdded, randomMix, artists, albums, playlists, favorites, genres, radio, downloads, history
+    case recentlyAdded, randomMix, ratedShuffle, artists, albums, playlists, favorites, genres, radio, downloads, history
 
     public var title: String {
         switch self {
         case .recentlyAdded: "Recently Added"
         case .randomMix: "Random Mix"
+        case .ratedShuffle: "Shuffle Rated"
         case .artists: "Artists"
         case .albums: "Albums"
         case .playlists: "Playlists"
@@ -20,9 +21,14 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// Plays something at once (Random Mix, Shuffle Rated) rather than opening a list.
+    public var isMix: Bool {
+        self == .randomMix || self == .ratedShuffle
+    }
+
     /// Opens a list, rather than being a section of its own.
     public var isLink: Bool {
-        self != .recentlyAdded && self != .randomMix
+        self != .recentlyAdded && !isMix
     }
 }
 
@@ -61,26 +67,30 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
         entries[index].isShown = isShown
     }
 
-    /// How the Library screen draws the shown items: Recently Added and Random
-    /// Mix each on their own, and links next to each other grouped together.
+    /// How the Library screen draws the shown items: Recently Added on its
+    /// own; mixes (Random Mix, Shuffle Rated) next to each other in one block;
+    /// links next to each other in another.
     public enum Group: Equatable, Sendable {
         case recentlyAdded
-        case randomMix
+        case mixes([LibraryFeature])
         case links([LibraryFeature])
     }
 
     public var groups: [Group] {
         var groups: [Group] = []
         for item in shown {
-            switch item {
-            case .recentlyAdded: groups.append(.recentlyAdded)
-            case .randomMix: groups.append(.randomMix)
-            default:
-                if case .links(let links) = groups.last {
-                    groups[groups.count - 1] = .links(links + [item])
+            if item == .recentlyAdded {
+                groups.append(.recentlyAdded)
+            } else if item.isMix {
+                if case .mixes(let mixes) = groups.last {
+                    groups[groups.count - 1] = .mixes(mixes + [item])
                 } else {
-                    groups.append(.links([item]))
+                    groups.append(.mixes([item]))
                 }
+            } else if case .links(let links) = groups.last {
+                groups[groups.count - 1] = .links(links + [item])
+            } else {
+                groups.append(.links([item]))
             }
         }
         return groups
@@ -92,7 +102,8 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
 
     /// Lenient, so a layout saved by another version still works: unknown
     /// items and repeats are dropped, and items added since (like a new kind
-    /// of list) appear, shown, at the end.
+    /// of list) appear, shown, in their usual place: after the item that
+    /// comes before them by default (or first, if that's missing too).
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let saved = (try? c.decode([LossyEntry].self, forKey: .entries)) ?? []
@@ -101,8 +112,13 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
         for case let entry? in saved.map(\.entry) where seen.insert(entry.item).inserted {
             entries.append(entry)
         }
-        for item in LibraryFeature.allCases where !seen.contains(item) {
-            entries.append(Entry(item: item, isShown: true))
+        let all = LibraryFeature.allCases
+        for (position, item) in all.enumerated() where !seen.contains(item) {
+            // After the nearest item before it in the default order that's there.
+            let before = all[..<position].reversed().first { previous in entries.contains { $0.item == previous } }
+            let index = before.flatMap { previous in entries.firstIndex { $0.item == previous } }.map { $0 + 1 } ?? 0
+            entries.insert(Entry(item: item, isShown: true), at: index)
+            seen.insert(item)
         }
         self.entries = entries
     }

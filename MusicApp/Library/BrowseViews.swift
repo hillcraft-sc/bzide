@@ -29,8 +29,8 @@ struct LibraryView: View {
                 case .recentlyAdded:
                     RecentlyAddedSection(library: library, model: recentlyAdded, isCollapsed: $isRecentlyAddedCollapsed)
                         .themedRows(grouped: true)
-                case .randomMix:
-                    randomMixSection
+                case .mixes(let items):
+                    mixesSection(items)
                 case .links(let items):
                     Section {
                         ForEach(items, id: \.self) { item in
@@ -88,18 +88,36 @@ struct LibraryView: View {
         }
     }
 
-    private var randomMixSection: some View {
+    /// Random Mix and Shuffle Rated, in the order chosen, in one block.
+    private func mixesSection(_ items: [LibraryFeature]) -> some View {
         Section {
-            Button {
-                Task { await randomMix.start() }
-            } label: {
-                HStack {
-                    Label("Random Mix", systemImage: "shuffle")
-                    Spacer()
-                    if randomMix.isLoading { ProgressView() }
+            ForEach(items, id: \.self) { item in
+                switch item {
+                case .ratedShuffle:
+                    Button {
+                        Task { await library.spinOff.startRated() }
+                    } label: {
+                        HStack {
+                            Label("Shuffle Rated", systemImage: item.symbol)
+                            Spacer()
+                            if library.spinOff.isStarting { ProgressView() }
+                        }
+                    }
+                    .disabled(library.spinOff.isStarting)
+                    .accessibilityHint("Plays songs rated Rocks or Don't Hate It, shuffled, without end")
+                default:
+                    Button {
+                        Task { await randomMix.start() }
+                    } label: {
+                        HStack {
+                            Label("Random Mix", systemImage: item.symbol)
+                            Spacer()
+                            if randomMix.isLoading { ProgressView() }
+                        }
+                    }
+                    .disabled(randomMix.isLoading)
                 }
             }
-            .disabled(randomMix.isLoading)
         } footer: {
             if let error = randomMix.error {
                 Text(error).foregroundStyle(.red)
@@ -164,6 +182,7 @@ extension LibraryFeature {
         switch self {
         case .recentlyAdded: "clock.badge"
         case .randomMix: "shuffle"
+        case .ratedShuffle: "hand.thumbsup"
         case .artists: "music.microphone"
         case .albums: "square.stack"
         case .playlists: "music.note.list"
@@ -186,7 +205,7 @@ extension LibraryFeature {
         case .radio: .radio
         case .downloads: .downloads
         case .history: .history
-        case .recentlyAdded, .randomMix: nil
+        case .recentlyAdded, .randomMix, .ratedShuffle: nil
         }
     }
 }

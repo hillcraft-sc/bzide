@@ -6,6 +6,8 @@ import Observation
 public enum SpinOffSeed: Codable, Equatable, Sendable {
     case song(id: String, title: String, genre: String?)
     case artist(id: String, name: String)
+    /// Shuffle Rated: endless songs rated Rocks or Don't Hate It.
+    case rated
 
     public init(song: Song) {
         self = .song(id: song.id, title: song.title, genre: song.genre)
@@ -16,7 +18,13 @@ public enum SpinOffSeed: Codable, Equatable, Sendable {
         switch self {
         case .song(_, let title, _): title
         case .artist(_, let name): name
+        case .rated: "Shuffle Rated"
         }
+    }
+
+    /// The queue's heading in Now Playing.
+    public var heading: String {
+        self == .rated ? "Shuffle Rated" : "Spin-off of \u{201C}\(title)\u{201D}"
     }
 
     var genre: String? {
@@ -45,15 +53,19 @@ public final class SpinOffModel {
         public var similarToSong: @Sendable (_ songID: String) async throws -> [Song]
         public var similarToArtist: @Sendable (_ artistID: String) async throws -> [Song]
         public var random: @Sendable (_ genre: String?) async throws -> [Song]
+        /// Every song rated Rocks or Don't Hate It (see `RatedSongPool`).
+        public var rated: @Sendable () async throws -> RatedSongs
 
         public init(
             similarToSong: @escaping @Sendable (String) async throws -> [Song],
             similarToArtist: @escaping @Sendable (String) async throws -> [Song],
-            random: @escaping @Sendable (String?) async throws -> [Song]
+            random: @escaping @Sendable (String?) async throws -> [Song],
+            rated: @escaping @Sendable () async throws -> RatedSongs = { RatedSongs(songs: [], librarySize: 0) }
         ) {
             self.similarToSong = similarToSong
             self.similarToArtist = similarToArtist
             self.random = random
+            self.rated = rated
         }
     }
 
@@ -96,6 +108,29 @@ public final class SpinOffModel {
     /// Plays music grown from the artist.
     public func start(fromArtist artist: Artist) async {
         await start(.artist(id: artist.id, name: artist.name), first: [])
+    }
+
+    /// Shuffle Rated: endless songs rated Rocks or Don't Hate It, reshuffled
+    /// once all have played.
+    public func startRated() async {
+        guard !isStarting else { return }
+        isStarting = true
+        defer { isStarting = false }
+        notice = nil
+        let found: RatedSongs
+        do {
+            found = try await sources.rated()
+        } catch {
+            notice = "Couldn't look through your library. Check your connection and try again."
+            return
+        }
+        guard !found.songs.isEmpty else {
+            notice = found.librarySize == 0
+                ? "This server didn't list its songs, so rated songs can't be found."
+                : "No songs are rated Rocks or Don't Hate It yet. Rate some from their long-press menu."
+            return
+        }
+        engine.startSpinOff(.rated, songs: Array(found.songs.shuffled().prefix(Self.batchSize)))
     }
 
     public func dismissNotice() {
@@ -150,6 +185,7 @@ public final class SpinOffModel {
         switch seed {
         case .song(let id, _, _): similar = (try? await sources.similarToSong(id)) ?? []
         case .artist(let id, _): similar = (try? await sources.similarToArtist(id)) ?? []
+        case .rated: return await ratedBatch(excluding: excluding, sources: sources)
         }
         let unheard = fresh(similar, excluding: excluding)
         if !unheard.isEmpty {
@@ -161,6 +197,15 @@ public final class SpinOffModel {
         }
         let mix = fresh((try? await sources.random(nil)) ?? [], excluding: excluding)
         return mix.isEmpty ? nil : Batch(songs: Array(mix.prefix(batchSize)), mixedFrom: "")
+    }
+
+    /// Rated songs not yet in the queue; once all have been, a fresh shuffle
+    /// of them all (repeats now allowed). `nil` if there are none.
+    private static func ratedBatch(excluding: Set<String>, sources: Sources) async -> Batch? {
+        guard let pool = try? await sources.rated().songs, !pool.isEmpty else { return nil }
+        let unplayed = fresh(pool, excluding: excluding)
+        let next = unplayed.isEmpty ? pool : unplayed
+        return Batch(songs: Array(next.shuffled().prefix(batchSize)), mixedFrom: nil)
     }
 
     /// Without songs already queued, radio, or repeats.

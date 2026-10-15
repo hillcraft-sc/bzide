@@ -89,7 +89,7 @@ struct NowPlayingView: View {
                 } header: {
                     HStack {
                         if let spinOff = engine.spinOff {
-                            Label("Spin-off of \u{201C}\(spinOff.title)\u{201D}", systemImage: "opticaldisc")
+                            Label(spinOff.heading, systemImage: spinOff == .rated ? "hand.thumbsup" : "opticaldisc")
                                 .lineLimit(1)
                         } else {
                             Text("Queue")

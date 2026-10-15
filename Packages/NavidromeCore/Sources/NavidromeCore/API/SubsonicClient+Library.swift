@@ -93,6 +93,20 @@ extension SubsonicClient {
         try await request("getStarred2", as: StarredPayload.self).result
     }
 
+    /// A page of every song in the library, by searching for nothing.
+    /// Navidrome supports this (it's how clients list the whole library);
+    /// other servers may return nothing.
+    public func allSongs(count: Int, offset: Int) async throws(SubsonicError) -> [Song] {
+        let parameters: [URLQueryItem] = [
+            .init(name: "query", value: ""),
+            .init(name: "artistCount", value: "0"),
+            .init(name: "albumCount", value: "0"),
+            .init(name: "songCount", value: String(count)),
+            .init(name: "songOffset", value: String(offset)),
+        ]
+        return try await request("search3", parameters: parameters, as: SearchPayload.self).result.songs
+    }
+
     public func genres() async throws(SubsonicError) -> [Genre] {
         try await request("getGenres", as: ListPayload<Genre, GenresKeys>.self).elements
     }

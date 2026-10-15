@@ -7,7 +7,7 @@ struct LibraryLayoutTests {
         let layout = LibraryLayout()
         #expect(layout.shown == LibraryFeature.allCases)
         #expect(layout.groups == [
-            .recentlyAdded, .randomMix,
+            .recentlyAdded, .mixes([.randomMix, .ratedShuffle]),
             .links([.artists, .albums, .playlists, .favorites, .genres, .radio, .downloads, .history]),
         ])
     }
@@ -16,6 +16,7 @@ struct LibraryLayoutTests {
         var layout = LibraryLayout()
         layout.setShown(.radio, false)
         layout.setShown(.randomMix, false)
+        layout.setShown(.ratedShuffle, false)
         #expect(!layout.shown.contains(.radio))
         #expect(layout.groups.first == .recentlyAdded)
         #expect(layout.groups.count == 2)
@@ -24,9 +25,9 @@ struct LibraryLayoutTests {
     @Test func linksMovedFirstAreGroupedBeforeTheRest() {
         var layout = LibraryLayout()
         // Artists and Albums to the top; Recently Added after them.
-        layout.move(fromOffsets: IndexSet([2, 3]), toOffset: 0)
+        layout.move(fromOffsets: IndexSet([3, 4]), toOffset: 0)
         #expect(layout.shown.prefix(3) == [.artists, .albums, .recentlyAdded])
-        #expect(layout.groups.prefix(3) == [.links([.artists, .albums]), .recentlyAdded, .randomMix])
+        #expect(layout.groups.prefix(3) == [.links([.artists, .albums]), .recentlyAdded, .mixes([.randomMix, .ratedShuffle])])
     }
 
     @Test func itsSavedAndRestored() throws {
@@ -38,7 +39,7 @@ struct LibraryLayoutTests {
     }
 
     @Test func aSavedLayoutFromAnotherVersionStillWorks() throws {
-        // Unknown "podcasts", a repeated "albums", and no favorites, genres or history (added later).
+        // Unknown "podcasts", a repeated "albums", and no Shuffle Rated, favorites, genres or history (added later).
         let saved = """
         {"entries":[{"item":"albums","isShown":true},{"item":"podcasts","isShown":true},
         {"item":"artists","isShown":false},{"item":"albums","isShown":false},{"item":"recentlyAdded","isShown":true},
@@ -46,12 +47,14 @@ struct LibraryLayoutTests {
         {"item":"downloads","isShown":true}]}
         """
         let layout = try JSONDecoder().decode(LibraryLayout.self, from: Data(saved.utf8))
+        // New items go in their usual place: Shuffle Rated after Random Mix,
+        // Favorites and Genres after Playlists, History after Downloaded.
         #expect(layout.entries.map(\.item) == [
-            .albums, .artists, .recentlyAdded, .randomMix, .playlists, .radio, .downloads, .favorites, .genres, .history,
+            .albums, .artists, .recentlyAdded, .randomMix, .ratedShuffle, .playlists, .favorites, .genres, .radio, .downloads, .history,
         ])
         #expect(layout.entries.first?.isShown == true)
         #expect(layout.entries[1].isShown == false)
-        #expect(layout.shown.suffix(3) == [.favorites, .genres, .history])
+        #expect(layout.entries.allSatisfy { [.ratedShuffle, .favorites, .genres, .history].contains($0.item) ? $0.isShown : true })
     }
 
     @Test func unreadableSavedLayoutFallsBackToTheDefault() throws {

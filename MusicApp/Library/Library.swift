@@ -44,12 +44,15 @@ final class Library {
         self.client = client
         self.engine = engine
         self.sleepTimer = SleepTimer(target: engine)
+        // Shuffle Rated looks through the whole library for rated songs.
+        let ratedSongs = RatedSongPool { count, offset in try await client.allSongs(count: count, offset: offset) }
         self.spinOff = SpinOffModel(
             engine: engine,
             sources: .init(
                 similarToSong: { id in try await client.similarSongs(toSongID: id) },
                 similarToArtist: { id in try await client.similarSongs(toArtistID: id) },
-                random: { genre in try await client.randomSongs(size: SpinOffModel.batchSize, genre: genre) }
+                random: { genre in try await client.randomSongs(size: SpinOffModel.batchSize, genre: genre) },
+                rated: { [ratedSongs] in try await ratedSongs.songs() }
             ),
             keepSpinning: { [settings] in settings.settings.keepSpinning }
         )
