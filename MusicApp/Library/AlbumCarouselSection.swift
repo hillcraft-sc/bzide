@@ -49,6 +49,7 @@ struct AlbumCarouselSection: View {
         }
         .font(.headline)
         .textCase(nil)
+        .padding(.leading, -14)   // pull the heading toward the screen edge
     }
 
     @ViewBuilder
