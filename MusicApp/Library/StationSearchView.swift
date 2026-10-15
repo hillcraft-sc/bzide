@@ -1,18 +1,21 @@
 import NavidromeCore
 import SwiftUI
 
-/// Finding stations on Radio Browser: the most played ones until something is
-/// typed, then a search by name, genre or country. Tapping a station plays it;
-/// an admin can add it to the server with +. Until Find Stations Online is
-/// on, it explains what that sends and offers to turn it on.
+/// Finding stations on Radio Browser: what's popular until a name is typed or
+/// a filter is chosen, then the matching stations, 50 at a time with more as
+/// the list reaches its end. Country, Genre and the order are in a bar under
+/// the search field. Tapping a station plays it; an admin can add it to the
+/// server with +. Until Find Stations Online is on, it explains what that
+/// sends and offers to turn it on.
 struct StationSearchView: View {
     let library: Library
     let stations: RadioStationsModel
     @State private var model: StationSearchModel
     @State private var addingID: String?
     @State private var errorMessage: String?
+    @State private var picking: FilterKind?
 
-    static let optInExplanation = "Search Radio Browser (radio-browser.info), a free directory of internet radio stations, from Radio > Find Stations. This sends what you search for there, and counts plays of stations you find there toward their popularity."
+    static let optInExplanation = "Search Radio Browser (radio-browser.info), a free directory of internet radio stations, from Radio > Find Stations. This sends what you search for and the filters you choose there, and counts plays of stations you find there toward their popularity."
 
     init(library: Library, stations: RadioStationsModel) {
         self.library = library
@@ -26,18 +29,20 @@ struct StationSearchView: View {
         Group {
             if isOn {
                 results
-                    .searchable(text: $model.text, placement: .navigationBarDrawer(displayMode: .always), prompt: "Stations")
-                    .searchScopes($model.field) {
-                        ForEach(RadioBrowserClient.Field.allCases, id: \.self) { field in
-                            Text(field.title).tag(field)
-                        }
-                    }
-                    .task(id: "\(model.text)|\(model.field)") { await model.update() }
+                    .searchable(text: $model.query.name, placement: .navigationBarDrawer(displayMode: .always), prompt: "Station Name")
+                    .safeAreaInset(edge: .top, spacing: 0) { filterBar }
+                    .task(id: model.query) { await model.update() }
             } else {
                 optIn
             }
         }
         .navigationTitle("Find Stations")
+        .sheet(item: $picking) { kind in
+            switch kind {
+            case .country: CountryPicker(model: model)
+            case .genre: GenrePicker(model: model)
+            }
+        }
         .alert("Couldn't Add Station", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -56,6 +61,43 @@ struct StationSearchView: View {
         }
     }
 
+    // MARK: - Filters
+
+    private var filterBar: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                FilterButton(
+                    title: model.query.countryCode.map { RadioBrowserClient.Country(code: $0, stationCount: 0).name() } ?? "Country",
+                    isSet: model.query.countryCode != nil
+                ) { picking = .country }
+                FilterButton(title: model.query.tag ?? "Genre", isSet: model.query.tag != nil) { picking = .genre }
+                Menu {
+                    Picker("Sort By", selection: $model.query.order) {
+                        ForEach(RadioBrowserClient.Order.allCases, id: \.self) { order in
+                            Text(order.title).tag(order)
+                        }
+                    }
+                } label: {
+                    FilterLabel(title: model.query.order.title, systemImage: "arrow.up.arrow.down", isSet: false)
+                }
+                if model.query.countryCode != nil || model.query.tag != nil {
+                    Button("Clear Filters", systemImage: "xmark.circle.fill") {
+                        model.query.countryCode = nil
+                        model.query.tag = nil
+                    }
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
+        .scrollIndicators(.hidden)
+        .background(.bar)
+    }
+
+    // MARK: - Results
+
     private var results: some View {
         LoadStateView(state: model.state, retry: model.update) { found in
             List {
@@ -69,11 +111,17 @@ struct StationSearchView: View {
                             play: { play(station) },
                             add: { add(station) }
                         )
+                        .onAppear {
+                            if station.id == found.last?.id { Task { await model.loadMore() } }
+                        }
+                    }
+                    if model.hasMore {
+                        moreRow
                     }
                 } header: {
                     if model.isShowingPopular && !found.isEmpty { Text("Popular Now") }
                 } footer: {
-                    if !found.isEmpty { Text("From Radio Browser (radio-browser.info)") }
+                    if !found.isEmpty && !model.hasMore { Text("From Radio Browser (radio-browser.info)") }
                 }
                 .themedRows()
             }
@@ -81,9 +129,31 @@ struct StationSearchView: View {
             .themedList()
             .overlay {
                 if found.isEmpty {
-                    ContentUnavailableView.search(text: model.text)
+                    if model.query.name.isEmpty {
+                        ContentUnavailableView("No Stations", systemImage: "magnifyingglass", description: Text("No stations match these filters."))
+                    } else {
+                        ContentUnavailableView.search(text: model.query.name)
+                    }
                 }
             }
+        }
+    }
+
+    /// The end of the list while more may follow: a spinner, or why the next
+    /// page didn't load with a retry.
+    @ViewBuilder
+    private var moreRow: some View {
+        if let error = model.moreError {
+            Button {
+                Task { await model.loadMore() }
+            } label: {
+                Label(error, systemImage: "arrow.clockwise")
+                    .font(.footnote)
+            }
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .onAppear { Task { await model.loadMore() } }
         }
     }
 
@@ -101,6 +171,161 @@ struct StationSearchView: View {
             } catch {
                 errorMessage = error.message
             }
+        }
+    }
+}
+
+private enum FilterKind: String, Identifiable {
+    case country, genre
+    var id: String { rawValue }
+}
+
+/// A filter in the bar: its value when one is chosen, tinted.
+private struct FilterButton: View {
+    let title: String
+    let isSet: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            FilterLabel(title: title, systemImage: "chevron.down", isSet: isSet)
+        }
+    }
+}
+
+private struct FilterLabel: View {
+    let title: String
+    let systemImage: String
+    let isSet: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(title).lineLimit(1)
+            Image(systemName: systemImage).imageScale(.small)
+        }
+        .font(.subheadline.weight(isSet ? .semibold : .regular))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .foregroundStyle(isSet ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+        .background(isSet ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.fill.tertiary), in: .capsule)
+    }
+}
+
+// MARK: - Pickers
+
+/// Choosing a country: the phone's own country first, then every country with
+/// stations, most first, searchable by name.
+private struct CountryPicker: View {
+    let model: StationSearchModel
+
+    var body: some View {
+        FilterPicker(
+            title: "Country",
+            anyTitle: "Any Country",
+            state: model.countries,
+            load: model.loadCountries,
+            selection: model.query.countryCode,
+            option: { FilterOption(id: $0.code, title: $0.name(), count: $0.stationCount) },
+            pinnedID: Locale.current.region?.identifier,
+            pinnedTitle: "Your Country",
+            choose: { model.query.countryCode = $0 }
+        )
+    }
+}
+
+/// Choosing a genre: Radio Browser's most common tags, searchable.
+private struct GenrePicker: View {
+    let model: StationSearchModel
+
+    var body: some View {
+        FilterPicker(
+            title: "Genre",
+            anyTitle: "Any Genre",
+            state: model.tags,
+            load: model.loadTags,
+            selection: model.query.tag,
+            option: { FilterOption(id: $0.name, title: $0.name, count: $0.stationCount) },
+            pinnedID: nil,
+            pinnedTitle: nil,
+            choose: { model.query.tag = $0 }
+        )
+    }
+}
+
+private struct FilterOption: Identifiable {
+    let id: String
+    let title: String
+    let count: Int
+}
+
+/// A searchable list to pick one filter value from, or Any.
+private struct FilterPicker<Item>: View {
+    let title: String
+    let anyTitle: String
+    let state: LoadState<[Item]>
+    let load: () async -> Void
+    let selection: String?
+    let option: (Item) -> FilterOption
+    /// Shown above the rest under `pinnedTitle`, if it's in the list.
+    let pinnedID: String?
+    let pinnedTitle: String?
+    let choose: (String?) -> Void
+
+    @State private var search = ""
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            LoadStateView(state: state, retry: load) { items in
+                let options = items.map(option)
+                let shown = search.isEmpty ? options : options.filter { $0.title.localizedStandardContains(search) }
+                List {
+                    if search.isEmpty {
+                        Section {
+                            row(id: nil, title: anyTitle, count: nil)
+                        }
+                        if let pinnedTitle, let pinned = options.first(where: { $0.id == pinnedID }) {
+                            Section(pinnedTitle) {
+                                row(id: pinned.id, title: pinned.title, count: pinned.count)
+                            }
+                        }
+                    }
+                    Section {
+                        ForEach(shown) { row(id: $0.id, title: $0.title, count: $0.count) }
+                    }
+                }
+                .overlay {
+                    if shown.isEmpty && !search.isEmpty { ContentUnavailableView.search(text: search) }
+                }
+            }
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always))
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", role: .cancel) { dismiss() }
+                }
+            }
+            .task { await load() }
+        }
+    }
+
+    private func row(id: String?, title: String, count: Int?) -> some View {
+        Button {
+            choose(id)
+            dismiss()
+        } label: {
+            HStack {
+                Text(title).foregroundStyle(.primary)
+                Spacer()
+                if let count {
+                    Text(count.formatted()).foregroundStyle(.secondary).monospacedDigit()
+                }
+                if id == selection {
+                    Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityLabel("Selected")
+                }
+            }
+            .contentShape(.rect)
         }
     }
 }

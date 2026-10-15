@@ -237,8 +237,9 @@ final class Library {
 
     func stationSearchModel() -> StationSearchModel {
         StationSearchModel(sources: .init(
-            search: { [radioBrowser] text, field in try await radioBrowser.search(text, by: field) },
-            popular: { [radioBrowser] in try await radioBrowser.popular() },
+            stations: { [radioBrowser] query, offset in try await radioBrowser.stations(query, offset: offset) },
+            countries: { [radioBrowser] in try await radioBrowser.countries() },
+            tags: { [radioBrowser] in try await radioBrowser.tags() },
             countPlay: { [radioBrowser] id in try await radioBrowser.countPlay(of: id) }
         ))
     }

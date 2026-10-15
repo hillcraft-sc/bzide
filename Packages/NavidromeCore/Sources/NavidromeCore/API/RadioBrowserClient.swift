@@ -12,16 +12,72 @@ import os
 /// `all.api.radio-browser.info/json/servers`, in random order, and the next
 /// one is tried if one fails.
 public struct RadioBrowserClient: Sendable {
-    /// What a search matches.
-    public enum Field: String, CaseIterable, Sendable {
-        case name, tag, country
+    /// What to look for: a name, filters, and the order. Empty means any.
+    public struct Query: Equatable, Hashable, Sendable {
+        public var name: String
+        /// ISO 3166-1 alpha-2, e.g. "US".
+        public var countryCode: String?
+        /// A genre tag, matched exactly (e.g. "jazz", not "acid jazz").
+        public var tag: String?
+        public var order: Order
+
+        public init(name: String = "", countryCode: String? = nil, tag: String? = nil, order: Order = .mostPlayed) {
+            self.name = name
+            self.countryCode = countryCode
+            self.tag = tag
+            self.order = order
+        }
+
+        /// No name or filters, most played first: what's popular right now.
+        public var isPopular: Bool {
+            name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && countryCode == nil && tag == nil && order == .mostPlayed
+        }
+    }
+
+    public enum Order: String, CaseIterable, Sendable {
+        /// Radio Browser's `clickcount`: plays in the last day.
+        case mostPlayed = "clickcount"
+        /// Radio Browser's `votes`.
+        case topRated = "votes"
+        case name
 
         public var title: String {
             switch self {
+            case .mostPlayed: "Most Played"
+            case .topRated: "Top Rated"
             case .name: "Name"
-            case .tag: "Genre"
-            case .country: "Country"
             }
+        }
+    }
+
+    /// A country Radio Browser has stations for.
+    public struct Country: Equatable, Identifiable, Sendable {
+        /// ISO 3166-1 alpha-2, e.g. "US".
+        public var code: String
+        public var stationCount: Int
+        public var id: String { code }
+
+        public init(code: String, stationCount: Int) {
+            self.code = code
+            self.stationCount = stationCount
+        }
+
+        /// The name as the phone says it ("United States"), not Radio
+        /// Browser's ("The United States Of America").
+        public func name(in locale: Locale = .current) -> String {
+            locale.localizedString(forRegionCode: code) ?? code
+        }
+    }
+
+    /// A genre tag and how many stations have it.
+    public struct Tag: Equatable, Identifiable, Sendable {
+        public var name: String
+        public var stationCount: Int
+        public var id: String { name }
+
+        public init(name: String, stationCount: Int) {
+            self.name = name
+            self.stationCount = stationCount
         }
     }
 
@@ -31,8 +87,10 @@ public struct RadioBrowserClient: Sendable {
     /// Radio Browser asks clients to say who they are.
     static let userAgent = "Bzide (iOS music player for Navidrome)"
     public static let directory = URL(string: "https://all.api.radio-browser.info") ?? URL(filePath: "/")
-    /// Results per search; the most played first.
-    public static let resultLimit = 50
+    /// Stations per page.
+    public static let pageSize = 50
+    /// How many genre tags the Genre filter offers.
+    public static let tagLimit = 300
 
     public init(
         transport: any HTTPTransport = URLSessionTransport(),
@@ -43,23 +101,63 @@ public struct RadioBrowserClient: Sendable {
         self.servers = Servers(directory: directory, shuffle: shuffle)
     }
 
-    /// Stations whose name, genre tag or country contains `text`, most played
-    /// first, leaving out ones Radio Browser found broken.
-    public func search(_ text: String, by field: Field) async throws -> [RadioBrowserStation] {
-        let query = [
-            URLQueryItem(name: field.rawValue, value: text),
-            URLQueryItem(name: "order", value: "clickcount"),
-            URLQueryItem(name: "reverse", value: "true"),
-            URLQueryItem(name: "hidebroken", value: "true"),
-            URLQueryItem(name: "limit", value: String(Self.resultLimit)),
+    /// A page of stations matching `query`, leaving out ones Radio Browser
+    /// found broken. As Radio Browser returns them: the same stream may be
+    /// listed twice (see `unique`), and a full page means there may be more.
+    public func stations(_ query: Query, offset: Int = 0, limit: Int = RadioBrowserClient.pageSize) async throws -> [RadioBrowserStation] {
+        var items = [URLQueryItem]()
+        let name = query.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty { items.append(.init(name: "name", value: name)) }
+        if let code = query.countryCode { items.append(.init(name: "countrycode", value: code)) }
+        if let tag = query.tag {
+            items.append(.init(name: "tag", value: tag))
+            items.append(.init(name: "tagExact", value: "true"))
+        }
+        items += [
+            .init(name: "order", value: query.order.rawValue),
+            // Most played and top rated: highest first.
+            .init(name: "reverse", value: query.order == .name ? "false" : "true"),
+            .init(name: "hidebroken", value: "true"),
+            .init(name: "offset", value: String(offset)),
+            .init(name: "limit", value: String(limit)),
         ]
-        return Self.unique(try await get("json/stations/search", query, as: LossyList<RadioBrowserStation>.self).items)
+        return try await get("json/stations/search", items, as: LossyList<RadioBrowserStation>.self).items
     }
 
-    /// The most played stations right now, for before anything is typed.
-    public func popular() async throws -> [RadioBrowserStation] {
+    /// Every country with working stations, most stations first. Radio
+    /// Browser sometimes lists a country under two names; they're combined.
+    public func countries() async throws -> [Country] {
+        struct Entry: Decodable {
+            let iso_3166_1: String?
+            let stationcount: Int?
+        }
         let query = [URLQueryItem(name: "hidebroken", value: "true")]
-        return Self.unique(try await get("json/stations/topclick/\(Self.resultLimit)", query, as: LossyList<RadioBrowserStation>.self).items)
+        var counts: [String: Int] = [:]
+        for entry in try await get("json/countries", query, as: LossyList<Entry>.self).items {
+            guard let code = entry.iso_3166_1?.trimmingCharacters(in: .whitespaces).uppercased(), code.count == 2 else { continue }
+            counts[code, default: 0] += entry.stationcount ?? 0
+        }
+        return counts.filter { $0.value > 0 }
+            .map { Country(code: $0.key, stationCount: $0.value) }
+            .sorted { ($0.stationCount, $1.code) > ($1.stationCount, $0.code) }
+    }
+
+    /// The most common genre tags, most stations first.
+    public func tags(limit: Int = RadioBrowserClient.tagLimit) async throws -> [Tag] {
+        struct Entry: Decodable {
+            let name: String?
+            let stationcount: Int?
+        }
+        let query = [
+            URLQueryItem(name: "order", value: "stationcount"),
+            URLQueryItem(name: "reverse", value: "true"),
+            URLQueryItem(name: "hidebroken", value: "true"),
+            URLQueryItem(name: "limit", value: String(limit)),
+        ]
+        return try await get("json/tags", query, as: LossyList<Entry>.self).items.compactMap { entry in
+            guard let name = entry.name?.trimmingCharacters(in: .whitespaces), !name.isEmpty else { return nil }
+            return Tag(name: name, stationCount: entry.stationcount ?? 0)
+        }
     }
 
     /// Tells Radio Browser a station was played, as it asks clients to; it
@@ -106,12 +204,6 @@ public struct RadioBrowserClient: Sendable {
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         return request
-    }
-
-    /// Radio Browser lists some stations more than once; one per stream.
-    static func unique(_ stations: [RadioBrowserStation]) -> [RadioBrowserStation] {
-        var seen = Set<URL>()
-        return stations.filter { seen.insert($0.streamURL).inserted }
     }
 
     /// The mirrors, found once and then reused, the last one that worked first.
