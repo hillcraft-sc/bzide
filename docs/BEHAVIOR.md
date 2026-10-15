@@ -466,7 +466,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 
 - [ ] Library > Radio lists the stations added in Navidrome, by name. Tap one: it plays within a few seconds; the row shows the speaker icon.
 - [ ] Play an http station and an https station; if one of your stations' addresses is a `.pls` or `.m3u` file, play that too.
-- [ ] While a station plays: Now Playing shows "Live", no progress bar; previous is grayed out; no shuffle, repeat, heart, rating, Lyrics, Visualizer or … menu (AirPlay and the moon stay). If the station announces songs, the title changes with them and the station name shows beneath.
+- [x] While a station plays: Now Playing shows "Live", no progress bar; previous is grayed out; no shuffle, repeat, heart, rating, Lyrics, Visualizer or … menu (AirPlay and the moon stay). If the station announces songs, the title changes with them and the station name shows beneath. (2026-10-15)
 - [ ] Lock screen: shows the station (and current song if announced) as live, with no scrubber; play/pause works.
 - [ ] Pause for a minute, then play: it comes back live (what's on now), not where it paused.
 - [ ] Turn on Airplane Mode for ~10 seconds while it plays, then off: it reconnects on its own.
@@ -531,7 +531,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 ### Sleep timer
 
 - [x] Now Playing > moon > 15 Minutes: the moon shows 15:00 counting down. Lock the phone: after 15 minutes the music fades out over about 10 seconds and pauses. Press play: normal volume. (2026-10-13)
-- [ ] Play a radio station: the moon offers only the timed choices (no End of Song), and 15 Minutes fades out and pauses the station. Set End of Song on a song, then start a station: the moon goes back to off and the station keeps playing.
+- [x] Play a radio station: the moon offers only the timed choices (no End of Song), and 15 Minutes fades out and pauses the station. Set End of Song on a song, then start a station: the moon goes back to off and the station keeps playing. (2026-10-15)
 - [x] Moon > End of Song near the end of a song: it fades out over the last few seconds and stops as the song ends, with no burst of the next song. Set it again and skip to the next song early: that song plays, and the music stops at its end. (2026-10-13)
 - [ ] Start a timer, then Moon > Turn Off Timer: the moon goes back to normal and the music keeps playing. Start one and pause before it ends: nothing happens when it runs out.
 
