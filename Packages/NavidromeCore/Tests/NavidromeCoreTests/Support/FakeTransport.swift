@@ -4,7 +4,7 @@ import Foundation
 /// Returns canned responses and records every request it receives.
 actor FakeTransport: HTTPTransport {
     enum Reply {
-        case json(String, status: Int = 200)
+        case json(String, status: Int = 200, headers: [String: String] = [:])
         case failure(URLError.Code)
     }
 
@@ -19,9 +19,9 @@ actor FakeTransport: HTTPTransport {
         requests.append(request)
         guard !replies.isEmpty else { throw URLError(.resourceUnavailable) }
         switch replies.removeFirst() {
-        case .json(let body, let status):
+        case .json(let body, let status, let headers):
             let url = request.url ?? URL(filePath: "/")
-            let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: nil)
+            let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: nil, headerFields: headers)
             guard let response else { throw URLError(.badServerResponse) }
             return (Data(body.utf8), response)
         case .failure(let code):

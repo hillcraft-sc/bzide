@@ -1,8 +1,16 @@
 import Foundation
 
-/// The Weather (Live) sky: the real time of day (from `SkyClock`) sets the
-/// scene, and the music moves within it. Advanced once a frame.
+/// The Weather (Live) sky: the real time of day (from `SkyClock`) and the
+/// real weather (`LiveWeather`) set the scene, and the music amplifies it:
+/// quiet passages show the weather gently, loud ones dramatically. Advanced
+/// once a frame.
 ///
+/// - **Weather, amplified** (by `drive`, the music's loudness followed
+///   quickly): clouds start at the real cover and billow thicker in busy
+///   music; rain, sleet or snow fall at the real strength, from about half
+///   of it in quiet passages to twice it when loud; the real wind blows,
+///   gusting with the bass; a real thunderstorm strikes lightning on the
+///   beats; fog lies thicker in calm passages and thins in busy ones.
 /// - **Mood:** how energetic the music is (`intensity`, loudness and
 ///   busyness) and how bright (`brightness`, treble against bass), both
 ///   followed over a few seconds, so the scene breathes with the song rather
@@ -36,6 +44,20 @@ public struct LiveSky: Sendable {
     public private(set) var flash: Double = 0
     /// 0 ... 1: the mid-range now, lightly smoothed, for the fireflies.
     public private(set) var glow: Double = 0
+    /// 0 ... 1: the music's loudness, followed within a second or so: how
+    /// much it amplifies the weather.
+    public private(set) var drive: Double = 0
+
+    // MARK: Weather
+
+    /// The real weather, as last given.
+    public private(set) var weather = LiveWeather.fair
+    /// 0 ... 1: how hard it's raining, sleeting or snowing now.
+    public private(set) var precipitation: Double = 0
+    /// 0 ... 1: how thick the fog is now.
+    public private(set) var fog: Double = 0
+    /// Lightning bolts still visible, oldest first (thunderstorms only).
+    public private(set) var bolts: [LightningBolt] = []
 
     // MARK: Wind and clouds
 
@@ -43,9 +65,8 @@ public struct LiveSky: Sendable {
     public private(set) var wind: Double = 0
     /// How far the wind has moved the clouds. Only moves forward.
     public private(set) var drift: Double = 0
-    /// 0 (clear) ... 1 (overcast). Fair-weather clouds come and go with the
-    /// music's busyness until real weather sets it (step 3).
-    public private(set) var cloudCover: Double = 0.15
+    /// 0 (clear) ... 1 (overcast): the real cover, thickened by busy music.
+    public private(set) var cloudCover: Double = 0.2
 
     // MARK: Events
 
@@ -62,9 +83,19 @@ public struct LiveSky: Sendable {
     /// How fast a beat's flash fades, per second.
     static let flashFade = 4.0
     static let windRate = 1.2
-    static let cloudRate = 0.15
-    /// Fair-weather clouds stay light, so the sky stays the star.
-    static let fairCloudRange = 0.1...0.4
+    static let cloudRate = 0.5
+    static let driveRate = 1.5
+    static let precipitationRate = 1.2
+    static let fogRate = 0.4
+    /// How much busy music can add to the real cloud cover.
+    static let cloudBoost = 0.3
+    /// Precipitation from this share of the real strength (quiet) to `precipitationLoud` (loud).
+    static let precipitationQuiet = 0.5
+    static let precipitationLoud = 2.0
+    /// Real wind at this speed (m/s) or more counts as a full gale.
+    static let galeSpeed = 15.0
+    /// Lightning: the shortest gap between strikes, and how long a bolt lasts.
+    static let strikeGap: TimeInterval = 0.6
     /// A beat at least this strong can set off an event.
     static let eventBeat: Float = 0.6
     /// The shortest gap between shooting stars: long when calm, short when energetic.
@@ -86,6 +117,7 @@ public struct LiveSky: Sendable {
     static let buildRise = 0.08
     static let buildWindow: TimeInterval = 3
 
+    private var hasStarted = false
     private var sinceShootingStar: TimeInterval = .infinity
     private var sinceComet: TimeInterval = .infinity
     private var sinceFlock: TimeInterval = .infinity
@@ -105,7 +137,16 @@ public struct LiveSky: Sendable {
     }
 
     /// Advances one frame lasting `elapsed` seconds.
-    public mutating func update(energy: SpectrumEnergy, beat: Float, sun: SkyClock.Sun, elapsed: TimeInterval) {
+    public mutating func update(energy: SpectrumEnergy, beat: Float, sun: SkyClock.Sun, weather: LiveWeather = .fair, elapsed: TimeInterval) {
+        self.weather = weather
+        // The first frame starts as the weather is, rather than clearing for
+        // a moment; later changes (the forecast arriving) blend in.
+        if !hasStarted {
+            hasStarted = true
+            cloudCover = weather.cloudCover
+            fog = weather.isFog ? 0.85 : 0
+            precipitation = weather.intensity * Self.precipitationQuiet
+        }
         let step = min(max(elapsed, 0), 0.1)
         let bass = Double(energy.bass), mid = Double(energy.mid), treble = Double(energy.treble)
 
@@ -120,23 +161,52 @@ public struct LiveSky: Sendable {
         glow = Self.ease(glow, toward: Self.clamp(mid * 2.2), rate: Self.glowRate, step: step)
         flash = max(Double(beat), flash - Self.flashFade * step, 0)
 
-        wind = Self.ease(wind, toward: Self.clamp(0.08 + bass * 1.3), rate: Self.windRate, step: step)
-        drift += step * (0.02 + 0.2 * wind)
-        let fair = Self.fairCloudRange.lowerBound + (Self.fairCloudRange.upperBound - Self.fairCloudRange.lowerBound) * intensity
-        cloudCover = Self.ease(cloudCover, toward: fair, rate: Self.cloudRate, step: step)
+        drive = Self.ease(drive, toward: loudness, rate: Self.driveRate, step: step)
+
+        // The real wind, plus gusts from the bass.
+        let realWind = Self.clamp(weather.windSpeed / Self.galeSpeed)
+        wind = Self.ease(wind, toward: Self.clamp(0.05 + realWind * 0.7 + bass * 1.1), rate: Self.windRate, step: step)
+        drift += step * (0.02 + 0.25 * wind)
+        cloudCover = Self.ease(cloudCover, toward: Self.clamp(weather.cloudCover + Self.cloudBoost * drive * (1 - weather.cloudCover * 0.5)), rate: Self.cloudRate, step: step)
+        let amplified = weather.intensity * (Self.precipitationQuiet + (Self.precipitationLoud - Self.precipitationQuiet) * drive)
+        precipitation = Self.ease(precipitation, toward: Self.clamp(amplified), rate: Self.precipitationRate, step: step)
+        // Calm passages let the fog settle; busy ones stir it thinner.
+        fog = Self.ease(fog, toward: weather.isFog ? 0.85 - 0.45 * drive : 0, rate: Self.fogRate, step: step)
 
         age(by: step)
         let isNewBeat = beat >= Self.eventBeat && lastBeat < Self.eventBeat
         lastBeat = beat
         let darkness = Self.darkness(sunAltitude: sun.altitude)
-        if isNewBeat, darkness > Self.starDarkness { launchShootingStar() }
-        if isNewBeat, darkness < Self.birdDarkness, isBuilding || intensity >= Self.flockIntensity { launchFlock() }
+        if isNewBeat, weather.isThunder { strike() }
+        if isNewBeat, darkness > Self.starDarkness, isSkyOpen { launchShootingStar() }
+        if isNewBeat, darkness < Self.birdDarkness, isFlyingWeather, isBuilding || intensity >= Self.flockIntensity { launchFlock() }
         remember(intensity, step: step)
     }
 
     // MARK: - Events
 
+    /// Enough clear sky to see shooting stars.
+    public var isSkyOpen: Bool { cloudCover < 0.75 && fog < 0.4 }
+
+    /// Birds don't fly in rain, snow, storms or fog.
+    var isFlyingWeather: Bool { weather.precipitation == .none && !weather.isThunder && !weather.isFog }
+
+    private var sinceStrike: TimeInterval = .infinity
+
+    private mutating func strike() {
+        guard sinceStrike >= Self.strikeGap else { return }
+        sinceStrike = 0
+        seedCount += 1
+        bolts.append(LightningBolt(seed: seedCount, age: 0))
+    }
+
     private mutating func age(by step: TimeInterval) {
+        sinceStrike += step
+        bolts = bolts.compactMap { bolt in
+            var bolt = bolt
+            bolt.age += step
+            return bolt.age < WeatherSky.boltLife ? bolt : nil
+        }
         sinceShootingStar += step
         sinceComet += step
         sinceFlock += step

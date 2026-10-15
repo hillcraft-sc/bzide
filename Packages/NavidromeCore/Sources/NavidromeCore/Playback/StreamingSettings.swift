@@ -34,6 +34,13 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     /// Off by default: searching Radio Browser for stations, which sends the
     /// search there and counts plays of stations found there.
     public var findStationsOnline: Bool
+    /// Off by default: Weather (Live) asks MET Norway for the weather where
+    /// the user is, which sends rounded coordinates there.
+    public var liveWeather: Bool
+    /// Where the weather is for: the phone's location (asked for once), and
+    /// failing that, or with this off, the city typed in Settings.
+    public var liveWeatherUsesLocation: Bool
+    public var liveWeatherCity: String
     /// Off by default: evening out loudness with the songs' ReplayGain.
     public var volumeNormalization: VolumeNormalization
     /// Off by default: when a queue reaches its last song, spin off from it
@@ -49,7 +56,8 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     public init(
         wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
         downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original,
-        findLyricsOnline: Bool = false, findStationsOnline: Bool = false, volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
+        findLyricsOnline: Bool = false, findStationsOnline: Bool = false,
+        liveWeather: Bool = false, liveWeatherUsesLocation: Bool = true, liveWeatherCity: String = "", volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
         includeMehInMixes: Bool = false, myCutsIncludeFavorites: Bool = true
     ) {
         self.wifiQuality = wifiQuality
@@ -58,6 +66,9 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         self.downloadQuality = downloadQuality
         self.findLyricsOnline = findLyricsOnline
         self.findStationsOnline = findStationsOnline
+        self.liveWeather = liveWeather
+        self.liveWeatherUsesLocation = liveWeatherUsesLocation
+        self.liveWeatherCity = liveWeatherCity
         self.volumeNormalization = volumeNormalization
         self.keepSpinning = keepSpinning
         self.includeMehInMixes = includeMehInMixes
@@ -65,7 +76,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, findStationsOnline, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, findStationsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -79,6 +90,9 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         downloadQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .downloadQuality) ?? defaults.downloadQuality
         findLyricsOnline = try c.decodeIfPresent(Bool.self, forKey: .findLyricsOnline) ?? defaults.findLyricsOnline
         findStationsOnline = (try? c.decodeIfPresent(Bool.self, forKey: .findStationsOnline)) ?? defaults.findStationsOnline
+        liveWeather = (try? c.decodeIfPresent(Bool.self, forKey: .liveWeather)) ?? defaults.liveWeather
+        liveWeatherUsesLocation = (try? c.decodeIfPresent(Bool.self, forKey: .liveWeatherUsesLocation)) ?? defaults.liveWeatherUsesLocation
+        liveWeatherCity = (try? c.decodeIfPresent(String.self, forKey: .liveWeatherCity)) ?? defaults.liveWeatherCity
         volumeNormalization = (try? c.decodeIfPresent(VolumeNormalization.self, forKey: .volumeNormalization)) ?? defaults.volumeNormalization
         keepSpinning = (try? c.decodeIfPresent(Bool.self, forKey: .keepSpinning)) ?? defaults.keepSpinning
         includeMehInMixes = (try? c.decodeIfPresent(Bool.self, forKey: .includeMehInMixes)) ?? defaults.includeMehInMixes

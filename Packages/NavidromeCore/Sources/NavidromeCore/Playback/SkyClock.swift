@@ -52,6 +52,11 @@ public enum SkyClock {
         public var altitude: Double
         public var hourAngle: Double
 
+        public init(altitude: Double, hourAngle: Double) {
+            self.altitude = altitude
+            self.hourAngle = hourAngle
+        }
+
         public var isRising: Bool { hourAngle < 0 }
 
         public var phase: Phase {

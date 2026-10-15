@@ -17,21 +17,23 @@ struct LiveSkyTests {
         var shootingStars = Set<UInt64>()
         var comets = Set<UInt64>()
         var flocks = Set<UInt64>()
+        var bolts = Set<UInt64>()
 
         static let step = 0.05
         /// A beat on every tenth frame.
         static let beatFrames = 10
 
-        mutating func play(_ seconds: Double, energy: SpectrumEnergy, sun: SkyClock.Sun, beats: Bool = true) {
+        mutating func play(_ seconds: Double, energy: SpectrumEnergy, sun: SkyClock.Sun, weather: LiveWeather = .fair, beats: Bool = true) {
             for _ in 0..<Int((seconds / Self.step).rounded()) {
                 frame += 1
                 let beat: Float = beats && frame % Self.beatFrames == 0 ? 1 : 0
-                sky.update(energy: energy, beat: beat, sun: sun, elapsed: Self.step)
+                sky.update(energy: energy, beat: beat, sun: sun, weather: weather, elapsed: Self.step)
                 for star in sky.shootingStars {
                     shootingStars.insert(star.seed)
                     if star.isComet { comets.insert(star.seed) }
                 }
                 for flock in sky.flocks { flocks.insert(flock.seed) }
+                for bolt in sky.bolts { bolts.insert(bolt.seed) }
             }
         }
     }
@@ -129,5 +131,71 @@ struct LiveSkyTests {
         session.play(5, energy: SpectrumEnergy(bass: 0.7, mid: 0.2, treble: 0.1), sun: Self.day, beats: false)
         #expect(session.sky.wind > calmWind + 0.5)
         #expect(session.sky.drift > drift)
+    }
+
+    // MARK: Real weather, amplified
+
+    private static let rain = LiveWeather(cloudCover: 0.9, precipitation: .rain, intensity: 0.65)
+    private static let storm = LiveWeather(cloudCover: 0.95, precipitation: .rain, intensity: 1, isThunder: true, windSpeed: 9)
+    private static let fog = LiveWeather(cloudCover: 0.7, isFog: true)
+
+    @Test func theMusicAmplifiesTheRealRain() {
+        var quiet = Session()
+        quiet.play(10, energy: Self.quiet, sun: Self.day, weather: Self.rain)
+        var loud = Session()
+        loud.play(10, energy: Self.loud, sun: Self.day, weather: Self.rain)
+        // Quiet: a bit over half the real strength. Loud: a downpour.
+        #expect((0.3...0.5).contains(quiet.sky.precipitation))
+        #expect(loud.sky.precipitation > 0.95)
+        // No weather, no rain, however loud.
+        var dry = Session()
+        dry.play(10, energy: Self.loud, sun: Self.day)
+        #expect(dry.sky.precipitation == 0)
+    }
+
+    @Test func busyMusicThickensTheRealClouds() {
+        let partly = LiveWeather(cloudCover: 0.5)
+        var quiet = Session()
+        quiet.play(10, energy: Self.quiet, sun: Self.day, weather: partly)
+        var loud = Session()
+        loud.play(10, energy: Self.loud, sun: Self.day, weather: partly)
+        #expect(abs(quiet.sky.cloudCover - 0.5) < 0.08)
+        #expect(loud.sky.cloudCover > 0.68)
+    }
+
+    @Test func lightningOnlyInARealThunderstorm() {
+        var storm = Session()
+        storm.play(10, energy: Self.loud, sun: Self.day, weather: Self.storm)
+        // A beat every half second, and strikes at most every 0.6 s: every other beat.
+        #expect(storm.bolts.count >= 9)
+        var rain = Session()
+        rain.play(10, energy: Self.loud, sun: Self.day, weather: Self.rain)
+        #expect(rain.bolts.isEmpty)
+    }
+
+    @Test func fogSettlesInCalmMusicAndThinsInBusy() {
+        var calm = Session()
+        calm.play(15, energy: Self.quiet, sun: Self.day, weather: Self.fog)
+        var busy = Session()
+        busy.play(15, energy: Self.loud, sun: Self.day, weather: Self.fog)
+        #expect(calm.sky.fog > 0.7)
+        #expect(busy.sky.fog < 0.5)
+    }
+
+    @Test func noBirdsInBadWeatherAndNoShootingStarsUnderCloud() {
+        var rain = Session()
+        rain.play(30, energy: Self.loud, sun: Self.day, weather: Self.rain)
+        #expect(rain.flocks.isEmpty)
+        var overcast = Session()
+        overcast.play(30, energy: Self.loud, sun: Self.night, weather: LiveWeather(cloudCover: 0.95))
+        #expect(overcast.shootingStars.isEmpty)
+    }
+
+    @Test func theRealWindBlowsAndTheBassGustsIt() {
+        var calm = Session()
+        calm.play(5, energy: Self.quiet, sun: Self.day, weather: LiveWeather(cloudCover: 0.3, windSpeed: 1))
+        var windy = Session()
+        windy.play(5, energy: Self.quiet, sun: Self.day, weather: LiveWeather(cloudCover: 0.3, windSpeed: 14))
+        #expect(windy.sky.wind > calm.sky.wind + 0.5)
     }
 }

@@ -15,22 +15,29 @@ struct LiveWeatherView: View {
     let insets: EdgeInsets
     let landscape: Bool
     let state: LiveWeatherState
+    /// Debug builds only: a forced weather and time of day, for trying each.
+    var forced: LiveWeatherDebug = .init()
 
     var body: some View {
-        let frame = state.update(feed: feed, at: date)
+        let frame = state.update(feed: feed, at: date, forced: forced)
         let time = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 10_000)
         Canvas { context, size in
             let layout = WeatherLayout(size: size, insets: insets, landscape: landscape)
-            let light = SkyLight(sunAltitude: frame.sun.altitude, cloudCover: frame.sky.cloudCover)
+            let light = SkyLight(sunAltitude: frame.sun.altitude, cloudCover: frame.sky.cloudCover, gloom: Self.gloom(frame.sky))
             drawSky(light, in: &context, layout: layout)
             drawStars(frame, light: light, time: time, in: &context, layout: layout)
             drawMoon(frame, light: light, in: &context, layout: layout)
             drawShootingStars(frame.sky, light: light, in: &context, layout: layout)
             drawSun(frame, light: light, time: time, in: &context, layout: layout)
             drawClouds(frame.sky, light: light, in: &context, layout: layout)
+            drawLightning(frame.sky, in: &context, layout: layout)
             drawBirds(frame.sky, light: light, time: time, in: &context, layout: layout)
+            drawPrecipitation(frame.sky, light: light, time: time, in: &context, layout: layout)
             drawLand(frame.sky, light: light, time: time, in: &context, layout: layout)
-            drawFireflies(frame.sky, light: light, time: time, in: &context, layout: layout)
+            drawFog(frame.sky, light: light, time: time, in: &context, layout: layout)
+            if frame.sky.weather.precipitation == .none {
+                drawFireflies(frame.sky, light: light, time: time, in: &context, layout: layout)
+            }
         }
         // As Weather: darker under the menu, and toward the side panel.
         .overlay {
@@ -49,11 +56,101 @@ struct LiveWeatherView: View {
 
     // MARK: - Sky
 
+    /// 0 ... 1: how dark and heavy the weather makes the clouds and sky:
+    /// darker the harder it rains or snows, darkest in a thunderstorm.
+    static func gloom(_ sky: LiveSky) -> Double {
+        let falling = sky.weather.precipitation == .none ? 0 : 0.3 + 0.4 * sky.precipitation
+        return min(max(falling, sky.weather.isThunder ? 0.75 : 0, sky.fog * 0.4), 1)
+    }
+
     private func drawSky(_ light: SkyLight, in context: inout GraphicsContext, layout: WeatherLayout) {
         let rect = CGRect(origin: .zero, size: layout.size)
         context.fill(Path(rect), with: .linearGradient(
             Gradient(colors: [light.skyTop, light.skyHorizon]), startPoint: .zero, endPoint: CGPoint(x: 0, y: layout.horizon)
         ))
+    }
+
+    /// Weather's bolts, and a slight lift of the sky while one is bright.
+    private func drawLightning(_ sky: LiveSky, in context: inout GraphicsContext, layout: WeatherLayout) {
+        for bolt in sky.bolts {
+            let fade = 1 - bolt.age / WeatherSky.boltLife
+            let startY = layout.skyTop + (layout.horizon - layout.skyTop) * 0.2
+            var path = Path()
+            for points in bolt.paths {
+                for (index, point) in points.enumerated() {
+                    let location = CGPoint(x: (bolt.x + point.x) * layout.size.width, y: startY + point.y * (layout.horizon - startY))
+                    index == 0 ? path.move(to: location) : path.addLine(to: location)
+                }
+            }
+            context.fill(Path(CGRect(origin: .zero, size: layout.size)), with: .color(.white.opacity(0.08 * fade)))
+            context.stroke(path, with: .color(Color(red: 0.75, green: 0.8, blue: 1).opacity(0.35 * fade)), style: StrokeStyle(lineWidth: 9, lineCap: .round, lineJoin: .round))
+            context.stroke(path, with: .color(.white.opacity(fade)), style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+        }
+    }
+
+    // MARK: - Rain, sleet, snow and fog
+
+    /// Rain as streaks slanted by the wind; snow as flakes swaying down and
+    /// swirling in the gusts; sleet as both. Up to 260 at a time.
+    private func drawPrecipitation(_ sky: LiveSky, light: SkyLight, time: TimeInterval, in context: inout GraphicsContext, layout: WeatherLayout) {
+        let kind = sky.weather.precipitation
+        let count = Int(sky.precipitation * 260)
+        guard kind != .none, count > 0 else { return }
+        let fall = layout.horizon + 20
+        let wind = CGFloat(sky.wind)
+        // Lit by the sky: bright by day, dim at night.
+        let tone = Color.white.opacity(0.25 + 0.3 * light.daylight)
+        var streaks = Path()
+        var flakes = Path()
+        for drop in 0..<count {
+            let seed = Double(drop)
+            let across = (seed * 0.618_034).truncatingRemainder(dividingBy: 1)
+            let isFlake = kind == .snow || (kind == .sleet && drop % 2 == 0)
+            if isFlake {
+                let speed = 0.12 + (seed * 0.754_878).truncatingRemainder(dividingBy: 1) * 0.1
+                let y = ((seed * 0.381_966 + time * speed * (1 + Double(wind))).truncatingRemainder(dividingBy: 1)) * fall
+                let sway = CGFloat(sin(time * 1.3 + seed)) * 10 + wind * 60 * CGFloat(y / fall)
+                let x = (across * (layout.size.width + 80) - 40) + sway
+                let size: CGFloat = 1.5 + CGFloat((seed * 0.29).truncatingRemainder(dividingBy: 1)) * 2.5
+                flakes.addEllipse(in: CGRect(x: x, y: y, width: size, height: size))
+            } else {
+                let speed = 1.0 + (seed * 0.754_878).truncatingRemainder(dividingBy: 1) * 0.6
+                let y = ((seed * 0.381_966 + time * speed).truncatingRemainder(dividingBy: 1)) * fall
+                let slant = wind * 14
+                let x = across * (layout.size.width + 60) - 30 + slant * CGFloat(y / fall) * 4
+                streaks.move(to: CGPoint(x: x, y: y))
+                streaks.addLine(to: CGPoint(x: x + slant, y: y + 16 + 8 * sky.precipitation))
+            }
+        }
+        context.stroke(streaks, with: .color(tone), lineWidth: 1.1)
+        context.fill(flakes, with: .color(.white.opacity(0.55 + 0.35 * light.daylight)))
+    }
+
+    /// Soft bands drifting across the hills, thicker in calm passages.
+    private func drawFog(_ sky: LiveSky, light: SkyLight, time: TimeInterval, in context: inout GraphicsContext, layout: WeatherLayout) {
+        guard sky.fog > 0.02 else { return }
+        let color = light.skyHorizon.mix(with: Color(white: 0.85), by: 0.5)
+        // A haze over everything, thickest at the horizon.
+        context.fill(Path(CGRect(origin: .zero, size: layout.size)), with: .linearGradient(
+            Gradient(stops: [
+                .init(color: color.opacity(0.35 * sky.fog), location: 0),
+                .init(color: color.opacity(0.8 * sky.fog), location: 0.85),
+                .init(color: color.opacity(0.5 * sky.fog), location: 1),
+            ]),
+            startPoint: CGPoint(x: 0, y: layout.skyTop), endPoint: CGPoint(x: 0, y: layout.size.height)
+        ))
+        context.drawLayer { layer in
+            layer.addFilter(.blur(radius: 14))
+            for band in 0..<5 {
+                let height = layout.horizon - (layout.horizon - layout.skyTop) * (0.05 + 0.13 * CGFloat(band))
+                let shift = CGFloat((sky.drift * (0.4 + 0.15 * Double(band)) + Double(band) * 0.37).truncatingRemainder(dividingBy: 1))
+                for copy in 0..<2 {
+                    let x = (shift + CGFloat(copy) - 1) * layout.size.width * 1.2
+                    let rect = CGRect(x: x, y: height - 40, width: layout.size.width * 1.3, height: 80)
+                    layer.fill(Path(ellipseIn: rect), with: .color(color.opacity(min(sky.fog * (0.9 - 0.1 * Double(band)), 1))))
+                }
+            }
+        }
     }
 
     /// A fixed field of stars, fading in as the sky darkens. Each twinkles at
@@ -188,8 +285,10 @@ struct LiveWeatherView: View {
             }
             context.stroke(path, with: .color(color.opacity(0.35 * clear * light.daylight)), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
         }
+        // Behind thick cloud it's gone, not a gray disc.
+        guard clear > 0.02 else { return }
         let disc = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
-        context.fill(disc, with: .color(color.opacity(0.4 + 0.6 * clear)))
+        context.fill(disc, with: .color(color.opacity(min(clear * 1.5, 1))))
     }
 
     private func sunCenter(_ sun: SkyClock.Sun, layout: WeatherLayout) -> CGPoint {
@@ -207,6 +306,20 @@ struct LiveWeatherView: View {
     // MARK: - Clouds and birds
 
     private func drawClouds(_ sky: LiveSky, light: SkyLight, in context: inout GraphicsContext, layout: WeatherLayout) {
+        // Past half cover, a deck of cloud closes over the sky from the top,
+        // down to the horizon when overcast.
+        let deck = min(max((sky.cloudCover - 0.5) * 2, 0), 1)
+        if deck > 0 {
+            let bottom = layout.skyTop + (layout.horizon - layout.skyTop) * (0.35 + 0.65 * deck)
+            context.fill(Path(CGRect(x: 0, y: 0, width: layout.size.width, height: bottom)), with: .linearGradient(
+                Gradient(stops: [
+                    .init(color: light.cloudColor.opacity(0.95 * deck), location: 0),
+                    .init(color: light.cloudColor.opacity(0.8 * deck), location: 0.6),
+                    .init(color: light.cloudColor.opacity(0), location: 1),
+                ]),
+                startPoint: .zero, endPoint: CGPoint(x: 0, y: bottom)
+            ))
+        }
         context.drawLayer { layer in
             layer.addFilter(.blur(radius: 3))
             for (index, cloud) in WeatherLayout.clouds.enumerated() {
@@ -325,7 +438,7 @@ struct SkyLight {
     /// 0 ... 1: how visible the stars and moon are.
     let starVisibility: Double
 
-    init(sunAltitude altitude: Double, cloudCover: Double) {
+    init(sunAltitude altitude: Double, cloudCover: Double, gloom: Double = 0) {
         let keys = Self.keys
         // Between which two keyframes the sun is, and how far.
         let upper = keys.firstIndex { $0.altitude >= altitude } ?? keys.count - 1
@@ -336,18 +449,22 @@ struct SkyLight {
             keys[lower][keyPath: part].mix(with: keys[upper][keyPath: part], by: fraction)
         }
         let gray = Color(white: 0.45)
-        let overcast = cloudCover * 0.6
+        let overcast = min(cloudCover * 0.6 + gloom * 0.3, 0.9)
         skyTop = blend(\.top).mix(with: gray.mix(with: .black, by: 0.4), by: overcast)
         skyHorizon = blend(\.horizon).mix(with: gray, by: overcast)
         sunColor = blend(\.sun)
-        farHill = blend(\.farHill)
-        nearHill = blend(\.nearHill)
+        // Dull and darker under heavy cloud and weather.
+        let dull = min(cloudCover * 0.25 + gloom * 0.35, 0.55)
+        farHill = blend(\.farHill).mix(with: Color(white: 0.25), by: dull)
+        nearHill = blend(\.nearHill).mix(with: Color(white: 0.12), by: dull)
         daylight = LiveSky.darkness(sunAltitude: altitude).complement
         // Strongest with the sun just above the horizon.
         goldenness = max(0, 1 - abs(altitude - 2) / 10)
-        starVisibility = min(max((-altitude - 4) / 10, 0), 1) * (1 - cloudCover * 0.8)
+        // Hidden by cloud: half cover dims them, overcast hides them.
+        starVisibility = min(max((-altitude - 4) / 10, 0), 1) * min(max(1.6 - cloudCover * 1.8, 0), 1)
         cloudColor = Color.white.mix(with: blend(\.horizon), by: 0.35 + 0.4 * goldenness)
             .mix(with: Color(white: 0.15), by: (1 - daylight) * 0.7)
+            .mix(with: Color(white: 0.22), by: gloom * 0.75)
         birdColor = Color(white: 0.12).mix(with: .black, by: 0.5)
     }
 
@@ -380,8 +497,8 @@ private extension Double {
     var complement: Double { 1 - self }
 }
 
-/// Keeps the live sky between frames. The place is guessed from the time zone
-/// until real location arrives (Weather (Live) step 3).
+/// Keeps the live sky between frames, with the place and weather it's for.
+/// The place is guessed from the time zone until a real one is set.
 @MainActor
 final class LiveWeatherState {
     struct Frame {
@@ -391,15 +508,86 @@ final class LiveWeatherState {
         let moonIllumination: Double
     }
 
+    /// Where the sky is for, and its weather; set from outside as they're found.
+    var place = SkyClock.Place.guess()
+    var weather = LiveWeather.fair
     private var sky = LiveSky()
     private var lastFrame: Date?
-    private let place = SkyClock.Place.guess()
 
-    func update(feed: SpectrumFeed, at date: Date) -> Frame {
+    func update(feed: SpectrumFeed, at date: Date, forced: LiveWeatherDebug = .init()) -> Frame {
         let elapsed = lastFrame.map { date.timeIntervalSince($0) } ?? 0
         lastFrame = date
-        let sun = SkyClock.sun(at: date, place: place)
-        sky.update(energy: feed.energy, beat: feed.beat, sun: sun, elapsed: elapsed)
+        let sun = forced.time.sun ?? SkyClock.sun(at: date, place: place)
+        sky.update(energy: feed.energy, beat: feed.beat, sun: sun, weather: forced.weather.weather ?? weather, elapsed: elapsed)
         return Frame(sky: sky, sun: sun, moonPhase: SkyClock.moonPhase(at: date), moonIllumination: SkyClock.moonIllumination(at: date))
     }
+}
+
+/// Debug builds only: a weather and time of day to force, from the
+/// visualizer's menu, to see each without waiting for it.
+struct LiveWeatherDebug: Equatable {
+    enum Weather: String, CaseIterable {
+        case real, clear, partlyCloudy, cloudy, lightRain, downpour, thunderstorm, sleet, snow, fog
+
+        var title: String {
+            switch self {
+            case .real: "Real Weather"
+            case .clear: "Clear"
+            case .partlyCloudy: "Partly Cloudy"
+            case .cloudy: "Cloudy"
+            case .lightRain: "Light Rain"
+            case .downpour: "Downpour"
+            case .thunderstorm: "Thunderstorm"
+            case .sleet: "Sleet"
+            case .snow: "Snow"
+            case .fog: "Fog"
+            }
+        }
+
+        var weather: LiveWeather? {
+            switch self {
+            case .real: nil
+            case .clear: LiveWeather(symbolCode: "clearsky_day", cloudAreaFraction: nil, windSpeed: 2)
+            case .partlyCloudy: LiveWeather(symbolCode: "partlycloudy_day", cloudAreaFraction: nil, windSpeed: 4)
+            case .cloudy: LiveWeather(symbolCode: "cloudy", cloudAreaFraction: nil, windSpeed: 5)
+            case .lightRain: LiveWeather(symbolCode: "lightrain", cloudAreaFraction: nil, windSpeed: 3)
+            case .downpour: LiveWeather(symbolCode: "heavyrain", cloudAreaFraction: nil, windSpeed: 8)
+            case .thunderstorm: LiveWeather(symbolCode: "heavyrainandthunder", cloudAreaFraction: nil, windSpeed: 10)
+            case .sleet: LiveWeather(symbolCode: "sleet", cloudAreaFraction: nil, windSpeed: 6)
+            case .snow: LiveWeather(symbolCode: "snow", cloudAreaFraction: nil, windSpeed: 4)
+            case .fog: LiveWeather(symbolCode: "fog", cloudAreaFraction: nil, windSpeed: 1)
+            }
+        }
+    }
+
+    enum Time: String, CaseIterable {
+        case real, dawn, sunrise, day, sunset, dusk, night
+
+        var title: String {
+            switch self {
+            case .real: "Real Time"
+            case .dawn: "Dawn"
+            case .sunrise: "Sunrise"
+            case .day: "Day"
+            case .sunset: "Sunset"
+            case .dusk: "Dusk"
+            case .night: "Night"
+            }
+        }
+
+        var sun: SkyClock.Sun? {
+            switch self {
+            case .real: nil
+            case .dawn: SkyClock.Sun(altitude: -7, hourAngle: -100)
+            case .sunrise: SkyClock.Sun(altitude: 3, hourAngle: -85)
+            case .day: SkyClock.Sun(altitude: 40, hourAngle: -20)
+            case .sunset: SkyClock.Sun(altitude: 3, hourAngle: 85)
+            case .dusk: SkyClock.Sun(altitude: -7, hourAngle: 100)
+            case .night: SkyClock.Sun(altitude: -30, hourAngle: 170)
+            }
+        }
+    }
+
+    var weather = Weather.real
+    var time = Time.real
 }

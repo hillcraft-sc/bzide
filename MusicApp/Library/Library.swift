@@ -40,6 +40,13 @@ final class Library {
         let support = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         return StationLogoStore(fileURL: support?.appending(path: StationLogoStore.fileName))
     }()
+    /// Weather (Live)'s place and weather, shared so a forecast and a found
+    /// place are reused between openings. MET Norway is on the open internet:
+    /// no shared cache or cookies.
+    let liveWeather = LiveWeatherSource(met: METNorwayClient(
+        contact: Bundle.main.object(forInfoDictionaryKey: "METNorwayContact") as? String ?? "",
+        transport: URLSessionTransport(session: URLSession(configuration: .ephemeral))
+    ))
     /// Radio Browser is on the open internet: no shared cache or cookies.
     private let radioBrowser = RadioBrowserClient(transport: URLSessionTransport(session: URLSession(configuration: .ephemeral)))
 

@@ -31,6 +31,8 @@ struct VisualizerView: View {
     @State private var tapestryState = TapestryState()
     @State private var weatherState = WeatherState()
     @State private var liveWeatherState = LiveWeatherState()
+    /// Debug builds: a weather and time forced for Weather (Live).
+    @State private var liveWeatherDebug = LiveWeatherDebug()
     @State private var chromeState = ChromeState()
     @State private var typesetState = TypesetState()
     @State private var polygraphState = PolygraphState()
@@ -154,8 +156,13 @@ struct VisualizerView: View {
             case .liveWeather:
                 LiveWeatherView(
                     feed: feed, date: timeline.date,
-                    insets: drawingInsets(landscape: landscape), landscape: landscape, state: liveWeatherState
+                    insets: drawingInsets(landscape: landscape), landscape: landscape, state: liveWeatherState,
+                    forced: liveWeatherDebug
                 )
+                .task(id: liveWeatherSettings) {
+                    guard let library = model.library else { return }
+                    await library.liveWeather.run(into: liveWeatherState, settings: library.settings.settings)
+                }
             case .chrome:
                 ChromeView(
                     library: model.library, coverArtID: engine.queue.current?.song.coverArtID,
@@ -300,6 +307,33 @@ struct VisualizerView: View {
         }
     }
 
+    /// What Weather (Live) depends on; a change starts it again.
+    private var liveWeatherSettings: String {
+        guard let settings = model.library?.settings.settings else { return "" }
+        return "\(settings.liveWeather)|\(settings.liveWeatherUsesLocation)|\(settings.liveWeatherCity)"
+    }
+
+    /// Weather (Live)'s credit (MET Norway's data is CC BY 4.0) or why there's
+    /// no weather, small under the menu.
+    @ViewBuilder
+    private var liveWeatherCaption: some View {
+        if style == .liveWeather, unavailableMessage == nil, let source = model.library?.liveWeather {
+            let text: String? = switch source.status {
+            case .off: nil
+            case .locating: "Finding your location…"
+            case .noPlace: "No location: allow it, or set a city in Settings"
+            case .live: "Weather: MET Norway"
+            case .unavailable: "Weather unavailable"
+            }
+            if let text {
+                Text(text)
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.6))
+                    .padding(.top, 4)
+            }
+        }
+    }
+
     private func overlay(landscape: Bool) -> some View {
         VStack {
             ZStack {
@@ -315,6 +349,7 @@ struct VisualizerView: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, landscape ? 8 : 12)
+            liveWeatherCaption
             if landscape {
                 // Title and controls in a panel on the right, vertically centered.
                 HStack {
@@ -360,6 +395,20 @@ struct VisualizerView: View {
                 }
                 .pickerStyle(.inline)
             }
+            #if DEBUG
+            if style == .liveWeather {
+                Section("Debug: Weather") {
+                    Picker("Weather", selection: $liveWeatherDebug.weather) {
+                        ForEach(LiveWeatherDebug.Weather.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    Picker("Time", selection: $liveWeatherDebug.time) {
+                        ForEach(LiveWeatherDebug.Time.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                }
+            }
+            #endif
+            // Weather (Live) uses the sky's natural colors.
+            if style != .liveWeather {
             Section("Colors") {
                 Picker("Colors", selection: $colorMode) {
                     // Custom picks from Catppuccin's accents, so only in its themes.
@@ -373,6 +422,7 @@ struct VisualizerView: View {
                         isChoosingColors = true
                     }
                 }
+            }
             }
         } label: {
             Label(style.title, systemImage: style.symbol)

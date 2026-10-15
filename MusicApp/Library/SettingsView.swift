@@ -88,6 +88,20 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Live Weather", isOn: $settings.settings.liveWeather)
+                if settings.settings.liveWeather {
+                    Toggle("Use My Location", isOn: $settings.settings.liveWeatherUsesLocation)
+                    TextField("City", text: $settings.settings.liveWeatherCity, prompt: Text("City (optional)"))
+                        .textContentType(.addressCity)
+                        .autocorrectionDisabled()
+                }
+            } header: {
+                Text("Weather (Live)")
+            } footer: {
+                Text("The Weather (Live) visualizer can show the real weather where you are, from MET Norway (api.met.no; data CC BY 4.0). It sends your approximate location, rounded to about a kilometer, while the visualizer is open. Use My Location asks for your location once; the city is used when location is off or unavailable, and is looked up by Apple. Off, it shows the time of day only.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 Toggle("Find Stations Online", isOn: $settings.settings.findStationsOnline)
             } header: {
                 Text("Radio")
