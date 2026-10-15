@@ -30,6 +30,7 @@ struct VisualizerView: View {
     @State private var grooveState = GrooveState()
     @State private var tapestryState = TapestryState()
     @State private var weatherState = WeatherState()
+    @State private var liveWeatherState = LiveWeatherState()
     @State private var chromeState = ChromeState()
     @State private var typesetState = TypesetState()
     @State private var polygraphState = PolygraphState()
@@ -149,6 +150,11 @@ struct VisualizerView: View {
                 WeatherView(
                     feed: feed, date: timeline.date, colors: fourColors,
                     insets: drawingInsets(landscape: landscape), landscape: landscape, state: weatherState
+                )
+            case .liveWeather:
+                LiveWeatherView(
+                    feed: feed, date: timeline.date,
+                    insets: drawingInsets(landscape: landscape), landscape: landscape, state: liveWeatherState
                 )
             case .chrome:
                 ChromeView(
@@ -396,7 +402,7 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, polygraph, groove, livingCover, tapestry, weather, chrome, typeset
+    case bars, waveform, plasma, polygraph, groove, livingCover, tapestry, weather, liveWeather, chrome, typeset
 
     var title: String {
         switch self {
@@ -408,6 +414,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .livingCover: "Living Cover"
         case .tapestry: "Tapestry"
         case .weather: "Weather"
+        case .liveWeather: "Weather (Live)"
         case .chrome: "Chrome"
         case .typeset: "Typeset"
         }
@@ -423,6 +430,7 @@ enum VisualizerStyle: String, CaseIterable {
         case .livingCover: "square.grid.3x3.fill"
         case .tapestry: "scribble.variable"
         case .weather: "cloud.bolt.rain.fill"
+        case .liveWeather: "cloud.sun.fill"
         case .chrome: "drop.fill"
         case .typeset: "textformat.size"
         }

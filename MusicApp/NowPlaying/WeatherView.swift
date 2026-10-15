@@ -100,7 +100,7 @@ struct WeatherView: View {
     }
 
     /// A cloud from overlapping puffs, `width` wide with its base at `origin.y`.
-    private static func cloudShape(at origin: CGPoint, width: CGFloat) -> Path {
+    static func cloudShape(at origin: CGPoint, width: CGFloat) -> Path {
         var path = Path()
         let puffs: [(x: CGFloat, size: CGFloat)] = [(0, 0.38), (0.2, 0.55), (0.45, 0.48), (0.66, 0.36)]
         for puff in puffs {
