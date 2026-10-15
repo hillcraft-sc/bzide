@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import NavidromeCore
 
@@ -6,9 +7,11 @@ import Testing
 struct MyCutsTests {
     /// A library of `count` songs; every tenth is rated Rocks (5), every
     /// tenth plus one Don't Hate It (3), every tenth plus two Meh (2).
-    private final class Library: @unchecked Sendable {
+    private final class Library: Sendable {
         let songs: [Song]
-        var pageRequests: [Int] = []
+        /// Pages are fetched from several tasks at once, so the record is locked.
+        private let requests = Mutex<[Int]>([])
+        var pageRequests: [Int] { requests.withLock { $0 } }
 
         init(count: Int) {
             songs = (0..<count).map { index in
@@ -23,7 +26,7 @@ struct MyCutsTests {
         }
 
         func page(_ count: Int, _ offset: Int) -> [Song] {
-            pageRequests.append(offset)
+            requests.withLock { $0.append(offset) }
             guard offset < songs.count else { return [] }
             return Array(songs[offset..<min(offset + count, songs.count)])
         }

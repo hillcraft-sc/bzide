@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 import Testing
 @testable import NavidromeCore
 
@@ -141,13 +142,13 @@ struct SearchFiltersTests {
     // MARK: The library catalog
 
     @Test func theCatalogListsTheWholeLibraryOnceForAWhile() async throws {
-        final class Counts: @unchecked Sendable { var albumPages = 0 }
-        let counts = Counts()
+        // Pages are fetched from several tasks at once, so the count is locked.
+        let albumPages = Mutex(0)
         let albums = (0..<1_234).map { Album(id: "al-\($0)", name: "Album \($0)") }
         let catalog = LibraryCatalog(sources: .init(
             artists: { [Artist(id: "ar-1", name: "Band")] },
             albumsPage: { count, offset in
-                counts.albumPages += 1
+                albumPages.withLock { $0 += 1 }
                 return Array(albums[min(offset, albums.count)..<min(offset + count, albums.count)])
             },
             songsPage: { _, _ in [] }
@@ -155,8 +156,8 @@ struct SearchFiltersTests {
         let first = try await catalog.browse(.albums)
         #expect(first.albums.count == 1_234)
         #expect(first.artists.isEmpty && first.songs.isEmpty)
-        let pages = counts.albumPages
+        let pages = albumPages.withLock { $0 }
         _ = try await catalog.browse(.all)
-        #expect(counts.albumPages == pages)
+        #expect(albumPages.withLock { $0 } == pages)
     }
 }

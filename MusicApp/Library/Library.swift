@@ -181,6 +181,34 @@ final class Library {
         LoadModel { [client] () async throws(SubsonicError) in try await client.favorites() }
     }
 
+    /// Albums played in the last week, from any app.
+    func recentlyPlayedModel() -> LoadModel<[Album]> {
+        LoadModel { [client] () async throws(SubsonicError) in
+            RecentlyPlayed.albums(from: try await client.albumList(.recent, size: 50), now: .now)
+        }
+    }
+
+    /// Albums worth hearing again, from the whole album list; a server
+    /// without plays or ratings there gets its most played, less recent ones.
+    func spinItBackModel() -> LoadModel<[Album]> {
+        LoadModel { [client, catalog] () async throws(SubsonicError) in
+            let all: [Album]
+            do {
+                all = try await catalog.albums()
+            } catch let failure as SubsonicError {
+                throw failure
+            } catch {
+                throw .network(.unknown)
+            }
+            let picks = SpinItBack.picks(from: all, now: .now)
+            guard picks.isEmpty else { return picks }
+            return SpinItBack.fallback(
+                frequent: try await client.albumList(.frequent, size: 50),
+                recent: try await client.albumList(.recent, size: 30)
+            )
+        }
+    }
+
     func genresModel() -> LoadModel<[Genre]> {
         LoadModel { [client] () async throws(SubsonicError) in Genre.forBrowsing(try await client.genres()) }
     }

@@ -89,6 +89,8 @@ public struct SongDetails: Sendable, Equatable, Codable {
 public struct AlbumDetails: Sendable, Equatable {
     public var playCount: Int?
     public var added: Date?
+    /// When it was last played, from any app (OpenSubsonic).
+    public var lastPlayed: Date?
     public var labels: [String]
     /// e.g. "Album", "EP", "Live", "Compilation".
     public var releaseTypes: [String]
@@ -98,11 +100,12 @@ public struct AlbumDetails: Sendable, Equatable {
     public var isCompilation: Bool
 
     public init(
-        playCount: Int? = nil, added: Date? = nil, labels: [String] = [], releaseTypes: [String] = [],
+        playCount: Int? = nil, added: Date? = nil, lastPlayed: Date? = nil, labels: [String] = [], releaseTypes: [String] = [],
         originalYear: Int? = nil, genres: [String] = [], isCompilation: Bool = false
     ) {
         self.playCount = playCount
         self.added = added
+        self.lastPlayed = lastPlayed
         self.labels = labels
         self.releaseTypes = releaseTypes
         self.originalYear = originalYear
@@ -111,7 +114,7 @@ public struct AlbumDetails: Sendable, Equatable {
     }
 
     enum Keys: String, CodingKey {
-        case playCount, created, recordLabels, releaseTypes, originalReleaseDate, genres, isCompilation
+        case playCount, created, played, recordLabels, releaseTypes, originalReleaseDate, genres, isCompilation
     }
 
     private enum DateKeys: String, CodingKey { case year }
@@ -125,6 +128,7 @@ public struct AlbumDetails: Sendable, Equatable {
         self.init(
             playCount: c.lenientInt(.playCount),
             added: c.lenientDate(.created),
+            lastPlayed: c.lenientDate(.played),
             labels: c.names(.recordLabels),
             releaseTypes: c.strings(.releaseTypes),
             originalYear: original?.lenientInt(.year).flatMap { $0 > 0 ? $0 : nil },

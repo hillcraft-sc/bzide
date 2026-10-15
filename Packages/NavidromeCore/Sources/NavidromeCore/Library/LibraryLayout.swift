@@ -3,11 +3,14 @@ import Observation
 
 /// Something the Library screen can show.
 public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
-    case recentlyAdded, randomMix, ratedShuffle, artists, albums, playlists, favorites, genres, radio, downloads, history
+    case recentlyAdded, recentlyPlayed, spinItBack, randomMix, ratedShuffle
+    case artists, albums, playlists, favorites, genres, radio, downloads, history
 
     public var title: String {
         switch self {
         case .recentlyAdded: "Recently Added"
+        case .recentlyPlayed: "Recently Played"
+        case .spinItBack: "Spin It Back"
         case .randomMix: "Random Mix"
         case .ratedShuffle: "Mix My Cuts"
         case .artists: "Artists"
@@ -21,6 +24,17 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// A row of album covers (Recently Added, Recently Played, Spin It Back).
+    public var isCarousel: Bool {
+        self == .recentlyAdded || self == .recentlyPlayed || self == .spinItBack
+    }
+
+    /// Shown until the user hides it. Carousels start hidden, so Library
+    /// stays simple unless the user wants more.
+    public var isShownByDefault: Bool {
+        !isCarousel
+    }
+
     /// Plays something at once (Random Mix, Mix My Cuts) rather than opening a list.
     public var isMix: Bool {
         self == .randomMix || self == .ratedShuffle
@@ -28,12 +42,12 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
 
     /// Opens a list, rather than being a section of its own.
     public var isLink: Bool {
-        self != .recentlyAdded && !isMix
+        !isCarousel && !isMix
     }
 }
 
-/// What the Library screen shows, and in what order. Everything is shown by
-/// default; the user can hide items and reorder them.
+/// What the Library screen shows, and in what order. Everything but the
+/// carousels is shown by default; the user can show or hide items and reorder them.
 public struct LibraryLayout: Codable, Equatable, Sendable {
     public struct Entry: Codable, Equatable, Sendable {
         public var item: LibraryFeature
@@ -43,7 +57,7 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
     public private(set) var entries: [Entry]
 
     public init() {
-        entries = LibraryFeature.allCases.map { Entry(item: $0, isShown: true) }
+        entries = LibraryFeature.allCases.map { Entry(item: $0, isShown: $0.isShownByDefault) }
     }
 
     /// The shown items, in order.
@@ -67,11 +81,11 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
         entries[index].isShown = isShown
     }
 
-    /// How the Library screen draws the shown items: Recently Added on its
+    /// How the Library screen draws the shown items: each carousel on its
     /// own; mixes (Random Mix, Mix My Cuts) next to each other in one block;
     /// links next to each other in another.
     public enum Group: Equatable, Sendable {
-        case recentlyAdded
+        case carousel(LibraryFeature)
         case mixes([LibraryFeature])
         case links([LibraryFeature])
     }
@@ -79,8 +93,8 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
     public var groups: [Group] {
         var groups: [Group] = []
         for item in shown {
-            if item == .recentlyAdded {
-                groups.append(.recentlyAdded)
+            if item.isCarousel {
+                groups.append(.carousel(item))
             } else if item.isMix {
                 if case .mixes(let mixes) = groups.last {
                     groups[groups.count - 1] = .mixes(mixes + [item])
@@ -102,8 +116,9 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
 
     /// Lenient, so a layout saved by another version still works: unknown
     /// items and repeats are dropped, and items added since (like a new kind
-    /// of list) appear, shown, in their usual place: after the item that
-    /// comes before them by default (or first, if that's missing too).
+    /// of list) appear in their usual place, shown or hidden as by default:
+    /// after the item that comes before them by default (or first, if that's
+    /// missing too).
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let saved = (try? c.decode([LossyEntry].self, forKey: .entries)) ?? []
@@ -117,7 +132,7 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
             // After the nearest item before it in the default order that's there.
             let before = all[..<position].reversed().first { previous in entries.contains { $0.item == previous } }
             let index = before.flatMap { previous in entries.firstIndex { $0.item == previous } }.map { $0 + 1 } ?? 0
-            entries.insert(Entry(item: item, isShown: true), at: index)
+            entries.insert(Entry(item: item, isShown: item.isShownByDefault), at: index)
             seen.insert(item)
         }
         self.entries = entries

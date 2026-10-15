@@ -82,6 +82,11 @@ public actor LibraryCatalog {
         return fetched
     }
 
+    /// Every album, for Spin It Back.
+    public func albums() async throws -> [Album] {
+        try await allAlbums()
+    }
+
     private func allAlbums() async throws -> [Album] {
         if let albums, isFresh(albums.at) { return albums.items }
         let fetched = Self.unique(try await PagedListing.all(sources.albumsPage))

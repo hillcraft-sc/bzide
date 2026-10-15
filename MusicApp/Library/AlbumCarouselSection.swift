@@ -1,12 +1,18 @@
 import NavidromeCore
 import SwiftUI
 
-/// The newest albums as a row of covers at the top of Library. The header
-/// collapses it; See All opens the full list, newest first.
-struct RecentlyAddedSection: View {
+/// A row of album covers on Library (Recently Added, Recently Played, Spin It
+/// Back). The header collapses it; See All, where there is one, opens the
+/// full list.
+struct AlbumCarouselSection: View {
     let library: Library
+    let title: String
+    /// What the header's hint says it shows, e.g. "the newest albums".
+    let shows: String
+    let emptyText: String
     let model: LoadModel<[Album]>
     @Binding var isCollapsed: Bool
+    var seeAll: LibraryRoute?
 
     var body: some View {
         Section {
@@ -24,7 +30,7 @@ struct RecentlyAddedSection: View {
                 withAnimation { isCollapsed.toggle() }
             } label: {
                 HStack(spacing: 6) {
-                    Text("Recently Added")
+                    Text(title)
                     Image(systemName: "chevron.down")
                         .font(.caption.bold())
                         .rotationEffect(.degrees(isCollapsed ? -90 : 0))
@@ -34,10 +40,12 @@ struct RecentlyAddedSection: View {
             // A heading that also collapses, not a link: only See All is in the accent.
             .tint(.primary)
             .accessibilityValue(isCollapsed ? "Collapsed" : "Expanded")
-            .accessibilityHint(isCollapsed ? "Shows the newest albums" : "Hides the newest albums")
+            .accessibilityHint(isCollapsed ? "Shows \(shows)" : "Hides \(shows)")
             Spacer()
-            NavigationLink("See All", value: LibraryRoute.albums)
-                .font(.subheadline)
+            if let seeAll {
+                NavigationLink("See All", value: seeAll)
+                    .font(.subheadline)
+            }
         }
         .font(.headline)
         .textCase(nil)
@@ -56,7 +64,7 @@ struct RecentlyAddedSection: View {
             }
             .frame(maxWidth: .infinity)
         case .loaded(let albums) where albums.isEmpty:
-            Text("No albums yet").foregroundStyle(.secondary)
+            Text(emptyText).foregroundStyle(.secondary)
         case .loaded(let albums):
             ScrollView(.horizontal) {
                 LazyHStack(alignment: .top, spacing: 12) {

@@ -3,31 +3,44 @@ import Testing
 @testable import NavidromeCore
 
 struct LibraryLayoutTests {
-    @Test func everythingIsShownByDefaultInOrder() {
+    @Test func theUsualItemsAreShownByDefaultInOrder() {
         let layout = LibraryLayout()
-        #expect(layout.shown == LibraryFeature.allCases)
+        // Carousels start hidden, so Library stays simple.
+        #expect(layout.shown == LibraryFeature.allCases.filter { !$0.isCarousel })
         #expect(layout.groups == [
-            .recentlyAdded, .mixes([.randomMix, .ratedShuffle]),
+            .mixes([.randomMix, .ratedShuffle]),
             .links([.artists, .albums, .playlists, .favorites, .genres, .radio, .downloads, .history]),
+        ])
+    }
+
+    @Test func eachCarouselShownIsItsOwnSection() {
+        var layout = LibraryLayout()
+        layout.setShown(.recentlyAdded, true)
+        layout.setShown(.recentlyPlayed, true)
+        layout.setShown(.spinItBack, true)
+        #expect(layout.groups.prefix(4) == [
+            .carousel(.recentlyAdded), .carousel(.recentlyPlayed), .carousel(.spinItBack), .mixes([.randomMix, .ratedShuffle]),
         ])
     }
 
     @Test func hiddenItemsAreLeftOut() {
         var layout = LibraryLayout()
+        layout.setShown(.recentlyAdded, true)
         layout.setShown(.radio, false)
         layout.setShown(.randomMix, false)
         layout.setShown(.ratedShuffle, false)
         #expect(!layout.shown.contains(.radio))
-        #expect(layout.groups.first == .recentlyAdded)
+        #expect(layout.groups.first == .carousel(.recentlyAdded))
         #expect(layout.groups.count == 2)
     }
 
     @Test func linksMovedFirstAreGroupedBeforeTheRest() {
         var layout = LibraryLayout()
+        layout.setShown(.recentlyAdded, true)
         // Artists and Albums to the top; Recently Added after them.
-        layout.move(fromOffsets: IndexSet([3, 4]), toOffset: 0)
+        layout.move(fromOffsets: IndexSet([5, 6]), toOffset: 0)
         #expect(layout.shown.prefix(3) == [.artists, .albums, .recentlyAdded])
-        #expect(layout.groups.prefix(3) == [.links([.artists, .albums]), .recentlyAdded, .mixes([.randomMix, .ratedShuffle])])
+        #expect(layout.groups.prefix(3) == [.links([.artists, .albums]), .carousel(.recentlyAdded), .mixes([.randomMix, .ratedShuffle])])
     }
 
     @Test func itsSavedAndRestored() throws {
@@ -39,7 +52,8 @@ struct LibraryLayoutTests {
     }
 
     @Test func aSavedLayoutFromAnotherVersionStillWorks() throws {
-        // Unknown "podcasts", a repeated "albums", and no Mix My Cuts, favorites, genres or history (added later).
+        // Unknown "podcasts", a repeated "albums", and no Recently Played, Spin It
+        // Back, Mix My Cuts, favorites, genres or history (added later).
         let saved = """
         {"entries":[{"item":"albums","isShown":true},{"item":"podcasts","isShown":true},
         {"item":"artists","isShown":false},{"item":"albums","isShown":false},{"item":"recentlyAdded","isShown":true},
@@ -47,14 +61,18 @@ struct LibraryLayoutTests {
         {"item":"downloads","isShown":true}]}
         """
         let layout = try JSONDecoder().decode(LibraryLayout.self, from: Data(saved.utf8))
-        // New items go in their usual place: Mix My Cuts after Random Mix,
-        // Favorites and Genres after Playlists, History after Downloaded.
+        // New items go in their usual place: the carousels after Recently Added,
+        // Mix My Cuts after Random Mix, Favorites and Genres after Playlists,
+        // History after Downloaded. New carousels arrive hidden; a saved
+        // choice for one (Recently Added here) is kept.
         #expect(layout.entries.map(\.item) == [
-            .albums, .artists, .recentlyAdded, .randomMix, .ratedShuffle, .playlists, .favorites, .genres, .radio, .downloads, .history,
+            .albums, .artists, .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle,
+            .playlists, .favorites, .genres, .radio, .downloads, .history,
         ])
         #expect(layout.entries.first?.isShown == true)
         #expect(layout.entries[1].isShown == false)
         #expect(layout.entries.allSatisfy { [.ratedShuffle, .favorites, .genres, .history].contains($0.item) ? $0.isShown : true })
+        #expect(layout.entries.allSatisfy { [.recentlyPlayed, .spinItBack].contains($0.item) ? !$0.isShown : true })
     }
 
     @Test func unreadableSavedLayoutFallsBackToTheDefault() throws {

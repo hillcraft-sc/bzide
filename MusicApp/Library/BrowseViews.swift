@@ -9,15 +9,21 @@ struct LibraryView: View {
     let library: Library
     @State private var randomMix: RandomMixModel
     @State private var recentlyAdded: LoadModel<[Album]>
+    @State private var recentlyPlayed: LoadModel<[Album]>
+    @State private var spinItBack: LoadModel<[Album]>
     @State private var isEditing = false
-    /// Remembered on this device: a display preference, nothing to sync.
+    /// Remembered on this device: display preferences, nothing to sync.
     @AppStorage("recentlyAddedCollapsed") private var isRecentlyAddedCollapsed = false
+    @AppStorage("recentlyPlayedCollapsed") private var isRecentlyPlayedCollapsed = false
+    @AppStorage("spinItBackCollapsed") private var isSpinItBackCollapsed = false
 
     init(model: AppModel, library: Library) {
         self.model = model
         self.library = library
         _randomMix = State(initialValue: library.randomMixModel())
         _recentlyAdded = State(initialValue: library.recentlyAddedModel())
+        _recentlyPlayed = State(initialValue: library.recentlyPlayedModel())
+        _spinItBack = State(initialValue: library.spinItBackModel())
     }
 
     private var layout: LibraryLayout { model.libraryLayout.layout }
@@ -26,8 +32,8 @@ struct LibraryView: View {
         List {
             ForEach(Array(layout.groups.enumerated()), id: \.offset) { _, group in
                 switch group {
-                case .recentlyAdded:
-                    RecentlyAddedSection(library: library, model: recentlyAdded, isCollapsed: $isRecentlyAddedCollapsed)
+                case .carousel(let item):
+                    carousel(item)
                         .themedRows(grouped: true)
                 case .mixes(let items):
                     mixesSection(items)
@@ -54,11 +60,10 @@ struct LibraryView: View {
                 }
             }
         }
-        // Each return to Library checks for new albums; the row stays on screen meanwhile.
-        .task {
-            if layout.shown.contains(.recentlyAdded) { await recentlyAdded.load() }
-        }
-        .refreshable { await recentlyAdded.load() }
+        // Each return to Library refreshes the carousels shown, as does showing
+        // one in Edit Library; they stay on screen meanwhile.
+        .task(id: layout.shown) { await loadCarousels() }
+        .refreshable { await loadCarousels() }
         .toolbar {
             ToolbarItem {
                 Button("Edit", systemImage: "rectangle.grid.1x3") { isEditing = true } // square.stack
@@ -86,6 +91,39 @@ struct LibraryView: View {
         .sheet(isPresented: $isEditing) {
             EditLibrarySheet(layout: model.libraryLayout)
         }
+    }
+
+    @ViewBuilder
+    private func carousel(_ item: LibraryFeature) -> some View {
+        switch item {
+        case .recentlyPlayed:
+            AlbumCarouselSection(
+                library: library, title: item.title, shows: "albums played this week",
+                emptyText: "Nothing played this week", model: recentlyPlayed, isCollapsed: $isRecentlyPlayedCollapsed,
+                seeAll: .history
+            )
+        case .spinItBack:
+            AlbumCarouselSection(
+                library: library, title: item.title, shows: "albums worth hearing again",
+                emptyText: "Rate or favorite some albums, and ones you haven't played in a while will appear here",
+                model: spinItBack, isCollapsed: $isSpinItBackCollapsed
+            )
+        default:
+            AlbumCarouselSection(
+                library: library, title: item.title, shows: "the newest albums",
+                emptyText: "No albums yet", model: recentlyAdded, isCollapsed: $isRecentlyAddedCollapsed,
+                seeAll: .albums
+            )
+        }
+    }
+
+    /// Only the carousels shown are fetched, all at once.
+    private func loadCarousels() async {
+        let shown = Set(layout.shown)
+        async let added: Void = shown.contains(.recentlyAdded) ? recentlyAdded.load() : ()
+        async let played: Void = shown.contains(.recentlyPlayed) ? recentlyPlayed.load() : ()
+        async let again: Void = shown.contains(.spinItBack) ? spinItBack.load() : ()
+        _ = await (added, played, again)
     }
 
     /// Random Mix and Mix My Cuts, in the order chosen, in one block.
@@ -149,6 +187,13 @@ private struct EditLibrarySheet: View {
                                     .foregroundStyle(entry.isShown ? Color.accentColor : .secondary)
                                 Label(entry.item.title, systemImage: entry.item.symbol)
                                     .foregroundStyle(.primary)
+                                if entry.item.isCarousel {
+                                    Spacer()
+                                    // Marks the rows of album covers.
+                                    Image(systemName: "rectangle.split.3x1")
+                                        .foregroundStyle(.secondary)
+                                        .accessibilityLabel("Carousel")
+                                }
                             }
                         }
                         .accessibilityValue(entry.isShown ? "Shown" : "Hidden")
@@ -157,7 +202,7 @@ private struct EditLibrarySheet: View {
                         layout.layout.move(fromOffsets: source, toOffset: destination)
                     }
                 } footer: {
-                    Text("Tap to show or hide. Drag to reorder.")
+                    Text("Tap to show or hide. Drag to reorder. \(Image(systemName: "rectangle.split.3x1")) marks a carousel, a row of album covers.")
                 }
                 .themedRows(grouped: true)
             }
@@ -181,6 +226,8 @@ extension LibraryFeature {
     var symbol: String {
         switch self {
         case .recentlyAdded: "clock.badge"
+        case .recentlyPlayed: "clock.arrow.trianglehead.counterclockwise.rotate.90"
+        case .spinItBack: "arrow.uturn.backward.circle"
         case .randomMix: "shuffle"
         case .ratedShuffle: "hand.thumbsup"
         case .artists: "music.microphone"
@@ -205,7 +252,7 @@ extension LibraryFeature {
         case .radio: .radio
         case .downloads: .downloads
         case .history: .history
-        case .recentlyAdded, .randomMix, .ratedShuffle: nil
+        case .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle: nil
         }
     }
 }
