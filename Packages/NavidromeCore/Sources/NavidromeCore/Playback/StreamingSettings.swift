@@ -36,11 +36,18 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     /// Off by default: when a queue reaches its last song, spin off from it
     /// so the music keeps going (see `SpinOffModel`).
     public var keepSpinning: Bool
+    /// Off by default: Random Mix, Spin Off and Keep Spinning leave out songs
+    /// rated Meh.
+    public var includeMehInMixes: Bool
+    /// On by default: favorites (hearts) are in My Cuts, as well as songs
+    /// rated Rocks or Don't Hate It.
+    public var myCutsIncludeFavorites: Bool
 
     public init(
         wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
         downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original,
-        findLyricsOnline: Bool = false, volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false
+        findLyricsOnline: Bool = false, volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
+        includeMehInMixes: Bool = false, myCutsIncludeFavorites: Bool = true
     ) {
         self.wifiQuality = wifiQuality
         self.cellularQuality = cellularQuality
@@ -49,10 +56,12 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         self.findLyricsOnline = findLyricsOnline
         self.volumeNormalization = volumeNormalization
         self.keepSpinning = keepSpinning
+        self.includeMehInMixes = includeMehInMixes
+        self.myCutsIncludeFavorites = myCutsIncludeFavorites
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, volumeNormalization, keepSpinning
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -67,6 +76,8 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         findLyricsOnline = try c.decodeIfPresent(Bool.self, forKey: .findLyricsOnline) ?? defaults.findLyricsOnline
         volumeNormalization = (try? c.decodeIfPresent(VolumeNormalization.self, forKey: .volumeNormalization)) ?? defaults.volumeNormalization
         keepSpinning = (try? c.decodeIfPresent(Bool.self, forKey: .keepSpinning)) ?? defaults.keepSpinning
+        includeMehInMixes = (try? c.decodeIfPresent(Bool.self, forKey: .includeMehInMixes)) ?? defaults.includeMehInMixes
+        myCutsIncludeFavorites = (try? c.decodeIfPresent(Bool.self, forKey: .myCutsIncludeFavorites)) ?? defaults.myCutsIncludeFavorites
     }
 }
 

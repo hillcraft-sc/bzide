@@ -1,7 +1,9 @@
 import Foundation
 
-/// Songs rated Rocks or Don't Hate It, and how many songs were looked through
-/// to find them (0 means the server listed none at all).
+/// The candidates for My Cuts (songs rated Rocks or Don't Hate It, and
+/// favorites), and how many songs were looked through to find them (0 means
+/// the server listed none at all). Which favorites count is decided when
+/// playing (`qualifies`), since that's a setting.
 public struct RatedSongs: Sendable, Equatable {
     public var songs: [Song]
     public var librarySize: Int
@@ -12,9 +14,10 @@ public struct RatedSongs: Sendable, Equatable {
     }
 }
 
-/// Finds every song rated Rocks or Don't Hate It, for Shuffle Rated. Subsonic
-/// has no way to ask for songs by rating, so this pages through the whole
-/// library (each song comes with its rating) and keeps the rated ones. The
+/// Finds every song that could be in My Cuts (Mix My Cuts): rated Rocks or
+/// Don't Hate It, or a favorite. Subsonic has no way to ask for songs by
+/// rating, so this pages through the whole library (each song comes with its
+/// rating and favorite) and keeps those. The
 /// answer is kept for a while, since looking through a large library takes a
 /// few seconds; after that the next request looks again.
 public actor RatedSongPool {
@@ -55,6 +58,14 @@ public actor RatedSongPool {
         return rating == .rocks || rating == .dontHateIt
     }
 
+    /// Whether a song is in My Cuts: rated Rocks or Don't Hate It, or (when
+    /// favorites are included) a favorite, unless it's rated Meh, the more
+    /// specific verdict.
+    public static func qualifies(_ song: Song, includeFavorites: Bool) -> Bool {
+        if isRated(song) { return true }
+        return includeFavorites && song.isStarred && Rating(serverValue: song.userRating) != .meh
+    }
+
     /// Fetches pages a few at a time until one comes back short.
     private static func lookThrough(_ fetchPage: @escaping FetchPage) async throws -> RatedSongs {
         var rated: [Song] = []
@@ -73,7 +84,7 @@ public actor RatedSongPool {
             }
             for page in pages {
                 total += page.count
-                for song in page where isRated(song) && seen.insert(song.id).inserted {
+                for song in page where (isRated(song) || song.isStarred) && seen.insert(song.id).inserted {
                     rated.append(song)
                 }
             }

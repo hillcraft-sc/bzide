@@ -3,7 +3,7 @@ import Testing
 @testable import NavidromeCore
 
 @MainActor
-struct ShuffleRatedTests {
+struct MyCutsTests {
     /// A library of `count` songs; every tenth is rated Rocks (5), every
     /// tenth plus one Don't Hate It (3), every tenth plus two Meh (2).
     private final class Library: @unchecked Sendable {
@@ -92,11 +92,14 @@ struct ShuffleRatedTests {
         )
     }
 
-    private func model(_ engine: PlaybackEngine, rated: @escaping @Sendable () async throws -> RatedSongs) -> SpinOffModel {
+    private func model(
+        _ engine: PlaybackEngine, includeFavorites: Bool = true, rated: @escaping @Sendable () async throws -> RatedSongs
+    ) -> SpinOffModel {
         SpinOffModel(
             engine: engine,
             sources: .init(similarToSong: { _ in [] }, similarToArtist: { _ in [] }, random: { _ in [] }, rated: rated),
-            keepSpinning: { false }
+            keepSpinning: { false },
+            includeFavorites: { includeFavorites }
         )
     }
 
@@ -119,7 +122,7 @@ struct ShuffleRatedTests {
         #expect(engine.spinOff == .rated)
         #expect(engine.queue.entries.count == SpinOffModel.batchSize)
         #expect(Set(engine.queue.entries.map(\.song.id)).isSubset(of: Set(pool.map(\.id))))
-        #expect(SpinOffSeed.rated.heading == "Shuffle Rated")
+        #expect(SpinOffSeed.rated.heading == "My Cuts")
         withExtendedLifetime(shuffle) {}
     }
 
@@ -145,7 +148,7 @@ struct ShuffleRatedTests {
         let shuffle = model(engine) { RatedSongs(songs: [], librarySize: 500) }
         await shuffle.startRated()
         #expect(engine.queue.isEmpty)
-        #expect(shuffle.notice?.contains("No songs are rated") == true)
+        #expect(shuffle.notice?.contains("Nothing in My Cuts yet") == true)
     }
 
     @Test func saysWhenTheServerCantListItsSongs() async {
@@ -166,5 +169,45 @@ struct ShuffleRatedTests {
         let snapshot = QueueSnapshot(queue: PlaybackQueue(songs: rated(2)), position: 0, spinOff: .rated)
         let restored = try JSONDecoder().decode(QueueSnapshot.self, from: JSONEncoder().encode(snapshot))
         #expect(restored.spinOff == .rated)
+    }
+
+    // MARK: Favorites
+
+    @Test func favoritesAreKeptAsCandidates() async throws {
+        let library = Library(count: 10)
+        let starred = Song(id: "fav", title: "Favorite", isStarred: true)
+        let pool = RatedSongPool(fetchPage: { count, offset in offset == 0 ? library.songs + [starred] : [] })
+        let found = try await pool.songs()
+        #expect(found.songs.contains { $0.id == "fav" })
+    }
+
+    @Test func favoritesCountUnlessRatedMeh() {
+        let favorite = Song(id: "fav", title: "Favorite", isStarred: true)
+        let mehFavorite = Song(id: "meh-fav", title: "Meh Favorite", isStarred: true, userRating: 2)
+        let rocks = Song(id: "rocks", title: "Rocks", userRating: 5)
+        #expect(RatedSongPool.qualifies(favorite, includeFavorites: true))
+        #expect(!RatedSongPool.qualifies(favorite, includeFavorites: false))
+        #expect(!RatedSongPool.qualifies(mehFavorite, includeFavorites: true))
+        #expect(RatedSongPool.qualifies(rocks, includeFavorites: false))
+    }
+
+    @Test func favoritesPlayOnlyWhenIncluded() async {
+        let favorites = (1...5).map { Song(id: "fav-\($0)", title: "Favorite \($0)", isStarred: true) }
+        let found = RatedSongs(songs: favorites + rated(3), librarySize: 100)
+        let withFavorites = makeEngine()
+        let on = model(withFavorites, includeFavorites: true) { found }
+        await on.startRated()
+        #expect(withFavorites.queue.entries.count == 8)
+        let without = makeEngine()
+        let off = model(without, includeFavorites: false) { found }
+        await off.startRated()
+        #expect(Set(without.queue.entries.map(\.song.id)) == ["r-1", "r-2", "r-3"])
+        withExtendedLifetime([on, off]) {}
+    }
+
+    @Test func favoritesAreIncludedByDefault() throws {
+        #expect(StreamingSettings().myCutsIncludeFavorites)
+        let older = try JSONDecoder().decode(StreamingSettings.self, from: Data(#"{"wifiQuality":0,"cellularQuality":192}"#.utf8))
+        #expect(older.myCutsIncludeFavorites)
     }
 }

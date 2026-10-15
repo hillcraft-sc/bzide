@@ -59,10 +59,12 @@ struct SettingsView: View {
                     }
                 }
                 Toggle("Keep Spinning", isOn: $settings.settings.keepSpinning)
+                Toggle("Include Meh Songs", isOn: $settings.settings.includeMehInMixes)
+                Toggle("Include Favorites in My Cuts", isOn: $settings.settings.myCutsIncludeFavorites)
             } header: {
                 Text("Playback")
             } footer: {
-                Text("Volume Normalization evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume; By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged, and Now Playing shows the adjustment beside the quality.\n\nKeep Spinning: when the queue reaches its last song, Bzide spins off from it so the music keeps going, with similar songs if your server has them (Navidrome with Last.fm), otherwise a mix from your library. Repeat turns it off.")
+                Text("Volume Normalization evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume; By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged, and Now Playing shows the adjustment beside the quality.\n\nKeep Spinning: when the queue reaches its last song, Bzide spins off from it so the music keeps going, with similar songs if your server has them (Navidrome with Last.fm), otherwise a mix from your library. Repeat turns it off.\n\nInclude Meh Songs: off, Random Mix, Spin Off and Keep Spinning leave out songs you rated Meh. Songs you pick yourself always play.\n\nMix My Cuts plays songs you rated Rocks or Don't Hate It; with Include Favorites in My Cuts on, your favorites too (unless rated Meh).")
             }
             .themedRows(grouped: true)
             Section {

@@ -9,7 +9,7 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         switch self {
         case .recentlyAdded: "Recently Added"
         case .randomMix: "Random Mix"
-        case .ratedShuffle: "Shuffle Rated"
+        case .ratedShuffle: "Mix My Cuts"
         case .artists: "Artists"
         case .albums: "Albums"
         case .playlists: "Playlists"
@@ -21,7 +21,7 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         }
     }
 
-    /// Plays something at once (Random Mix, Shuffle Rated) rather than opening a list.
+    /// Plays something at once (Random Mix, Mix My Cuts) rather than opening a list.
     public var isMix: Bool {
         self == .randomMix || self == .ratedShuffle
     }
@@ -68,7 +68,7 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
     }
 
     /// How the Library screen draws the shown items: Recently Added on its
-    /// own; mixes (Random Mix, Shuffle Rated) next to each other in one block;
+    /// own; mixes (Random Mix, Mix My Cuts) next to each other in one block;
     /// links next to each other in another.
     public enum Group: Equatable, Sendable {
         case recentlyAdded

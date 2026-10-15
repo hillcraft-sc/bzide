@@ -3,6 +3,7 @@ import Observation
 
 /// "Random Mix": asks the server for random songs and plays them as a new queue.
 /// When the server can't be reached, mixes the downloaded songs instead.
+/// Songs rated Meh are left out unless the user chose to include them.
 @MainActor
 @Observable
 public final class RandomMixModel {
@@ -16,14 +17,19 @@ public final class RandomMixModel {
     @ObservationIgnored private let fetch: Fetch
     @ObservationIgnored private let downloadedSongs: () -> [Song]
     @ObservationIgnored private let play: ([Song]) -> Void
+    @ObservationIgnored private let includeMeh: () -> Bool
 
     /// Enough for a long session without a slow request.
     static let songCount = 50
     static let offlineNotice = "Couldn't reach the server, so this mix is from your downloads."
 
-    public init(fetch: @escaping Fetch, downloadedSongs: @escaping () -> [Song] = { [] }, play: @escaping ([Song]) -> Void) {
+    public init(
+        fetch: @escaping Fetch, downloadedSongs: @escaping () -> [Song] = { [] },
+        includeMeh: @escaping () -> Bool = { false }, play: @escaping ([Song]) -> Void
+    ) {
         self.fetch = fetch
         self.downloadedSongs = downloadedSongs
+        self.includeMeh = includeMeh
         self.play = play
     }
 
@@ -35,7 +41,8 @@ public final class RandomMixModel {
         notice = nil
         defer { isLoading = false }
         do {
-            let songs = try await fetch(Self.songCount)
+            let fetched = try await fetch(Self.songCount)
+            let songs = fetched.filter { Rating.suitsMix($0, includeMeh: includeMeh()) }
             if songs.isEmpty {
                 error = "The server returned no songs."
             } else {
@@ -43,7 +50,7 @@ public final class RandomMixModel {
             }
         } catch {
             if Task.isCancelled { return }
-            let offline = Array(downloadedSongs().shuffled().prefix(Self.songCount))
+            let offline = Array(downloadedSongs().filter { Rating.suitsMix($0, includeMeh: includeMeh()) }.shuffled().prefix(Self.songCount))
             if offline.isEmpty {
                 self.error = error.localizedDescription
             } else {

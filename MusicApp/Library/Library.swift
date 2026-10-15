@@ -44,7 +44,7 @@ final class Library {
         self.client = client
         self.engine = engine
         self.sleepTimer = SleepTimer(target: engine)
-        // Shuffle Rated looks through the whole library for rated songs.
+        // Mix My Cuts looks through the whole library for rated and favorite songs.
         let ratedSongs = RatedSongPool { count, offset in try await client.allSongs(count: count, offset: offset) }
         self.spinOff = SpinOffModel(
             engine: engine,
@@ -54,7 +54,9 @@ final class Library {
                 random: { genre in try await client.randomSongs(size: SpinOffModel.batchSize, genre: genre) },
                 rated: { [ratedSongs] in try await ratedSongs.songs() }
             ),
-            keepSpinning: { [settings] in settings.settings.keepSpinning }
+            keepSpinning: { [settings] in settings.settings.keepSpinning },
+            includeMeh: { [settings] in settings.settings.includeMehInMixes },
+            includeFavorites: { [settings] in settings.settings.myCutsIncludeFavorites }
         )
         self.artwork = artwork
         self.settings = settings
@@ -219,6 +221,7 @@ final class Library {
         RandomMixModel(
             fetch: { [client] count async throws(SubsonicError) in try await client.randomSongs(size: count) },
             downloadedSongs: { [downloads] in downloads.downloadedSongs() },
+            includeMeh: { [settings] in settings.settings.includeMehInMixes },
             play: { [engine] songs in engine.play(songs: songs) }
         )
     }

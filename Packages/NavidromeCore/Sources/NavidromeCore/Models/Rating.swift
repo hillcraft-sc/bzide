@@ -12,6 +12,14 @@ public enum Rating: Int, Sendable, CaseIterable {
         }
     }
 
+    /// Whether a song belongs in a mix the app picks for the user (Random Mix,
+    /// Spin Off, Keep Spinning): songs rated Meh are left out unless the user
+    /// chose to include them. Unrated songs, and servers without ratings,
+    /// always count.
+    public static func suitsMix(_ song: Song, includeMeh: Bool) -> Bool {
+        includeMeh || Rating(serverValue: song.userRating) != .meh
+    }
+
     /// The level shown for a server rating, which may have been set to any
     /// 1–5 elsewhere (e.g. Navidrome's web UI). 0, missing or out of range
     /// means unrated.

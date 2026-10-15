@@ -88,7 +88,7 @@ struct LibraryView: View {
         }
     }
 
-    /// Random Mix and Shuffle Rated, in the order chosen, in one block.
+    /// Random Mix and Mix My Cuts, in the order chosen, in one block.
     private func mixesSection(_ items: [LibraryFeature]) -> some View {
         Section {
             ForEach(items, id: \.self) { item in
@@ -98,13 +98,13 @@ struct LibraryView: View {
                         Task { await library.spinOff.startRated() }
                     } label: {
                         HStack {
-                            Label("Shuffle Rated", systemImage: item.symbol)
+                            Label("Mix My Cuts", systemImage: item.symbol)
                             Spacer()
                             if library.spinOff.isStarting { ProgressView() }
                         }
                     }
                     .disabled(library.spinOff.isStarting)
-                    .accessibilityHint("Plays songs rated Rocks or Don't Hate It, shuffled, without end")
+                    .accessibilityHint("Plays your songs rated Rocks or Don't Hate It, and favorites if included, shuffled, without end")
                 default:
                     Button {
                         Task { await randomMix.start() }

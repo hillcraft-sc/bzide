@@ -39,7 +39,7 @@ struct LibraryLayoutTests {
     }
 
     @Test func aSavedLayoutFromAnotherVersionStillWorks() throws {
-        // Unknown "podcasts", a repeated "albums", and no Shuffle Rated, favorites, genres or history (added later).
+        // Unknown "podcasts", a repeated "albums", and no Mix My Cuts, favorites, genres or history (added later).
         let saved = """
         {"entries":[{"item":"albums","isShown":true},{"item":"podcasts","isShown":true},
         {"item":"artists","isShown":false},{"item":"albums","isShown":false},{"item":"recentlyAdded","isShown":true},
@@ -47,7 +47,7 @@ struct LibraryLayoutTests {
         {"item":"downloads","isShown":true}]}
         """
         let layout = try JSONDecoder().decode(LibraryLayout.self, from: Data(saved.utf8))
-        // New items go in their usual place: Shuffle Rated after Random Mix,
+        // New items go in their usual place: Mix My Cuts after Random Mix,
         // Favorites and Genres after Playlists, History after Downloaded.
         #expect(layout.entries.map(\.item) == [
             .albums, .artists, .recentlyAdded, .randomMix, .ratedShuffle, .playlists, .favorites, .genres, .radio, .downloads, .history,
