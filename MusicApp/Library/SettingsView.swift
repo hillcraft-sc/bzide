@@ -91,14 +91,12 @@ struct SettingsView: View {
                 Toggle("Live Weather", isOn: $settings.settings.liveWeather)
                 if settings.settings.liveWeather {
                     Toggle("Use My Location", isOn: $settings.settings.liveWeatherUsesLocation)
-                    TextField("City", text: $settings.settings.liveWeatherCity, prompt: Text("City (optional)"))
-                        .textContentType(.addressCity)
-                        .autocorrectionDisabled()
+                    LiveWeatherPlaceField(settings: settings)
                 }
             } header: {
                 Text("Weather (Live)")
             } footer: {
-                Text("The Weather (Live) visualizer can show the real weather where you are, from MET Norway (api.met.no; data CC BY 4.0). It sends your approximate location, rounded to about a kilometer, while the visualizer is open. Use My Location asks for your location once; the city is used when location is off or unavailable, and is looked up by Apple. Off, it shows the time of day only.")
+                Text("The Weather (Live) visualizer can show the real weather where you are, from MET Norway (api.met.no; data CC BY 4.0). It sends your approximate location, rounded to about a kilometer, while the visualizer is open. Use My Location asks for your location once. Place is used when location is off or unavailable: a city and state (“Springfield, IL”) or a ZIP code; elsewhere, a postal code with the country (“10115 Germany”). It's looked up by Apple, and the match shows under it. Off, it shows the time of day only.")
             }
             .themedRows(grouped: true)
             Section {
@@ -365,5 +363,65 @@ struct AvatarImage: View {
         .frame(width: side, height: side)
         .clipShape(.circle)
         .accessibilityHidden(true)
+    }
+}
+
+/// Weather (Live)'s Place field: looked up when the user presses Return or
+/// leaves the field, with what Apple matched shown under it ("Springfield,
+/// IL, United States"), or that nothing matched.
+private struct LiveWeatherPlaceField: View {
+    @Bindable var settings: StreamingSettingsModel
+    @FocusState private var isEditing: Bool
+    @State private var isLooking = false
+    @State private var noMatch = false
+
+    private var typed: String { settings.settings.liveWeatherCity }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            TextField("Place", text: $settings.settings.liveWeatherCity, prompt: Text("City and state, or ZIP code"))
+                .textContentType(.addressCityAndState)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+                .focused($isEditing)
+                .onSubmit(lookUp)
+                .onChange(of: isEditing) { _, editing in
+                    if !editing { lookUp() }
+                }
+                .onChange(of: typed) {
+                    noMatch = false
+                }
+            if let status {
+                Text(status)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var status: String? {
+        if typed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return nil }
+        if isLooking { return "Looking up…" }
+        if noMatch { return "No match. Try adding the state or country, or a ZIP code." }
+        if let match = settings.settings.liveWeatherPlace, match.matches(typed) { return "Found: \(match.name)" }
+        return nil
+    }
+
+    private func lookUp() {
+        let query = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            settings.settings.liveWeatherPlace = nil
+            return
+        }
+        if let match = settings.settings.liveWeatherPlace, match.matches(query) { return }
+        isLooking = true
+        Task {
+            let match = await LiveWeatherSource.lookUp(query)
+            isLooking = false
+            // Only if the field still says what was looked up.
+            guard settings.settings.liveWeatherCity.trimmingCharacters(in: .whitespacesAndNewlines) == query else { return }
+            settings.settings.liveWeatherPlace = match
+            noMatch = match == nil
+        }
     }
 }

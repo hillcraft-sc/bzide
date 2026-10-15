@@ -73,7 +73,12 @@ final class LiveWeatherSource {
             place = await currentLocation()
         }
         if place == nil, !city.isEmpty {
-            place = await geocode(city)
+            // The match Settings saved, else a lookup now.
+            if let saved = settings.liveWeatherPlace, saved.matches(city) {
+                place = saved.place
+            } else {
+                place = await Self.lookUp(city)?.place
+            }
         }
         if let place { found = (key, place) }
         return place
@@ -111,11 +116,18 @@ final class LiveWeatherSource {
         }
     }
 
-    /// The city's coordinates, through Apple's geocoder.
-    private func geocode(_ city: String) async -> SkyClock.Place? {
-        guard let request = MKGeocodingRequest(addressString: city),
+    /// What Apple's geocoder makes of a typed place (a city and state, or a
+    /// postal code): its best match, named like "Springfield, IL, United
+    /// States", or `nil` if there's none.
+    static func lookUp(_ typed: String) async -> LiveWeatherPlace? {
+        let query = typed.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty, let request = MKGeocodingRequest(addressString: query),
               let item = try? await request.mapItems.first else { return nil }
         let coordinate = item.location.coordinate
-        return SkyClock.Place(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        let name = item.addressRepresentations?.cityWithContext(.full)
+            ?? item.address?.shortAddress
+            ?? item.name
+            ?? query
+        return LiveWeatherPlace(query: query, name: name, latitude: coordinate.latitude, longitude: coordinate.longitude)
     }
 }

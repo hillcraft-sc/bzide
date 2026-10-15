@@ -57,6 +57,25 @@ struct LiveWeatherSettingsTests {
     }
 }
 
+struct LiveWeatherPlaceTests {
+    @Test func aMatchHoldsWhileTheFieldSaysTheSame() {
+        let match = LiveWeatherPlace(query: "Springfield, IL", name: "Springfield, IL, United States", latitude: 39.8, longitude: -89.65)
+        #expect(match.matches("Springfield, IL"))
+        #expect(match.matches("  Springfield, IL \n"))
+        #expect(!match.matches("Springfield"))
+        #expect(match.place == SkyClock.Place(latitude: 39.8, longitude: -89.65))
+    }
+
+    @Test func theMatchIsSavedWithTheSettings() throws {
+        var settings = StreamingSettings()
+        settings.liveWeatherCity = "62701"
+        settings.liveWeatherPlace = LiveWeatherPlace(query: "62701", name: "Springfield, IL, United States", latitude: 39.8, longitude: -89.65)
+        let decoded = try JSONDecoder().decode(StreamingSettings.self, from: JSONEncoder().encode(settings))
+        #expect(decoded.liveWeatherPlace == settings.liveWeatherPlace)
+        #expect(StreamingSettings().liveWeatherPlace == nil)
+    }
+}
+
 struct METNorwayClientTests {
     private static let oslo = SkyClock.Place(latitude: 59.913_868, longitude: 10.752_245)
 

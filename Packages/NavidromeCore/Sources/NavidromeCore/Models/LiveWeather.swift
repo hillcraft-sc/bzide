@@ -66,3 +66,30 @@ public struct LiveWeather: Equatable, Sendable {
         )
     }
 }
+
+/// The place typed in Settings for Weather (Live) ("Springfield, IL",
+/// "62701", "10115 Germany"), as Apple's geocoder matched it: shown under the
+/// field so the user can tell it found the right one, and saved so it isn't
+/// looked up again.
+public struct LiveWeatherPlace: Codable, Equatable, Sendable {
+    /// What was typed, trimmed: the match holds while the field still says this.
+    public var query: String
+    /// How the match reads, e.g. "Springfield, IL, United States".
+    public var name: String
+    public var latitude: Double
+    public var longitude: Double
+
+    public init(query: String, name: String, latitude: Double, longitude: Double) {
+        self.query = query
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+    }
+
+    public var place: SkyClock.Place { SkyClock.Place(latitude: latitude, longitude: longitude) }
+
+    /// Whether this match is for what the field says now.
+    public func matches(_ typed: String) -> Bool {
+        query == typed.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
