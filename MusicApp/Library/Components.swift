@@ -229,6 +229,7 @@ struct SongActions: View {
     var body: some View {
         Button("Play Next", systemImage: "text.insert") { library.engine.playNext([song]) }
         Button("Add to Queue", systemImage: "text.append") { library.engine.append([song]) }
+        SpinOffButton(library: library, song: song)
         AddToPlaylistButton(library: library, songs: [song])
         SongDownloadButton(downloads: library.downloads, song: song)
         MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
@@ -310,5 +311,55 @@ struct SwatchGrid<Option: Hashable>: View {
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
+    }
+}
+
+/// "Spin Off": plays the song, then endless music grown from it.
+struct SpinOffButton: View {
+    let library: Library
+    let song: Song
+
+    var body: some View {
+        Button("Spin Off", systemImage: "opticaldisc") {
+            Task { await library.spinOff.start(from: song) }
+        }
+        .disabled(song.isLive)
+    }
+}
+
+extension View {
+    /// A short message that drops in at the top, is read out by VoiceOver,
+    /// and goes away after `seconds` or when tapped.
+    func noticeBanner(_ message: String?, seconds: Double = 3, dismiss: @escaping () -> Void) -> some View {
+        modifier(NoticeBanner(message: message, seconds: seconds, dismiss: dismiss))
+    }
+}
+
+private struct NoticeBanner: ViewModifier {
+    let message: String?
+    let seconds: Double
+    let dismiss: () -> Void
+
+    func body(content: Content) -> some View {
+        content.overlay(alignment: .top) {
+            if let message {
+                Text(message)
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .glassEffect()
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onTapGesture { dismiss() }
+                    .task(id: message) {
+                        AccessibilityNotification.Announcement(message).post()
+                        try? await Task.sleep(for: .seconds(seconds))
+                        withAnimation { dismiss() }
+                    }
+                    .accessibilityAddTraits(.isStaticText)
+            }
+        }
+        .animation(.default, value: message)
     }
 }

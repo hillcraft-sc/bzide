@@ -11,15 +11,21 @@ public struct QueueSnapshot: Sendable, Equatable, Codable {
     /// While shuffle is on: the entries' order before shuffling, to go back to.
     /// `nil` means shuffle is off.
     public var shuffleOrigin: [QueueEntry.ID]?
+    /// What the queue is a spin-off of, if it is one; it keeps growing.
+    public var spinOff: SpinOffSeed?
 
-    public init(queue: PlaybackQueue, position: TimeInterval, repeatMode: RepeatMode = .off, shuffleOrigin: [QueueEntry.ID]? = nil) {
+    public init(
+        queue: PlaybackQueue, position: TimeInterval, repeatMode: RepeatMode = .off,
+        shuffleOrigin: [QueueEntry.ID]? = nil, spinOff: SpinOffSeed? = nil
+    ) {
         self.queue = queue
         self.position = position
         self.repeatMode = repeatMode
         self.shuffleOrigin = shuffleOrigin
+        self.spinOff = spinOff
     }
 
-    private enum CodingKeys: String, CodingKey { case queue, position, repeatMode, shuffleOrigin }
+    private enum CodingKeys: String, CodingKey { case queue, position, repeatMode, shuffleOrigin, spinOff }
 
     /// Queues saved before repeat existed have no mode: off.
     public init(from decoder: any Decoder) throws {
@@ -29,6 +35,8 @@ public struct QueueSnapshot: Sendable, Equatable, Codable {
         repeatMode = (try? c.decodeIfPresent(RepeatMode.self, forKey: .repeatMode)) ?? .off
         // Saved before shuffle existed, or unreadable: shuffle off.
         shuffleOrigin = try? c.decodeIfPresent([QueueEntry.ID].self, forKey: .shuffleOrigin)
+        // Saved before spin-offs existed, or unreadable: not one.
+        spinOff = (try? c.decodeIfPresent(SpinOffSeed.self, forKey: .spinOff)) ?? nil
     }
 }
 

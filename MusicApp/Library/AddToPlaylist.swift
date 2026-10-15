@@ -187,25 +187,6 @@ private struct PlaylistConfirmation: ViewModifier {
     let editor: PlaylistEditor
 
     func body(content: Content) -> some View {
-        content.overlay(alignment: .top) {
-            if let message = editor.confirmation {
-                Text(message)
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .glassEffect()
-                    .padding(.horizontal, 16)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .onTapGesture { editor.dismissConfirmation() }
-                    .task(id: message) {
-                        AccessibilityNotification.Announcement(message).post()
-                        try? await Task.sleep(for: .seconds(3))
-                        withAnimation { editor.dismissConfirmation() }
-                    }
-                    .accessibilityAddTraits(.isStaticText)
-            }
-        }
-        .animation(.default, value: editor.confirmation)
+        content.noticeBanner(editor.confirmation) { editor.dismissConfirmation() }
     }
 }

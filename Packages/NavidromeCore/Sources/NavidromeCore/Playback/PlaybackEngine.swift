@@ -48,6 +48,15 @@ public final class PlaybackEngine {
     /// The order before shuffling, while shuffle is on.
     private var shuffleOrigin: [QueueEntry.ID]?
 
+    /// What the queue is a spin-off of, while it is one: it grows as it runs
+    /// low (see `SpinOffModel`). Playing anything else ends it.
+    public private(set) var spinOff: SpinOffSeed?
+
+    /// Called when the current song changes and this few songs, or fewer, are
+    /// left after it, so more can be added in time for gapless playback.
+    @ObservationIgnored public var onQueueRunningLow: (@MainActor () -> Void)?
+    public static let runningLowCount = 2
+
     /// Shuffle is on: up next is in shuffled order, and turning it off puts
     /// what's left back in the original order.
     public var isShuffled: Bool { shuffleOrigin != nil }
@@ -147,6 +156,7 @@ public final class PlaybackEngine {
         status = restoredQueue.isEmpty ? .idle : .paused
         repeatMode = snapshot?.repeatMode ?? .off
         shuffleOrigin = snapshot?.shuffleOrigin
+        spinOff = snapshot?.spinOff
         duration = restoredQueue.current?.song.duration.map(TimeInterval.init)
 
         player.onEvent = { [weak self] event in self?.handle(event) }
@@ -190,11 +200,28 @@ public final class PlaybackEngine {
         saveSnapshot()
     }
 
-    private func start(_ newQueue: PlaybackQueue, shuffleOrigin origin: [QueueEntry.ID]?) {
+    /// Plays a new spin-off: these songs now, more as they run low. Repeat
+    /// turns off, since a spin-off is endless; turning it back on later loops
+    /// the spin-off instead of growing it.
+    public func startSpinOff(_ seed: SpinOffSeed, songs: [Song]) {
+        repeatMode = .off
+        start(PlaybackQueue(songs: songs), shuffleOrigin: nil, spinOff: seed)
+    }
+
+    /// Adds a spin-off's next songs, making the queue a spin-off of `seed` if
+    /// it wasn't one (Keep Spinning).
+    public func continueSpinOff(_ seed: SpinOffSeed, with songs: [Song]) {
+        spinOff = seed
+        append(songs)
+    }
+
+    private func start(_ newQueue: PlaybackQueue, shuffleOrigin origin: [QueueEntry.ID]?, spinOff seed: SpinOffSeed? = nil) {
         defer { publishNowPlaying() }
         cancelRecovery()
         cancelPendingActivation()
         queue = newQueue
+        // Anything else played ends a spin-off.
+        spinOff = newQueue.isEmpty ? nil : seed
         shuffleOrigin = newQueue.isEmpty ? nil : origin
         resetForNewTrack()
         saveSnapshot()
@@ -365,6 +392,8 @@ public final class PlaybackEngine {
         let loaded = Array(queue.fromCurrent.prefix(2)) + Array(queue.entries.prefix(1))
         for entry in loaded where !entry.song.isLive {
             player.setGain(urls.gain(for: entry.song), for: entry.id)
+            // The quality line shows the new adjustment at once too.
+            loadedQualities[entry.id]?.normalization = urls.quality(for: entry.song)?.normalization
         }
     }
 
@@ -879,6 +908,9 @@ public final class PlaybackEngine {
         streamTitle = nil
         duration = metadataDuration
         beginPlay()
+        if !queue.isEmpty, queue.upNext.count <= Self.runningLowCount {
+            onQueueRunningLow?()
+        }
     }
 
     /// Starts counting a new play of the current track from the current position.
@@ -897,7 +929,7 @@ public final class PlaybackEngine {
 
     private func saveSnapshot() {
         do {
-            try store.save(QueueSnapshot(queue: queue, position: position, repeatMode: repeatMode, shuffleOrigin: shuffleOrigin))
+            try store.save(QueueSnapshot(queue: queue, position: position, repeatMode: repeatMode, shuffleOrigin: shuffleOrigin, spinOff: spinOff))
             lastSavedPosition = position
         } catch {
             // Losing a save is better than interrupting playback; the next save retries.

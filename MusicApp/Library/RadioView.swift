@@ -24,7 +24,7 @@ struct RadioView: View {
                 if stations.isEmpty {
                     ContentUnavailableView(
                         "No Radio Stations",
-                        systemImage: "dot.radiowaves.left.and.right",
+                        systemImage: "headphones.sensor.tag.radiowaves.left.and.right", // dot.radiowaves.left.and.right
                         description: Text("Add internet radio stations in Navidrome's web UI.")
                     )
                 }
@@ -48,7 +48,7 @@ private struct StationRow: View {
     var body: some View {
         Button(action: play) {
             HStack(spacing: 12) {
-                Image(systemName: "dot.radiowaves.left.and.right")
+                Image(systemName: "headphones.sensor.tag.radiowaves.left.and.right") // dot.radiowaves.left.and.right
                     .font(.title3)
                     .foregroundStyle(.secondary)
                     .frame(width: 32)

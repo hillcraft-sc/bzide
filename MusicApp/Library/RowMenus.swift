@@ -50,6 +50,9 @@ struct ArtistRowMenu: View {
 
     var body: some View {
         QuickActionButtons(library: library, source: .artist(id: artist.id))
+        Button("Spin Off", systemImage: "opticaldisc") {
+            Task { await library.spinOff.start(fromArtist: artist) }
+        }
         Section {
             MarkActions(library: library, target: .artist(id: artist.id), isStarred: artist.isStarred, userRating: artist.userRating)
         }

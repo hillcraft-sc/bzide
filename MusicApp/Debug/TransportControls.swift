@@ -22,7 +22,7 @@ struct TransportControls: View {
             .font(.caption)
             if engine.isLive {
                 // A station has no length or position: say so instead of a progress bar.
-                Label("Live", systemImage: "dot.radiowaves.left.and.right")
+                Label("Live", systemImage: "headphones.sensor.tag.radiowaves.left.and.right")  // dot.radiowaves.left.and.right
                     .font(.caption.bold())
                     .foregroundStyle(.tint)
             }

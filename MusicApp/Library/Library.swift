@@ -25,6 +25,8 @@ final class Library {
     /// Keeps downloaded playlists in step with the server.
     let playlistRefresher: PlaylistDownloadRefresher
     let sleepTimer: SleepTimer
+    /// Endless music grown from a song or artist, and Keep Spinning.
+    let spinOff: SpinOffModel
     private let client: SubsonicClient
 
     init(
@@ -40,6 +42,15 @@ final class Library {
         self.client = client
         self.engine = engine
         self.sleepTimer = SleepTimer(target: engine)
+        self.spinOff = SpinOffModel(
+            engine: engine,
+            sources: .init(
+                similarToSong: { id in try await client.similarSongs(toSongID: id) },
+                similarToArtist: { id in try await client.similarSongs(toArtistID: id) },
+                random: { genre in try await client.randomSongs(size: SpinOffModel.batchSize, genre: genre) }
+            ),
+            keepSpinning: { [settings] in settings.settings.keepSpinning }
+        )
         self.artwork = artwork
         self.settings = settings
         self.stars = StarModel { [client] target, starred async throws(SubsonicError) in

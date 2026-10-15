@@ -111,8 +111,26 @@ extension SubsonicClient {
         try await request("getInternetRadioStations", as: ListPayload<RadioStation, RadioStationsKeys>.self).elements
     }
 
-    public func randomSongs(size: Int = 50) async throws(SubsonicError) -> [Song] {
-        try await request("getRandomSongs", parameters: [.init(name: "size", value: String(size))], as: ListPayload<Song, RandomSongsKeys>.self).elements
+    /// Random songs from the library, optionally only from one genre.
+    public func randomSongs(size: Int = 50, genre: String? = nil) async throws(SubsonicError) -> [Song] {
+        var parameters = [URLQueryItem(name: "size", value: String(size))]
+        if let genre { parameters.append(.init(name: "genre", value: genre)) }
+        return try await request("getRandomSongs", parameters: parameters, as: ListPayload<Song, RandomSongsKeys>.self).elements
+    }
+
+    /// Songs similar to a song, from the server's artist-similarity data
+    /// (Navidrome needs an agent such as Last.fm set up). Empty when the
+    /// server has none.
+    public func similarSongs(toSongID id: String, count: Int = 50) async throws(SubsonicError) -> [Song] {
+        let parameters: [URLQueryItem] = [.init(name: "id", value: id), .init(name: "count", value: String(count))]
+        return try await request("getSimilarSongs", parameters: parameters, as: ListPayload<Song, SimilarSongsKeys>.self).elements
+    }
+
+    /// Songs by artists similar to this one (and the artist's own). Empty when
+    /// the server has none.
+    public func similarSongs(toArtistID id: String, count: Int = 50) async throws(SubsonicError) -> [Song] {
+        let parameters: [URLQueryItem] = [.init(name: "id", value: id), .init(name: "count", value: String(count))]
+        return try await request("getSimilarSongs2", parameters: parameters, as: ListPayload<Song, SimilarSongs2Keys>.self).elements
     }
 
     public func star(_ target: StarTarget) async throws(SubsonicError) {
@@ -172,6 +190,8 @@ enum GenresKeys: ListKeys { static let wrapper = "genres"; static let list = "ge
 enum SongsByGenreKeys: ListKeys { static let wrapper = "songsByGenre"; static let list = "song" }
 enum RadioStationsKeys: ListKeys { static let wrapper = "internetRadioStations"; static let list = "internetRadioStation" }
 enum RandomSongsKeys: ListKeys { static let wrapper = "randomSongs"; static let list = "song" }
+enum SimilarSongsKeys: ListKeys { static let wrapper = "similarSongs"; static let list = "song" }
+enum SimilarSongs2Keys: ListKeys { static let wrapper = "similarSongs2"; static let list = "song" }
 
 /// Names the key of a `{"<key>": {...}}` response.
 protocol ItemKey {

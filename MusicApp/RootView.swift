@@ -41,6 +41,7 @@ struct RootView: View {
             Task { await library.playlistRefresher.refreshAllIfDue() }
         }
         .playlistConfirmation(library.playlistEditor)
+        .noticeBanner(library.spinOff.notice, seconds: 5) { library.spinOff.dismissNotice() }
         .alert("Couldn't Change Favorite", isPresented: favoriteErrorShown) {
             Button("OK") { library.stars.dismissError() }
         } message: {

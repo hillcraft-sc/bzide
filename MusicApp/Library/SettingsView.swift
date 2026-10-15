@@ -58,10 +58,11 @@ struct SettingsView: View {
                         Text(mode.title).tag(mode)
                     }
                 }
+                Toggle("Keep Spinning", isOn: $settings.settings.keepSpinning)
             } header: {
                 Text("Playback")
             } footer: {
-                Text("Evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume. By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged. Now Playing shows the adjustment beside the quality.")
+                Text("Volume Normalization evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume; By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged, and Now Playing shows the adjustment beside the quality.\n\nKeep Spinning: when the queue reaches its last song, Bzide spins off from it so the music keeps going, with similar songs if your server has them (Navidrome with Last.fm), otherwise a mix from your library. Repeat turns it off.")
             }
             .themedRows(grouped: true)
             Section {

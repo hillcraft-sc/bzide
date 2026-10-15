@@ -83,6 +83,13 @@ How the app behaves, written so the web and Android clients can be ported from t
 - The waveform shows 512 samples (about 12 ms) starting at a rising zero crossing, so it holds still like an oscilloscope, averaged to 128 points and scaled up 2.5× for typical music levels. It eases halfway to each new frame, and flattens out when the audio stops.
 - For a radio station it shows "The visualizer isn't available for radio.", and over AirPlay "The visualizer isn't available over AirPlay." (neither can be tapped; see Audio levels). Both follow changes while it's open.
 
+### Spin Off and Keep Spinning
+
+- **Spin Off** (a song's long-press menu, an artist's long-press and ⋯ menus, and Now Playing's ⋯ menu for the current song) plays endless music grown from a song or an artist. A song plays first, then the first batch; an artist starts straight into its batch. Now Playing's queue heading reads "Spin-off of “…”" while it lasts.
+- **Where the songs come from**, in order, so it works on any server: the server's similar songs (`getSimilarSongs` for a song, `getSimilarSongs2` for an artist; Navidrome needs an agent such as Last.fm, and returns nothing without one), shuffled; else random songs from the seed song's genre (`getRandomSongs` with `genre`); else random songs from the whole library. Songs already in the queue and repeats are left out; a batch is up to 25 songs. A mix says why in a banner for 5 seconds ("Similar songs aren't available from this server, so this is a mix of Rock."). If nothing can be found (offline), the queue is left as it was and a banner says so.
+- **It keeps going:** whenever the current song changes and 2 or fewer songs are left after it, the next batch is fetched and added at the end without a gap. Skipping songs while a batch is being fetched doesn't lose it, and if the queue is low again by the time it arrives, another is fetched. The seed is saved with the queue, so it carries on after a restart (a queue saved before spin-offs existed isn't one). Playing anything else ends it. Starting a spin-off turns repeat off, since it's endless; turning repeat back on afterwards loops the queue instead of growing it.
+- **Keep Spinning** (Settings > Playback, off by default): when any queue reaches its last song, Bzide spins off from that song the same way, so the music keeps going, and the queue becomes a spin-off. Not with repeat on, and not for radio.
+
 ### Volume normalization
 
 - Settings > Playback > Volume Normalization: Off (the default), By Track or By Album. It evens out loudness between songs with their ReplayGain (OpenSubsonic `replayGain` on each song: track and album gain in dB, and track and album peak), which Navidrome has when the music files are tagged with it; it doesn't calculate it. Songs without it, and radio, play unchanged.
@@ -467,6 +474,13 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Choose Polygraph: paper fills the screen and four needles reach down from the top edge, drawing on it as it runs down; the first three lines swing with the bass, mids and treble (the bass pen kicks on drum hits), the fourth hatches with the loudness. Pause: the paper keeps running and the needles settle to center, drawing flat lines; play again: the lines pick up without a jolt. Sideways: the needles reach in from the left and the paper runs right. The paper fills the screen and the controls (dark, over the paper) stay readable. Try Multicolor: one ink per pen, all readable on the paper. (2026-10-13)
 - [ ] Scroll quickly through Albums and skip songs fast: every row and Now Playing always shows the right cover.
 - [x] In a Catppuccin theme, the visualizer menu offers Accent, Multicolor and Custom, and "Choose Custom Colors…": pick a few accents (at least two stay), Done: the bars, waveform and plasma use just those, in palette order. Switch to a non-Catppuccin theme: Custom isn't offered and the colors show as Multicolor. (2026-10-13)
+
+### Spin Off and Keep Spinning
+
+- [ ] With repeat all on, long-press a song > Spin Off: it plays, repeat turns off, the queue heading reads "Spin-off of “…”", and up next is similar music. Skip quickly through every song: more keep being added, and it never wraps back to the first song. Force quit and relaunch: still a spin-off, and it keeps growing.
+- [ ] Long-press an artist (and the artist page's ⋯) > Spin Off: music by that artist and similar ones. Now Playing ⋯ > Spin Off: from the current song.
+- [ ] With Last.fm turned off in Navidrome (or another server without it): Spin Off still plays, with a banner explaining it's a mix of the song's genre.
+- [ ] Settings > Playback > Keep Spinning on: play a single song or let an album reach its last song; when it's on its last song, similar music is added after it. Off: the queue ends as before. With repeat on: nothing is added.
 
 ### Volume normalization
 

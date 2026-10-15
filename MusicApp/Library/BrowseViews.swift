@@ -61,7 +61,7 @@ struct LibraryView: View {
         .refreshable { await recentlyAdded.load() }
         .toolbar {
             ToolbarItem {
-                Button("Edit") { isEditing = true }
+                Button("Edit", systemImage: "rectangle.grid.1x3") { isEditing = true } // square.stack
             }
             ToolbarItem {
                 NavigationLink {
@@ -169,7 +169,7 @@ extension LibraryFeature {
         case .playlists: "music.note.list"
         case .favorites: "heart"
         case .genres: "guitars"
-        case .radio: "dot.radiowaves.left.and.right"
+        case .radio: "headphones.sensor.tag.radiowaves.left.and.right" // dot.radiowaves.left.and.right
         case .downloads: "arrow.down.circle"
         case .history: "clock.arrow.circlepath"
         }

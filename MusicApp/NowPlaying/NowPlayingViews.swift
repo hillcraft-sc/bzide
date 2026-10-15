@@ -88,7 +88,12 @@ struct NowPlayingView: View {
                     QueueList(engine: engine)
                 } header: {
                     HStack {
-                        Text("Queue")
+                        if let spinOff = engine.spinOff {
+                            Label("Spin-off of \u{201C}\(spinOff.title)\u{201D}", systemImage: "opticaldisc")
+                                .lineLimit(1)
+                        } else {
+                            Text("Queue")
+                        }
                         Spacer()
                         if engine.queue.hasNext {
                             Button("Clear Up Next") { engine.clearUpNext() }
@@ -109,15 +114,21 @@ struct NowPlayingView: View {
                     SleepTimerMenu(timer: library.sleepTimer)
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Save Queue as Playlist", systemImage: "text.badge.plus") {
-                        library.addToPlaylist.open(savableQueue, title: "Save Queue")
+                    Menu("More", systemImage: "ellipsis") {
+                        if let song = engine.queue.current?.song {
+                            SpinOffButton(library: library, song: song)
+                        }
+                        Button("Save Queue as Playlist…", systemImage: "text.badge.plus") {
+                            library.addToPlaylist.open(savableQueue, title: "Save Queue")
+                        }
+                        // A station can't go in a playlist.
+                        .disabled(savableQueue.isEmpty)
                     }
-                    // A station can't go in a playlist.
-                    .disabled(savableQueue.isEmpty)
                 }
             }
             .addToPlaylistSheet(library)
             .playlistConfirmation(library.playlistEditor)
+            .noticeBanner(library.spinOff.notice, seconds: 5) { library.spinOff.dismissNotice() }
             .fullScreenCover(isPresented: $isVisualizerOpen) {
                 VisualizerView(model: model, engine: engine)
             }

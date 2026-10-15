@@ -107,7 +107,7 @@ struct LyricsView: View {
         case .none:
             message("No Lyrics", "There are no lyrics for this song.", symbol: "quote.bubble")
         case .radio:
-            message("No Lyrics", "Lyrics aren't available for radio.", symbol: "dot.radiowaves.left.and.right")
+            message("No Lyrics", "Lyrics aren't available for radio.", symbol: "headphones.sensor.tag.radiowaves.left.and.right") // dot.radiowaves.left.and.right
         case .failed(let text):
             message("Couldn't Load Lyrics", text, symbol: "wifi.exclamationmark")
         }
