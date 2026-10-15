@@ -10,6 +10,7 @@ struct SleepTimerTests {
         var currentEntryID: QueueEntry.ID? = UUID()
         var position: TimeInterval = 0
         var duration: TimeInterval? = 200
+        var isLive = false
         var outputVolume: Float = 1
         var pauses = 0
 
@@ -120,6 +121,32 @@ struct SleepTimerTests {
         #expect(playback.pauses == 1)
         #expect(playback.outputVolume == 1)
         #expect(timer.mode == nil)
+    }
+
+    @Test func endOfSongIsntOfferedForRadio() {
+        let playback = Playback()
+        playback.isLive = true
+        playback.duration = nil
+        let timer = timer(playback, Clock())
+        timer.startEndOfSong()
+        #expect(timer.mode == nil)
+    }
+
+    @Test func startingRadioTurnsEndOfSongOff() {
+        let playback = Playback()
+        let clock = Clock()
+        let timer = timer(playback, clock)
+        playback.position = 30
+        timer.startEndOfSong()
+        pass(1, timer, playback, clock)
+        // A station is started partway through the song.
+        playback.currentEntryID = UUID()
+        playback.isLive = true
+        playback.duration = nil
+        timer.tick()
+        #expect(timer.mode == nil)
+        #expect(playback.pauses == 0)
+        #expect(playback.outputVolume == 1)
     }
 
     @Test func skippingMovesEndOfSongToTheNewSong() {

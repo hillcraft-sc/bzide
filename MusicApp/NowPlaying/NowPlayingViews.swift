@@ -54,6 +54,19 @@ struct NowPlayingView: View {
         engine.queue.entries.map(\.song).filter { !$0.isLive }
     }
 
+    private var moreMenu: some View {
+        Menu("More", systemImage: "ellipsis") {
+            if let song = engine.queue.current?.song {
+                SpinOffButton(library: library, song: song)
+                SongInfoButton(library: library, song: song)
+            }
+            Button("Save Queue as Playlist…", systemImage: "text.badge.plus") {
+                library.addToPlaylist.open(savableQueue, title: "Save Queue")
+            }
+            .disabled(savableQueue.isEmpty)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -64,14 +77,17 @@ struct NowPlayingView: View {
                     TransportControls(engine: engine)
                     if let song = engine.queue.current?.song {
                         HStack(spacing: 32) {
-                            // A station isn't on the server, so it can't be favorited or rated.
+                            // A station isn't on the server, so it can't be favorited or
+                            // rated, and has no lyrics or levels for the visualizer.
                             if !song.isLive {
                                 MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
                             }
                             AirPlayButton()
                                 .frame(width: 32, height: 32)
-                            Button("Lyrics", systemImage: "quote.bubble") { isLyricsOpen = true }
-                            Button("Visualizer", systemImage: "waveform") { isVisualizerOpen = true }
+                            if !song.isLive {
+                                Button("Lyrics", systemImage: "quote.bubble") { isLyricsOpen = true }
+                                Button("Visualizer", systemImage: "waveform") { isVisualizerOpen = true }
+                            }
                         }
                         .labelStyle(.iconOnly)
                         .font(.title3)
@@ -111,19 +127,12 @@ struct NowPlayingView: View {
                     Button("Close", systemImage: "chevron.down") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    SleepTimerMenu(timer: library.sleepTimer)
+                    SleepTimerMenu(timer: library.sleepTimer, isLive: engine.isLive)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Menu("More", systemImage: "ellipsis") {
-                        if let song = engine.queue.current?.song {
-                            SpinOffButton(library: library, song: song)
-                            SongInfoButton(library: library, song: song)
-                        }
-                        Button("Save Queue as Playlist…", systemImage: "text.badge.plus") {
-                            library.addToPlaylist.open(savableQueue, title: "Save Queue")
-                        }
-                        // A station can't go in a playlist.
-                        .disabled(savableQueue.isEmpty)
+                // Nothing in it applies to a radio station.
+                if !engine.isLive {
+                    ToolbarItem(placement: .primaryAction) {
+                        moreMenu
                     }
                 }
             }

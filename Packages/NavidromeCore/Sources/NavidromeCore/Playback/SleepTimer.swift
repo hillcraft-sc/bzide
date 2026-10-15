@@ -9,6 +9,8 @@ public protocol SleepTimerTarget: AnyObject {
     /// Seconds into the current song, updated a few times a second.
     var position: TimeInterval { get }
     var duration: TimeInterval? { get }
+    /// Whether a radio station is playing, which never ends.
+    var isLive: Bool { get }
     /// 0...1, 1 normal: lowered to fade out.
     var outputVolume: Float { get set }
     func pause()
@@ -68,7 +70,9 @@ public final class SleepTimer {
         deadline = now().addingTimeInterval(TimeInterval(minutes) * 60)
     }
 
+    /// Does nothing for a radio station, which has no end.
     public func startEndOfSong() {
+        guard !target.isLive else { return }
         begin(.endOfSong)
         deadline = nil
         song = target.currentEntryID
@@ -119,6 +123,12 @@ public final class SleepTimer {
             // for the new song instead.
             if current == nil || (lastLeft ?? .infinity) <= Self.endTolerance {
                 finish(pausing: current != nil)
+                return
+            }
+            // A radio station was started instead: it never ends, so the
+            // timer would wait forever. It's turned off; the station plays.
+            if target.isLive {
+                finish(pausing: false)
                 return
             }
             song = current

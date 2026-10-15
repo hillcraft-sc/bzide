@@ -3,8 +3,10 @@ import SwiftUI
 
 /// Now Playing's sleep timer: a moon that offers stop times, and once one is
 /// running shows the time left (or that it stops at the end of the song).
+/// End of Song isn't offered for a radio station, which never ends.
 struct SleepTimerMenu: View {
     let timer: SleepTimer
+    let isLive: Bool
 
     var body: some View {
         Menu {
@@ -15,7 +17,9 @@ struct SleepTimerMenu: View {
             ForEach(SleepTimer.minuteChoices, id: \.self) { minutes in
                 Button(Self.title(minutes: minutes)) { timer.start(minutes: minutes) }
             }
-            Button("End of Song") { timer.startEndOfSong() }
+            if !isLive {
+                Button("End of Song") { timer.startEndOfSong() }
+            }
         } label: {
             label
         }

@@ -51,6 +51,7 @@ struct TransportControls: View {
 
             // Previous, play and next are centered under the progress bar; shuffle
             // and repeat sit at the edges as overlays so they don't pull them off center.
+            // A radio station can't be shuffled or repeated, so they're hidden for one.
             HStack(spacing: 44) {
                 Button("Previous", systemImage: "backward.fill") { engine.previous() }
                     .disabled(engine.isLive)
@@ -64,18 +65,20 @@ struct TransportControls: View {
             }
             .frame(maxWidth: .infinity)
             .overlay(alignment: .leading) {
-                Button(engine.isShuffled ? "Shuffle On" : "Shuffle Off", systemImage: "shuffle") {
-                    engine.toggleShuffle()
+                if !engine.isLive {
+                    Button(engine.isShuffled ? "Shuffle On" : "Shuffle Off", systemImage: "shuffle") {
+                        engine.toggleShuffle()
+                    }
+                    .foregroundStyle(engine.isShuffled ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                 }
-                .foregroundStyle(engine.isShuffled ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                .disabled(engine.isLive)
             }
             .overlay(alignment: .trailing) {
-                Button(repeatLabel, systemImage: engine.repeatMode == .one ? "repeat.1" : "repeat") {
-                    engine.cycleRepeatMode()
+                if !engine.isLive {
+                    Button(repeatLabel, systemImage: engine.repeatMode == .one ? "repeat.1" : "repeat") {
+                        engine.cycleRepeatMode()
+                    }
+                    .foregroundStyle(engine.repeatMode == .off ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 }
-                .foregroundStyle(engine.repeatMode == .off ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
-                .disabled(engine.isLive)
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
