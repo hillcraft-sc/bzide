@@ -27,6 +27,8 @@ final class Library {
     /// Keeps downloaded playlists in step with the server.
     let playlistRefresher: PlaylistDownloadRefresher
     let sleepTimer: SleepTimer
+    /// The whole library, for browsing Search by filter (kept for 30 minutes).
+    let catalog: LibraryCatalog
     /// Endless music grown from a song or artist, and Keep Spinning.
     let spinOff: SpinOffModel
     private let client: SubsonicClient
@@ -44,6 +46,11 @@ final class Library {
         self.client = client
         self.engine = engine
         self.sleepTimer = SleepTimer(target: engine)
+        self.catalog = LibraryCatalog(sources: .init(
+            artists: { try await client.artists().flatMap(\.artists) },
+            albumsPage: { count, offset in try await client.albumList(.alphabeticalByName, size: count, offset: offset) },
+            songsPage: { count, offset in try await client.allSongs(count: count, offset: offset) }
+        ))
         // Mix My Cuts looks through the whole library for rated and favorite songs.
         let ratedSongs = RatedSongPool { count, offset in try await client.allSongs(count: count, offset: offset) }
         self.spinOff = SpinOffModel(
@@ -227,8 +234,23 @@ final class Library {
     }
 
     func searchModel() -> SearchModel {
-        SearchModel(scheduler: TaskScheduler()) { [client] query async throws(SubsonicError) in
-            try await client.search(query)
+        SearchModel(
+            scheduler: TaskScheduler(),
+            isSongDownloaded: { [downloads] id in downloads.localFile(forSongID: id) != nil },
+            isAlbumDownloaded: { [downloads] id in downloads.collection(id: DownloadCollection.id(.album, serverID: id)) != nil }
+        ) { [client, catalog] request async throws(SubsonicError) in
+            guard request.isBrowse else {
+                return try await client.search(
+                    request.query, artistCount: request.artistCount, albumCount: request.albumCount, songCount: request.songCount
+                )
+            }
+            do {
+                return try await catalog.browse(request.scope)
+            } catch let failure as SubsonicError {
+                throw failure
+            } catch {
+                throw .network(.unknown)
+            }
         }
     }
 }

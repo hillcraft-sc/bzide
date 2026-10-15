@@ -1,13 +1,31 @@
 import Foundation
 import Observation
 
+/// What Search asks for: the text (empty when browsing), and how many of
+/// each kind of result.
+public struct SearchRequest: Equatable, Sendable {
+    public var query: String
+    public var artistCount: Int
+    public var albumCount: Int
+    public var songCount: Int
+    /// Nothing typed but a filter on: everything in the scope, from the
+    /// whole library (see `LibraryCatalog`).
+    public var isBrowse: Bool
+    public var scope: SearchFilters.Scope
+}
+
 /// Search as you type. Waits for a pause in typing before asking the server,
 /// keeps the previous results on screen while a new search runs, and drops any
 /// reply that arrives after a newer search started.
+///
+/// Filters (`filters`) narrow the results: a scope (one kind of result) and
+/// rating, favorites and downloaded filters. Changing them searches again at
+/// once. With nothing typed and a filter on, it browses the whole library.
 @MainActor
 @Observable
 public final class SearchModel {
     public typealias Fetch = @Sendable (_ query: String) async throws(SubsonicError) -> SearchResult
+    public typealias Run = @Sendable (_ request: SearchRequest) async throws(SubsonicError) -> SearchResult
 
     public private(set) var query = ""
     /// `nil` until the first search finishes, and again when the query is cleared.
@@ -15,7 +33,27 @@ public final class SearchModel {
     public private(set) var isSearching = false
     public private(set) var error: String?
 
-    @ObservationIgnored private let fetch: Fetch
+    /// The scope and filters. Setting them searches again.
+    public var filters = SearchFilters() {
+        didSet {
+            guard filters != oldValue else { return }
+            filtersChanged()
+        }
+    }
+
+    /// The results that pass the scope and filters.
+    public var visibleResults: SearchResult? {
+        results.map { filters.apply(to: $0, isSongDownloaded: isSongDownloaded, isAlbumDownloaded: isAlbumDownloaded) }
+    }
+
+    /// Nothing typed, but a filter on: showing everything that matches.
+    public var isBrowsing: Bool {
+        trimmedQuery.isEmpty && filters.isFiltering
+    }
+
+    @ObservationIgnored private let run: Run
+    @ObservationIgnored private let isSongDownloaded: (String) -> Bool
+    @ObservationIgnored private let isAlbumDownloaded: (String) -> Bool
     @ObservationIgnored private let scheduler: any Scheduling
     @ObservationIgnored private var pendingSearch: ScheduledAction?
     @ObservationIgnored private(set) var searchTask: Task<Void, Never>?
@@ -25,9 +63,25 @@ public final class SearchModel {
     /// How long typing must pause before a search is sent.
     static let typingPause: Duration = .milliseconds(300)
 
-    public init(scheduler: any Scheduling, fetch: @escaping Fetch) {
+    public init(
+        scheduler: any Scheduling,
+        isSongDownloaded: @escaping (String) -> Bool = { _ in false },
+        isAlbumDownloaded: @escaping (String) -> Bool = { _ in false },
+        run: @escaping Run
+    ) {
         self.scheduler = scheduler
-        self.fetch = fetch
+        self.isSongDownloaded = isSongDownloaded
+        self.isAlbumDownloaded = isAlbumDownloaded
+        self.run = run
+    }
+
+    /// A search by text alone (no counts or browsing).
+    public convenience init(scheduler: any Scheduling, fetch: @escaping Fetch) {
+        self.init(scheduler: scheduler, run: { request async throws(SubsonicError) in try await fetch(request.query) })
+    }
+
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     public func updateQuery(_ newQuery: String) {
@@ -41,9 +95,7 @@ public final class SearchModel {
 
         let trimmed = newQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            results = nil
-            isSearching = false
-            error = nil
+            showNothingOrBrowse()
             return
         }
         let thisSearch = generation
@@ -54,12 +106,37 @@ public final class SearchModel {
 
     /// Runs the current query again right away, e.g. after an error.
     public func retry() {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        let trimmed = trimmedQuery
+        guard !trimmed.isEmpty || filters.isFiltering else { return }
         generation += 1
         pendingSearch?.cancel()
         pendingSearch = nil
         startSearch(trimmed, generation: generation)
+    }
+
+    private func filtersChanged() {
+        generation += 1
+        pendingSearch?.cancel()
+        pendingSearch = nil
+        searchTask?.cancel()
+        searchTask = nil
+        if trimmedQuery.isEmpty {
+            showNothingOrBrowse()
+        } else {
+            startSearch(trimmedQuery, generation: generation)
+        }
+    }
+
+    /// Nothing typed: browse if a filter is on, otherwise show nothing (the
+    /// genre grid).
+    private func showNothingOrBrowse() {
+        guard filters.isFiltering else {
+            results = nil
+            isSearching = false
+            error = nil
+            return
+        }
+        startSearch("", generation: generation)
     }
 
     private func startSearch(_ query: String, generation thisSearch: Int) {
@@ -67,10 +144,15 @@ public final class SearchModel {
         searchTask?.cancel()
         isSearching = true
         error = nil
-        searchTask = Task { [weak self, fetch] in
+        let counts = filters.requestCounts
+        let request = SearchRequest(
+            query: query, artistCount: counts.artists, albumCount: counts.albums, songCount: counts.songs,
+            isBrowse: query.isEmpty, scope: filters.scope
+        )
+        searchTask = Task { [weak self, run] in
             let result: Result<SearchResult, SubsonicError>
             do throws(SubsonicError) {
-                result = .success(try await fetch(query))
+                result = .success(try await run(request))
             } catch {
                 result = .failure(error)
             }

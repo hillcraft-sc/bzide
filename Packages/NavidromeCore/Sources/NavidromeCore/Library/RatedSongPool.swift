@@ -23,9 +23,7 @@ public struct RatedSongs: Sendable, Equatable {
 public actor RatedSongPool {
     public typealias FetchPage = @Sendable (_ count: Int, _ offset: Int) async throws -> [Song]
 
-    public static let pageSize = 500
-    /// Pages fetched at once.
-    static let parallelPages = 4
+    public static let pageSize = PagedListing.pageSize
     /// How long a found list is used before looking again.
     public static let lifetime: TimeInterval = 30 * 60
 
@@ -66,32 +64,11 @@ public actor RatedSongPool {
         return includeFavorites && song.isStarred && Rating(serverValue: song.userRating) != .meh
     }
 
-    /// Fetches pages a few at a time until one comes back short.
+    /// The whole library, keeping songs rated Rocks or Don't Hate It, or favorites.
     private static func lookThrough(_ fetchPage: @escaping FetchPage) async throws -> RatedSongs {
-        var rated: [Song] = []
+        let all = try await PagedListing.all(fetchPage)
         var seen = Set<String>()
-        var total = 0
-        var offset = 0
-        while true {
-            let pages = try await withThrowingTaskGroup(of: (Int, [Song]).self) { group in
-                for index in 0..<parallelPages {
-                    let pageOffset = offset + index * pageSize
-                    group.addTask { (index, try await fetchPage(pageSize, pageOffset)) }
-                }
-                var results: [(Int, [Song])] = []
-                for try await page in group { results.append(page) }
-                return results.sorted { $0.0 < $1.0 }.map(\.1)
-            }
-            for page in pages {
-                total += page.count
-                for song in page where (isRated(song) || song.isStarred) && seen.insert(song.id).inserted {
-                    rated.append(song)
-                }
-            }
-            // A short page (or an empty one) is the end of the library.
-            if pages.contains(where: { $0.count < pageSize }) { break }
-            offset += parallelPages * pageSize
-        }
-        return RatedSongs(songs: rated, librarySize: total)
+        let candidates = all.filter { (isRated($0) || $0.isStarred) && seen.insert($0.id).inserted }
+        return RatedSongs(songs: candidates, librarySize: all.count)
     }
 }
