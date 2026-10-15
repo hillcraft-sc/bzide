@@ -117,6 +117,7 @@ struct NowPlayingView: View {
                     Menu("More", systemImage: "ellipsis") {
                         if let song = engine.queue.current?.song {
                             SpinOffButton(library: library, song: song)
+                            SongInfoButton(library: library, song: song)
                         }
                         Button("Save Queue as Playlist…", systemImage: "text.badge.plus") {
                             library.addToPlaylist.open(savableQueue, title: "Save Queue")
@@ -127,6 +128,7 @@ struct NowPlayingView: View {
                 }
             }
             .addToPlaylistSheet(library)
+            .infoSheet(library)
             .playlistConfirmation(library.playlistEditor)
             .noticeBanner(library.spinOff.notice, seconds: 5) { library.spinOff.dismissNotice() }
             .fullScreenCover(isPresented: $isVisualizerOpen) {

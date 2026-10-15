@@ -58,6 +58,8 @@ struct SongListHeader: View {
     let coverArtID: String?
     let title: String
     let subtitle: String?
+    /// A smaller line of details, e.g. an album's genre, songs and length.
+    var detail: String?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -67,6 +69,9 @@ struct SongListHeader: View {
                 .multilineTextAlignment(.center)
             if let subtitle {
                 Text(subtitle).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+            if let detail {
+                Text(detail).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
             }
         }
         .padding(.vertical, 8)

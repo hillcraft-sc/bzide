@@ -36,12 +36,15 @@ struct LibraryDecodingTests {
         #expect(album.isStarred)
         #expect(album.userRating == 3)
         #expect(album.songs.count == 3)
-        #expect(album.songs[0] == Song(
+        var expected = Song(
             id: "so-1", title: "Dawn", album: "First Light", albumID: "al-1",
             artist: "Aurora Lines", artistID: "ar-1", track: 1, discNumber: 1, year: 2019,
             genre: "Ambient", coverArtID: "mf-so-1", duration: 201, bitRate: 900,
             suffix: "flac", contentType: "audio/flac", isStarred: false, userRating: 5
-        ))
+        )
+        // The file size, kept with the song's other details for its Info screen.
+        expected.details.size = 4_800_000
+        #expect(album.songs[0] == expected)
         #expect(album.songs[1].isStarred)
         #expect(album.songs[1].userRating == nil)
         // Subsonic sends 0 for "unrated".

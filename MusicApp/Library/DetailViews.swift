@@ -55,7 +55,8 @@ struct AlbumView: View {
                     library: library,
                     coverArtID: album.coverArtID,
                     title: album.name,
-                    subtitle: [album.artist, album.year.map(String.init)].compactMap { $0 }.joined(separator: " · ")
+                    subtitle: [album.artist, album.year.map(String.init)].compactMap { $0 }.joined(separator: " · "),
+                    detail: MediaInfo.albumDetailsLine(album)
                 )
                 .siriEntity(albumID: album.id)
             }
@@ -69,6 +70,7 @@ struct AlbumView: View {
                         Button("Add to Queue", systemImage: "text.append") { library.engine.append(album.songs) }
                         AddToPlaylistButton(library: library, songs: album.songs)
                         MarkActions(library: library, target: .album(id: album.id), isStarred: album.isStarred, userRating: album.userRating)
+                        AlbumInfoButton(library: library, albumID: album.id)
                         if let artistID = album.artistID {
                             NavigationLink("Go to Artist", value: LibraryRoute.artist(id: artistID))
                         }

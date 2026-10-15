@@ -16,6 +16,8 @@ final class Library {
     let siriLookup: SiriLookup
     /// Which songs the Add to Playlist sheet is open for.
     let addToPlaylist: AddToPlaylistRequest
+    /// What the Info sheet is open for.
+    let info = InfoRequest()
     let artwork: ArtworkCache
     let settings: StreamingSettingsModel
     let downloads: DownloadManager
@@ -181,6 +183,10 @@ final class Library {
         LoadModel { [client] () async throws(SubsonicError) in
             try await client.radioStations().sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         }
+    }
+
+    func songModel(id: String) -> LoadModel<Song> {
+        LoadModel { [client] () async throws(SubsonicError) in try await client.song(id: id) }
     }
 
     func albumModel(id: String) -> LoadModel<Album> {

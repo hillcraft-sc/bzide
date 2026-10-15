@@ -30,6 +30,7 @@ struct RootView: View {
             NowPlayingView(model: model, library: library)
         }
         .addToPlaylistSheet(library, isEnabled: !isNowPlayingOpen)
+        .infoSheet(library, isEnabled: !isNowPlayingOpen)
         // Each return to the app checks downloaded playlists for changes (at
         // most every 15 minutes; see PlaylistDownloadRefresher).
         // A new normalization setting applies to the songs already lined up too.

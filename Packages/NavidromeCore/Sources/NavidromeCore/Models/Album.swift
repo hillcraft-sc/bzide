@@ -14,6 +14,8 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
     /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
     public var userRating: Int?
     public var songs: [Song]
+    /// Everything else the server said, for the Info screen and header.
+    public var details = AlbumDetails()
 
     public init(
         id: String, name: String, artist: String? = nil, artistID: String? = nil,
@@ -55,5 +57,6 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
             userRating: c.rating(.userRating),
             songs: c.lossyArray(Song.self, forKey: .song)
         )
+        details = AlbumDetails(from: decoder)
     }
 }

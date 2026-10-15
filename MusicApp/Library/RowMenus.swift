@@ -68,6 +68,7 @@ struct AlbumRowMenu: View {
     var body: some View {
         QuickActionButtons(library: library, source: .album(id: album.id))
         DownloadMenuButton(library: library, kind: .album, serverID: album.id, source: .album(id: album.id))
+        AlbumInfoButton(library: library, albumID: album.id)
         Section {
             MarkActions(library: library, target: .album(id: album.id), isStarred: album.isStarred, userRating: album.userRating)
         }

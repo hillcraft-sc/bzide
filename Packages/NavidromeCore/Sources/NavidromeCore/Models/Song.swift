@@ -24,6 +24,8 @@ public struct Song: Sendable, Equatable, Identifiable, Codable {
     public var userRating: Int?
     /// For volume normalization, when the server has it (OpenSubsonic).
     public var replayGain: ReplayGain?
+    /// Everything else the server said, for the Info screen.
+    public var details = SongDetails()
     /// Set only for a radio station playing as a queue entry: the stream to
     /// play instead of the server's. Never comes from the server.
     public var liveStreamURL: URL?
@@ -90,6 +92,7 @@ extension Song {
         if isStarred { try c.encode(true, forKey: .starred) }
         try c.encodeIfPresent(userRating, forKey: .userRating)
         try c.encodeIfPresent(replayGain, forKey: .replayGain)
+        try details.encode(to: encoder)
         try c.encodeIfPresent(liveStreamURL, forKey: .liveStreamUrl)
     }
 
@@ -116,6 +119,7 @@ extension Song {
             replayGain: ((try? c.decodeIfPresent(ReplayGain.self, forKey: .replayGain)) ?? nil).flatMap { $0.hasGain ? $0 : nil }
         )
         liveStreamURL = c.lenientString(.liveStreamUrl).flatMap(RadioStation.webURL)
+        details = (try? SongDetails(from: decoder)) ?? SongDetails()
     }
 }
 
