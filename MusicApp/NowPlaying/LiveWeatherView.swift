@@ -20,15 +20,19 @@ struct LiveWeatherView: View {
 
     var body: some View {
         let frame = state.update(feed: feed, at: date, forced: forced)
+        // The spectrum as it is this frame (fast to rise), for the parts that
+        // play along with the instruments, as Chrome does.
+        let levels = feed.levels
         let time = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 10_000)
         Canvas { context, size in
             let layout = WeatherLayout(size: size, insets: insets, landscape: landscape)
             let light = SkyLight(sunAltitude: frame.sun.altitude, cloudCover: frame.sky.cloudCover, gloom: Self.gloom(frame.sky))
             drawSky(light, in: &context, layout: layout)
+            drawAurora(frame.sky, levels: levels, light: light, in: &context, layout: layout)
             drawStars(frame, light: light, time: time, in: &context, layout: layout)
             drawMoon(frame, light: light, in: &context, layout: layout)
             drawShootingStars(frame.sky, light: light, in: &context, layout: layout)
-            drawSun(frame, light: light, time: time, in: &context, layout: layout)
+            drawSun(frame, levels: levels, light: light, time: time, in: &context, layout: layout)
             drawClouds(frame.sky, light: light, in: &context, layout: layout)
             drawLightning(frame.sky, in: &context, layout: layout)
             drawBirds(frame.sky, light: light, time: time, in: &context, layout: layout)
@@ -70,6 +74,46 @@ struct LiveWeatherView: View {
         ))
     }
 
+    /// Light along the horizon that plays along with the instruments: soft
+    /// columns, one per slice of the spectrum (bass on the left, treble on the
+    /// right), rising with each, tinted by the sky (rose at dusk, green and
+    /// violet at night, a faint warmth by day), behind any cloud. Each kick
+    /// also brightens the whole horizon.
+    private func drawAurora(_ sky: LiveSky, levels: [Float], light: SkyLight, in context: inout GraphicsContext, layout: WeatherLayout) {
+        let skyHeight = layout.horizon - layout.skyTop
+        let presence = (0.35 + 0.65 * (1 - light.daylight)) * max(1 - sky.cloudCover * 0.7, 0.15)
+        // The kick: a glow rising off the horizon.
+        if sky.flash > 0.02 {
+            let top = layout.horizon - skyHeight * 0.45
+            context.fill(Path(CGRect(x: 0, y: top, width: layout.size.width, height: layout.horizon - top)), with: .linearGradient(
+                Gradient(colors: [.clear, light.auroraLow.opacity(0.45 * sky.flash * presence)]),
+                startPoint: CGPoint(x: 0, y: top), endPoint: CGPoint(x: 0, y: layout.horizon)
+            ))
+        }
+        let columns = Self.auroraColumns
+        guard levels.count >= columns else { return }
+        let width = layout.size.width / CGFloat(columns)
+        context.drawLayer { layer in
+            layer.addFilter(.blur(radius: width * 0.6))
+            for column in 0..<columns {
+                // Each column the loudest band in its slice.
+                let start = column * levels.count / columns
+                let end = max((column + 1) * levels.count / columns, start + 1)
+                let level = Double(levels[start..<end].max() ?? 0)
+                guard level > 0.02 else { continue }
+                let height = skyHeight * (0.08 + 0.55 * level)
+                let rect = CGRect(x: CGFloat(column) * width - width * 0.2, y: layout.horizon - height, width: width * 1.4, height: height)
+                layer.fill(Path(rect), with: .linearGradient(
+                    Gradient(colors: [light.auroraHigh.opacity(0), light.auroraHigh.opacity(0.5 * level * presence), light.auroraLow.opacity(0.8 * level * presence)]),
+                    startPoint: CGPoint(x: 0, y: rect.minY), endPoint: CGPoint(x: 0, y: rect.maxY)
+                ))
+            }
+        }
+    }
+
+    static let auroraColumns = 24
+    static let rayCount = 12
+
     /// Weather's bolts, and a slight lift of the sky while one is bright.
     private func drawLightning(_ sky: LiveSky, in context: inout GraphicsContext, layout: WeatherLayout) {
         for bolt in sky.bolts {
@@ -99,7 +143,7 @@ struct LiveWeatherView: View {
         let fall = layout.horizon + 20
         let wind = CGFloat(sky.wind)
         // Lit by the sky: bright by day, dim at night.
-        let tone = Color.white.opacity(0.25 + 0.3 * light.daylight)
+        let tone = Color.white.opacity(0.25 + 0.3 * light.daylight + 0.25 * sky.sparkle)
         var streaks = Path()
         var flakes = Path()
         for drop in 0..<count {
@@ -257,7 +301,7 @@ struct LiveWeatherView: View {
 
     /// Rises on the left and sets on the right, following its real height,
     /// with rays that pulse with the bass when the sky is clear.
-    private func drawSun(_ frame: LiveWeatherState.Frame, light: SkyLight, time: TimeInterval, in context: inout GraphicsContext, layout: WeatherLayout) {
+    private func drawSun(_ frame: LiveWeatherState.Frame, levels: [Float], light: SkyLight, time: TimeInterval, in context: inout GraphicsContext, layout: WeatherLayout) {
         let altitude = frame.sun.altitude
         guard altitude > -3 else { return }
         let center = sunCenter(frame.sun, layout: layout)
@@ -270,20 +314,23 @@ struct LiveWeatherView: View {
             Path(ellipseIn: CGRect(x: center.x - glowRadius, y: center.y - glowRadius, width: glowRadius * 2, height: glowRadius * 2)),
             with: .radialGradient(Gradient(colors: [color.opacity((0.5 + 0.3 * frame.sky.flash) * clear), .clear]), center: center, startRadius: radius, endRadius: glowRadius)
         )
-        // Rays, by day, longer on the bass.
-        if light.daylight > 0.3, clear > 0.2 {
-            let rays = 12
-            let length = radius * (0.6 + 1.4 * frame.sky.pulse)
-            var path = Path()
+        // Rays, by day: a radial spectrum, each ray a slice of it (bass at
+        // the bottom, around to treble), stretching with its instruments.
+        if light.daylight > 0.3, clear > 0.2, levels.count >= Self.rayCount {
+            let rays = Self.rayCount
             for ray in 0..<rays {
-                // Turned by the wind's travel, so they spin faster in energetic music.
-                let angle = Double(ray) / Double(rays) * 2 * .pi + frame.sky.drift * 0.6
+                let start = ray * levels.count / rays
+                let end = max((ray + 1) * levels.count / rays, start + 1)
+                let level = CGFloat(levels[start..<end].max() ?? 0)
+                let length = radius * (0.35 + 2.6 * level)
+                let angle = .pi / 2 + Double(ray) / Double(rays) * 2 * .pi + frame.sky.drift * 0.3
                 let inner = CGPoint(x: center.x + cos(angle) * radius * 1.3, y: center.y + sin(angle) * radius * 1.3)
                 let outer = CGPoint(x: center.x + cos(angle) * (radius * 1.3 + length), y: center.y + sin(angle) * (radius * 1.3 + length))
+                var path = Path()
                 path.move(to: inner)
                 path.addLine(to: outer)
+                context.stroke(path, with: .color(color.opacity((0.3 + 0.5 * Double(level)) * clear * light.daylight)), style: StrokeStyle(lineWidth: 2 + 3 * level, lineCap: .round))
             }
-            context.stroke(path, with: .color(color.opacity(0.35 * clear * light.daylight)), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
         }
         // Behind thick cloud it's gone, not a gray disc.
         guard clear > 0.02 else { return }
@@ -329,7 +376,9 @@ struct LiveWeatherView: View {
                 let span = layout.size.width + width * 2
                 let travel = (cloud.start * span + sky.drift * cloud.speed * layout.size.width).truncatingRemainder(dividingBy: span)
                 let origin = CGPoint(x: travel - width, y: layout.skyTop + (layout.horizon - layout.skyTop) * cloud.height)
-                layer.fill(WeatherView.cloudShape(at: origin, width: width), with: .color(light.cloudColor.opacity(0.85 * opacity)))
+                // After dark the mid-range lights them a little from within.
+                let lit = light.cloudColor.mix(with: light.auroraLow, by: sky.glow * 0.3 * (1 - light.daylight))
+                layer.fill(WeatherView.cloudShape(at: origin, width: width), with: .color(lit.opacity(0.85 * opacity)))
             }
         }
     }
@@ -350,7 +399,8 @@ struct LiveWeatherView: View {
                 let side: CGFloat = bird % 2 == 0 ? 1 : -1
                 let x = leadX + back * rank * 16
                 let y = leadY + (bird == 0 ? 0 : side * rank * 9)
-                let flap = CGFloat(sin(time * 9 + Double(bird) * 0.9))
+                // A downstroke on each beat, gliding between.
+                let flap = CGFloat(1 - 2 * sky.flash) * 0.9 + CGFloat(sin(time * 2 + Double(bird))) * 0.1
                 let span: CGFloat = 6
                 path.move(to: CGPoint(x: x - span, y: y - 3 * flap))
                 path.addQuadCurve(to: CGPoint(x: x, y: y), control: CGPoint(x: x - span / 2, y: y - 4 * flap - 2))
@@ -379,8 +429,9 @@ struct LiveWeatherView: View {
             let x = (Double(LightningBolt.random(seed, 2)) + sin(time * speed + Double(index)) * 0.06)
                 .truncatingRemainder(dividingBy: 1) * layout.size.width
             let y = layout.horizon - band * (0.1 + 0.9 * Double(LightningBolt.random(seed, 3))) + CGFloat(sin(time * speed * 1.7 + Double(index) * 2)) * 12
-            let blink = 0.5 + 0.5 * sin(time * (1.2 + 2 * Double(LightningBolt.random(seed, 4))) + Double(index))
-            let brightness = min((0.2 + 0.6 * sky.glow) * blink + sky.flash * 0.4, 0.85) * visibility
+            // A faint glow of their own, and all of them flash together on the beat.
+            let blink = 0.5 + 0.5 * sin(time * (0.8 + Double(LightningBolt.random(seed, 4))) + Double(index))
+            let brightness = min(0.12 * blink + 0.25 * sky.glow + sky.flash * 0.9, 1) * visibility
             guard brightness > 0.02 else { continue }
             let radius = 2 + 5 * brightness
             let center = CGPoint(x: x, y: y)
@@ -406,7 +457,8 @@ struct LiveWeatherView: View {
             let base = CGPoint(x: spot.x * layout.size.width, y: layout.groundY(atFraction: spot.x) + 2)
             let height = 34 * spot.size
             let sway = sin(time * 2.4 + Double(index) * 1.3) * sky.wind * 0.3
-            let lean = CGFloat(sky.wind * 0.6 + sway) * height * 0.5
+            // A kick on each beat, on top of the bass's gusts.
+            let lean = CGFloat(sky.wind * 0.6 + sway + sky.flash * 0.35) * height * 0.5
             let top = CGPoint(x: base.x + lean, y: base.y - height)
             var stem = Path()
             stem.move(to: base)
@@ -429,6 +481,9 @@ struct SkyLight {
     let sunColor: Color
     let cloudColor: Color
     let birdColor: Color
+    /// The horizon light's colors, near the ground and higher up.
+    let auroraLow: Color
+    let auroraHigh: Color
     let farHill: Color
     let nearHill: Color
     /// 0 (night) ... 1 (full day).
@@ -466,6 +521,14 @@ struct SkyLight {
             .mix(with: Color(white: 0.15), by: (1 - daylight) * 0.7)
             .mix(with: Color(white: 0.22), by: gloom * 0.75)
         birdColor = Color(white: 0.12).mix(with: .black, by: 0.5)
+        // Night: green into violet. Dusk and dawn: rose into amber. Day: warm white.
+        let night = (Color(red: 0.3, green: 1, blue: 0.65), Color(red: 0.55, green: 0.4, blue: 1))
+        let twilight = (Color(red: 1, green: 0.55, blue: 0.45), Color(red: 1, green: 0.75, blue: 0.4))
+        let day = (Color(red: 1, green: 0.95, blue: 0.8), Color(red: 1, green: 1, blue: 0.9))
+        let darkness = 1 - daylight
+        let dusk = max(0, 1 - abs(altitude + 4) / 8)
+        auroraLow = day.0.mix(with: twilight.0, by: min(dusk + darkness * 0.5, 1)).mix(with: night.0, by: max(darkness - dusk, 0))
+        auroraHigh = day.1.mix(with: twilight.1, by: min(dusk + darkness * 0.5, 1)).mix(with: night.1, by: max(darkness - dusk, 0))
     }
 
     struct Key {

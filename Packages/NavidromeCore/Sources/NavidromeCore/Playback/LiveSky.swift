@@ -63,7 +63,9 @@ public struct LiveSky: Sendable {
 
     /// 0 (still) ... 1 (gale): a breeze plus gusts from the bass.
     public private(set) var wind: Double = 0
-    /// How far the wind has moved the clouds. Only moves forward.
+    /// How far the clouds have drifted. Only moves forward. Follows the real
+    /// wind and the music's overall energy, not each bass note, so the clouds
+    /// sail rather than race; the bass gusts the trees instead.
     public private(set) var drift: Double = 0
     /// 0 (clear) ... 1 (overcast): the real cover, thickened by busy music.
     public private(set) var cloudCover: Double = 0.2
@@ -166,7 +168,7 @@ public struct LiveSky: Sendable {
         // The real wind, plus gusts from the bass.
         let realWind = Self.clamp(weather.windSpeed / Self.galeSpeed)
         wind = Self.ease(wind, toward: Self.clamp(0.05 + realWind * 0.7 + bass * 1.1), rate: Self.windRate, step: step)
-        drift += step * (0.02 + 0.25 * wind)
+        drift += step * (0.012 + 0.06 * realWind + 0.03 * intensity)
         cloudCover = Self.ease(cloudCover, toward: Self.clamp(weather.cloudCover + Self.cloudBoost * drive * (1 - weather.cloudCover * 0.5)), rate: Self.cloudRate, step: step)
         let amplified = weather.intensity * (Self.precipitationQuiet + (Self.precipitationLoud - Self.precipitationQuiet) * drive)
         precipitation = Self.ease(precipitation, toward: Self.clamp(amplified), rate: Self.precipitationRate, step: step)
