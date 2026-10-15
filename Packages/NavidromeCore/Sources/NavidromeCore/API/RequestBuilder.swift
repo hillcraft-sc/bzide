@@ -32,11 +32,13 @@ struct RequestBuilder: Sendable {
         return url
     }
 
-    /// URLComponents leaves `+` unescaped in queries, but Navidrome (Go) decodes `+`
-    /// as a space, so "AC+DC" or a username with `+` would arrive mangled.
+    /// URLComponents leaves `+` and `;` unescaped in queries, but Navidrome (Go)
+    /// decodes `+` as a space, so "AC+DC" or a username with `+` would arrive
+    /// mangled, and refuses a query with a raw `;` ("invalid semicolon
+    /// separator in query"), common in Shoutcast stream addresses.
     private static func encodeQueryValue(_ value: String) -> String {
         var allowed = CharacterSet.urlQueryAllowed
-        allowed.remove(charactersIn: "+&=#")
+        allowed.remove(charactersIn: "+&=#;")
         return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
     }
 }

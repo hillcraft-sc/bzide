@@ -39,6 +39,15 @@ struct RequestBuilderTests {
         #expect(query.contains("query=AC%2BDC%20%26%20co"))
     }
 
+    @Test func escapesSemicolonsWhichTheServerRefuses() throws {
+        let stream = URLQueryItem(name: "streamUrl", value: "http://radio.example.org:8000/;stream.mp3")
+        let url = try builder().url(endpoint: "createInternetRadioStation", parameters: [stream])
+        let query = url.query(percentEncoded: true) ?? ""
+        #expect(!query.contains(";"))
+        #expect(query.contains("streamUrl=http://radio.example.org:8000/%3Bstream.mp3"))
+        #expect(url.queryParameters["streamUrl"] == "http://radio.example.org:8000/;stream.mp3")
+    }
+
     @Test func rejectsNonHTTPSchemes() {
         #expect(throws: SubsonicError.invalidBaseURL) {
             try builder(baseURL: "ftp://music.example.test").url(endpoint: "ping")
