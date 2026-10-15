@@ -518,8 +518,8 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 
 - [x] Play a song with synced lyrics on the server and tap the speech bubble in Now Playing: lyrics over the blurred cover, the current line bright with its words lighting up as they're sung, the view scrolling along with the song; the other lines dim. (2026-10-13)
 - [ ] Tap an earlier line: the song jumps there and the lyrics follow. Scroll away by hand: the view stays put, then returns to the current line a few seconds after you stop.
-- [ ] With Find Lyrics Online on, open lyrics for a song the server has none for and close the screen at once, then reopen it: LRCLIB's lyrics or a "No Lyrics" note about what LRCLIB had, not "LRCLIB couldn't be reached".
-- [ ] With Find Lyrics Online on, open lyrics for songs that show "No Lyrics": the note under it says why (LRCLIB had nothing, or the closest version's difference). Turn it off: the note suggests turning it on.
+- [x] With Find Lyrics Online on, open lyrics for a song the server has none for and close the screen at once, then reopen it: LRCLIB's lyrics or a "No Lyrics" note about what LRCLIB had, not "LRCLIB couldn't be reached". (2026-10-15)
+- [x] With Find Lyrics Online on, open lyrics for songs that show "No Lyrics": the note under it says why (LRCLIB had nothing, or the closest version's difference). Turn it off: the note suggests turning it on. (2026-10-15)
 - [ ] A song whose server lyrics are plain only: they scroll freely under "These lyrics aren't synced to the music." A song with none: "No Lyrics". Radio: "Lyrics aren't available for radio."
 - [x] Turn on Settings > Lyrics > Find Lyrics Online, open lyrics for a song the server has none for: LRCLIB's lyrics appear, credited at the end. Turn it off: back to the server's lyrics or "No Lyrics". (2026-10-13)
 - [ ] Skip songs with the lyrics open: they change with the song, and the previous song's lyrics never show for the new one.
