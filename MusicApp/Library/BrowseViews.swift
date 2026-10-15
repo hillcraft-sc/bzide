@@ -136,7 +136,7 @@ struct LibraryView: View {
                         Task { await library.spinOff.startRated() }
                     } label: {
                         HStack {
-                            Label("Mix My Cuts", systemImage: item.symbol)
+                            Label("Mix My Cuts", systemImage: item.symbol) // item.symbol
                             Spacer()
                             if library.spinOff.isStarting { ProgressView() }
                         }
@@ -229,7 +229,7 @@ extension LibraryFeature {
         case .recentlyPlayed: "clock.arrow.trianglehead.counterclockwise.rotate.90"
         case .spinItBack: "arrow.uturn.backward.circle"
         case .randomMix: "shuffle"
-        case .ratedShuffle: "hand.thumbsup"
+        case .ratedShuffle: "flame" // "hand.thumbsup" 
         case .artists: "music.microphone"
         case .albums: "square.stack"
         case .playlists: "music.note.list"

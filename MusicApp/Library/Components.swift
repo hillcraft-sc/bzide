@@ -231,9 +231,9 @@ struct SongActions: View {
         Button("Add to Queue", systemImage: "text.append") { library.engine.append([song]) }
         SpinOffButton(library: library, song: song)
         AddToPlaylistButton(library: library, songs: [song])
-        SongInfoButton(library: library, song: song)
         SongDownloadButton(downloads: library.downloads, song: song)
         MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
+        SongInfoButton(library: library, song: song)
         Section {
             if showsGoToAlbum, let albumID = song.albumID {
                 NavigationLink(value: LibraryRoute.album(id: albumID)) {
