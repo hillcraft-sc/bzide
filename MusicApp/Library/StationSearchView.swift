@@ -4,8 +4,8 @@ import SwiftUI
 /// Finding stations on Radio Browser: what's popular until a name is typed or
 /// a filter is chosen, then the matching stations, 50 at a time with more as
 /// the list reaches its end. Country, Genre and the order are in a bar under
-/// the search field. Tapping a station plays it; an admin can add it to the
-/// server with +. Until Find Stations Online is on, it explains what that
+/// the search field. Tapping a station plays it; + saves it (to the server for
+/// an admin, else to this iPhone). Until Find Stations Online is on, it explains what that
 /// sends and offers to turn it on.
 struct StationSearchView: View {
     let library: Library
@@ -14,6 +14,8 @@ struct StationSearchView: View {
     @State private var addingID: String?
     @State private var errorMessage: String?
     @State private var picking: FilterKind?
+    /// A station the server refused, and why: offered for this iPhone instead.
+    @State private var refused: (station: RadioBrowserStation, reason: String)?
 
     static let optInExplanation = "Search Radio Browser (radio-browser.info), a free directory of internet radio stations, from Radio > Find Stations. This sends what you search for and the filters you choose there, and counts plays of stations you find there toward their popularity."
 
@@ -42,6 +44,14 @@ struct StationSearchView: View {
             case .country: CountryPicker(model: model)
             case .genre: GenrePicker(model: model)
             }
+        }
+        .alert("Couldn't Save to Server", isPresented: Binding(get: { refused != nil }, set: { if !$0 { refused = nil } })) {
+            Button("Save on This iPhone") {
+                if let station = refused?.station { add(station, to: .phone) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("\(refused?.reason ?? "")\n\nSave it on this iPhone instead?")
         }
         .alert("Couldn't Add Station", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
@@ -105,8 +115,8 @@ struct StationSearchView: View {
                     ForEach(found) { station in
                         FoundStationRow(
                             library: library, station: station,
-                            canAdd: stations.canEdit,
-                            isAdded: stations.stations.contains { $0.streamURL == station.streamURL },
+                            addTitle: stations.newStationPlace == .server ? "Add to Server" : "Add to My Stations",
+                            isAdded: stations.contains(stream: station.streamURL),
                             isAdding: addingID == station.id,
                             play: { play(station) },
                             add: { add(station) }
@@ -162,14 +172,19 @@ struct StationSearchView: View {
         Task { await library.radio.start(station.radioStation) }
     }
 
-    private func add(_ station: RadioBrowserStation) {
+    private func add(_ station: RadioBrowserStation, to place: RadioStationsModel.Place? = nil) {
         addingID = station.id
+        let place = place ?? stations.newStationPlace
         Task {
             defer { addingID = nil }
             do throws(RadioStationsModel.ChangeError) {
-                try await stations.add(station.draft)
+                try await stations.add(station.draft, to: place)
             } catch {
-                errorMessage = error.message
+                if case .server(let reason) = error, place == .server {
+                    refused = (station, reason)
+                } else {
+                    errorMessage = error.message
+                }
             }
         }
     }
@@ -333,7 +348,7 @@ private struct FilterPicker<Item>: View {
 private struct FoundStationRow: View {
     let library: Library
     let station: RadioBrowserStation
-    let canAdd: Bool
+    let addTitle: String
     let isAdded: Bool
     let isAdding: Bool
     let play: () -> Void
@@ -368,14 +383,12 @@ private struct FoundStationRow: View {
                 .contentShape(.rect)
             }
             .foregroundStyle(.primary)
-            if canAdd {
-                addButton
-            }
+            addButton
         }
         .contextMenu {
             Button("Play", systemImage: "play.fill", action: play)
-            if canAdd && !isAdded {
-                Button("Add to Server", systemImage: "plus", action: add)
+            if !isAdded {
+                Button(addTitle, systemImage: "plus", action: add)
             }
             if let homePage = station.homePageURL {
                 Button("Open Homepage", systemImage: "safari") { openURL(homePage) }
@@ -392,7 +405,7 @@ private struct FoundStationRow: View {
                 .foregroundStyle(.secondary)
                 .accessibilityLabel("In your stations")
         } else {
-            Button("Add to Server", systemImage: "plus.circle", action: add)
+            Button(addTitle, systemImage: "plus.circle", action: add)
                 .labelStyle(.iconOnly)
                 .font(.title3)
                 .buttonStyle(.borderless)

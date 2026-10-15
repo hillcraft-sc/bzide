@@ -116,14 +116,14 @@ struct RadioStationsModelTests {
     private static let waves = RadioStation(id: "rs-1", name: "Night Waves", streamURL: URL(string: "https://example.com/waves")!)
     private static let bop = RadioStation(id: "rs-2", name: "bebop", streamURL: URL(string: "https://example.com/bop")!)
 
-    private func model(_ server: FakeServer) -> RadioStationsModel {
+    private func model(_ server: FakeServer, phone: PhoneStationStore = PhoneStationStore(fileURL: nil)) -> RadioStationsModel {
         RadioStationsModel(sources: .init(
             stations: { await server.list() },
             isAdmin: { () async throws(SubsonicError) in try await server.admin() },
             create: { station async throws(SubsonicError) in try await server.create(station) },
             update: { id, station async throws(SubsonicError) in try await server.update(id, station) },
             delete: { id async throws(SubsonicError) in try await server.delete(id) }
-        ))
+        ), phone: phone)
     }
 
     @Test func stationsAreSortedByName() async {
@@ -188,5 +188,86 @@ struct RadioStationsModelTests {
         }
         // Still listed: nothing changed on the server.
         #expect(stations.stations.map(\.id) == ["rs-1"])
+    }
+
+    // MARK: This iPhone
+
+    private func temporaryStore() -> PhoneStationStore {
+        PhoneStationStore(fileURL: FileManager.default.temporaryDirectory.appending(path: "RadioStations-\(UUID().uuidString).json"))
+    }
+
+    @Test func newStationsGoToTheServerForAnAdminAndThePhoneForOthers() async throws {
+        let adminServer = FakeServer(stations: [])
+        let admin = model(adminServer)
+        await admin.load()
+        #expect(admin.newStationPlace == .server)
+        try await admin.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"))
+        #expect(admin.stations.map(\.name) == ["Aria"])
+        #expect(admin.phoneStations.isEmpty)
+
+        let listenerServer = FakeServer(stations: [Self.waves], isAdmin: .success(false))
+        let listener = model(listenerServer)
+        await listener.load()
+        #expect(listener.newStationPlace == .phone)
+        try await listener.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"))
+        #expect(await listenerServer.calls.isEmpty)
+        #expect(listener.phoneStations.map(\.name) == ["Aria"])
+        #expect(listener.phoneStations.allSatisfy { $0.isOnPhone })
+        #expect(listener.stations.map(\.id) == ["rs-1"])
+    }
+
+    @Test func phoneStationsCanAlwaysBeChangedServerOnesOnlyByAnAdmin() async throws {
+        let listener = model(FakeServer(stations: [Self.waves], isAdmin: .success(false)))
+        await listener.load()
+        try await listener.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"))
+        let mine = try #require(listener.phoneStations.first)
+        #expect(listener.canChange(mine))
+        #expect(!listener.canChange(Self.waves))
+    }
+
+    @Test func phoneStationsAreEditedAndDeletedWithoutTheServer() async throws {
+        let server = FakeServer(stations: [], isAdmin: .success(false))
+        let stations = model(server)
+        await stations.load()
+        try await stations.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"))
+        try await stations.add(RadioStationDraft(name: "Bop", streamURL: "https://bop.example.org/live"))
+        let aria = try #require(stations.phoneStations.first)
+        try await stations.update(aria, to: RadioStationDraft(name: "Zed", streamURL: "https://aria.example.org/live", homePageURL: "https://aria.example.org"))
+        #expect(stations.phoneStations.map(\.name) == ["Bop", "Zed"])
+        #expect(stations.phoneStations.last?.id == aria.id)
+        #expect(stations.phoneStations.last?.homePageURL?.absoluteString == "https://aria.example.org")
+        try await stations.delete(aria)
+        #expect(stations.phoneStations.map(\.name) == ["Bop"])
+        #expect(await server.calls.isEmpty)
+    }
+
+    @Test func anAdminCanSaveOnThePhoneWhenTheServerRefuses() async throws {
+        let stations = model(FakeServer(stations: [], failure: .server(code: 0, message: "Not supported")))
+        await stations.load()
+        await #expect(throws: RadioStationsModel.ChangeError.self) {
+            try await stations.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"))
+        }
+        try await stations.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"), to: .phone)
+        #expect(stations.phoneStations.map(\.name) == ["Aria"])
+    }
+
+    @Test func phoneStationsAreKeptAcrossLaunches() async throws {
+        let store = temporaryStore()
+        let first = model(FakeServer(stations: [], isAdmin: .success(false)), phone: store)
+        await first.load()
+        try await first.add(RadioStationDraft(name: "Aria", streamURL: "http://aria.example.org:8000/;", homePageURL: "https://aria.example.org"))
+
+        let relaunched = model(FakeServer(stations: []), phone: store)
+        #expect(relaunched.phoneStations == first.phoneStations)
+        #expect(relaunched.phoneStations.first?.streamURL.absoluteString == "http://aria.example.org:8000/;")
+    }
+
+    @Test func savedEitherWayCountsAsAdded() async throws {
+        let stations = model(FakeServer(stations: [Self.waves], isAdmin: .success(false)))
+        await stations.load()
+        try await stations.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"))
+        #expect(stations.contains(stream: Self.waves.streamURL))
+        #expect(stations.contains(stream: URL(string: "https://aria.example.org/live")!))
+        #expect(!stations.contains(stream: URL(string: "https://other.example.org/live")!))
     }
 }

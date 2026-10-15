@@ -1,9 +1,11 @@
 import NavidromeCore
 import SwiftUI
 
-/// The internet radio stations saved on the server. Tapping one plays it in
-/// place of the queue. An admin can add stations (+), and edit or delete them
-/// (swipe or long-press); the changes are made on the server, for every client.
+/// The internet radio stations saved on the server and on this iPhone, in two
+/// sections when there are both. Tapping one plays it in place of the queue.
+/// + adds a station (to the server for an admin, else to this iPhone); swipe
+/// or long-press edits or deletes one. Server stations can be changed only by
+/// an admin, and the change is for every client.
 struct RadioView: View {
     let library: Library
     @State private var model: RadioStationsModel
@@ -20,18 +22,35 @@ struct RadioView: View {
 
     var body: some View {
         LoadStateView(state: model.state, retry: model.load) { stations in
-            List(stations) { station in
-                StationRow(library: library, station: station, canEdit: model.canEdit, edit: { editing = .edit(station) }, delete: { deleting = station })
+            let phone = model.phoneStations
+            // Headings only when there's something in both places.
+            let showsPlaces = !stations.isEmpty && !phone.isEmpty
+            List {
+                if !stations.isEmpty {
+                    Section {
+                        rows(stations)
+                    } header: {
+                        if showsPlaces { Text("Server") }
+                    }
                     .themedRows()
+                }
+                if !phone.isEmpty {
+                    Section {
+                        rows(phone)
+                    } header: {
+                        if showsPlaces { Text("This iPhone") }
+                    }
+                    .themedRows()
+                }
             }
             .listStyle(.plain)
             .themedList()
             .overlay {
-                if stations.isEmpty {
+                if stations.isEmpty && phone.isEmpty {
                     ContentUnavailableView(
                         "No Radio Stations",
                         systemImage: "headphones.sensor.tag.radiowaves.left.and.right", // dot.radiowaves.left.and.right
-                        description: Text(model.canEdit ? "Tap + to add an internet radio station." : "Add internet radio stations in your server's web UI.")
+                        description: Text("Tap + to add an internet radio station, or the magnifying glass to find one.")
                     )
                 }
             }
@@ -39,9 +58,7 @@ struct RadioView: View {
         .navigationTitle("Radio")
         .toolbar {
             Button("Find Stations", systemImage: "magnifyingglass") { isFinding = true }
-            if model.canEdit {
-                Button("Add Station", systemImage: "plus") { editing = .new }
-            }
+            Button("Add Station", systemImage: "plus") { editing = .new }
         }
         .navigationDestination(isPresented: $isFinding) {
             StationSearchView(library: library, stations: model)
@@ -56,8 +73,8 @@ struct RadioView: View {
             presenting: deleting
         ) { station in
             Button("Delete Station", role: .destructive) { delete(station) }
-        } message: { _ in
-            Text("It's removed from the server, for every app that uses it.")
+        } message: { station in
+            Text(station.isOnPhone ? "It's removed from this iPhone." : "It's removed from the server, for every app that uses it.")
         }
         .alert("Couldn't Delete Station", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
@@ -66,6 +83,15 @@ struct RadioView: View {
         }
         .task { await model.load() }
         .refreshable { await model.load() }
+    }
+
+    private func rows(_ stations: [RadioStation]) -> some View {
+        ForEach(stations) { station in
+            StationRow(
+                library: library, station: station, canEdit: model.canChange(station),
+                edit: { editing = .edit(station) }, delete: { deleting = station }
+            )
+        }
     }
 
     private func delete(_ station: RadioStation) {

@@ -226,13 +226,14 @@ final class Library {
     }
 
     func radioStationsModel() -> RadioStationsModel {
-        RadioStationsModel(sources: .init(
+        let support = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        return RadioStationsModel(sources: .init(
             stations: { [client] () async throws(SubsonicError) in try await client.radioStations() },
             isAdmin: { [client, username] () async throws(SubsonicError) in try await client.isAdmin(username: username) },
             create: { [client] station async throws(SubsonicError) in try await client.createRadioStation(station) },
             update: { [client] id, station async throws(SubsonicError) in try await client.updateRadioStation(id: id, station) },
             delete: { [client] id async throws(SubsonicError) in try await client.deleteRadioStation(id: id) }
-        ))
+        ), phone: PhoneStationStore(fileURL: support?.appending(path: PhoneStationStore.fileName)))
     }
 
     func stationSearchModel() -> StationSearchModel {

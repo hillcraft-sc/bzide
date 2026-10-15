@@ -1,8 +1,9 @@
 import Foundation
 
-/// An internet radio station saved on the server (`getInternetRadioStations`).
+/// An internet radio station, saved on the server (`getInternetRadioStations`)
+/// or on this iPhone (My Stations, for users who can't change the server's).
 /// The stream is somewhere else on the internet, not on the server.
-public struct RadioStation: Sendable, Equatable, Identifiable, Decodable {
+public struct RadioStation: Sendable, Equatable, Identifiable, Codable {
     public var id: String
     public var name: String
     /// A direct stream, an HLS playlist, or a `.pls`/`.m3u` file listing streams.
@@ -34,6 +35,21 @@ public struct RadioStation: Sendable, Equatable, Identifiable, Decodable {
             streamURL: stream,
             homePageURL: c.lenientString(.homePageUrl).flatMap(Self.webURL)
         )
+    }
+
+    /// Stations saved on this iPhone have ids starting with this.
+    public static let phonePrefix = "phone:"
+
+    /// Saved on this iPhone rather than on the server.
+    public var isOnPhone: Bool { id.hasPrefix(Self.phonePrefix) }
+
+    /// Written with the server's names, so it reads back the same way.
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: ServerKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(name, forKey: .name)
+        try c.encode(streamURL.absoluteString, forKey: .streamUrl)
+        try c.encodeIfPresent(homePageURL?.absoluteString, forKey: .homePageUrl)
     }
 
     /// The id the station has as a queue entry (see `Song(station:stream:)`);
