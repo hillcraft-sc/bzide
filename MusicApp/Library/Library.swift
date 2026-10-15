@@ -34,6 +34,7 @@ final class Library {
     /// Endless music grown from a song or artist, and Keep Spinning.
     let spinOff: SpinOffModel
     private let client: SubsonicClient
+    private let username: String
 
     init(
         client: SubsonicClient, username: String, engine: PlaybackEngine, artwork: ArtworkCache,
@@ -46,6 +47,7 @@ final class Library {
         }
         self.playlistRefresher = playlistRefresher
         self.client = client
+        self.username = username
         self.engine = engine
         self.sleepTimer = SleepTimer(target: engine)
         self.catalog = LibraryCatalog(sources: .init(
@@ -221,10 +223,14 @@ final class Library {
         }
     }
 
-    func radioStationsModel() -> LoadModel<[RadioStation]> {
-        LoadModel { [client] () async throws(SubsonicError) in
-            try await client.radioStations().sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-        }
+    func radioStationsModel() -> RadioStationsModel {
+        RadioStationsModel(sources: .init(
+            stations: { [client] () async throws(SubsonicError) in try await client.radioStations() },
+            isAdmin: { [client, username] () async throws(SubsonicError) in try await client.isAdmin(username: username) },
+            create: { [client] station async throws(SubsonicError) in try await client.createRadioStation(station) },
+            update: { [client] id, station async throws(SubsonicError) in try await client.updateRadioStation(id: id, station) },
+            delete: { [client] id async throws(SubsonicError) in try await client.deleteRadioStation(id: id) }
+        ))
     }
 
     func songModel(id: String) -> LoadModel<Song> {

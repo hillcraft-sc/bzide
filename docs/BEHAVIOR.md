@@ -234,7 +234,8 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 ## Radio
 
-- **Stations** are the internet radio stations saved on the server (`getInternetRadioStations`), listed by name under Library > Radio; each shows its stream's host. Stations without a usable http(s) stream address are left out. They're added and edited in Navidrome's web UI, not in the app. Long-press offers Play and Open Homepage (when the station has one).
+- **Stations** are the internet radio stations saved on the server (`getInternetRadioStations`), listed by name under Library > Radio; each shows its stream's host. Stations without a usable http(s) stream address are left out. Long-press offers Play and Open Homepage (when the station has one).
+- **Adding, editing and deleting stations on the server** (`createInternetRadioStation`, `updateInternetRadioStation`, `deleteInternetRadioStation`). Navidrome allows this only for admins, so it's offered only when `getUser` says the user is one (`adminRole`), checked once when Radio opens; if that can't be checked, it isn't offered. An admin gets a + button (Add Station), and Edit and Delete by swiping a station or long-pressing it. The form has a name, the stream address and an optional homepage: both addresses must start with http:// or https://, and a blank name becomes the stream's host. Delete asks first, since it removes the station from the server for every client. A change is made on the server, then the list is fetched again; if the server refuses (error 50, not an admin) the alert says only an admin can change stations, and nothing changes. With no stations, the empty screen says to tap + (admins) or to add stations in the server's web UI.
 - **Playing a station** replaces the queue with that one station, like playing a new album. A second tap while one is starting is ignored.
 - **Stream address.** A direct stream or an HLS (`.m3u8`) address goes to the player as is. A `.pls` or `.m3u` playlist file is read first and its first stream is played (`.pls`: the lowest-numbered `File` entry; `.m3u`: the first line that isn't blank or a `#` comment). Plain http streams play (the app's only App Transport Security exception, for audio); a playlist *file* on plain http can't be read, and the app says to use the station's direct stream address instead. If the file can't be fetched or lists no stream, the error says so ("Couldn't Play Station").
 - **A station is live:** no duration or progress bar ("Live" instead), no seeking, previous and repeat disabled, nothing preloaded after it. It's never scrobbled or added to play history, can't be favorited, rated or added to a playlist (Save Queue leaves it out), and isn't offered to Siri. The lock screen marks it as a live stream with scrubbing and previous disabled.
@@ -461,6 +462,9 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Turn on Airplane Mode for ~10 seconds while it plays, then off: it reconnects on its own.
 - [ ] Force quit and relaunch: the station is shown paused; play rejoins it. Play an album afterwards: normal songs work as before (scrobbling, history).
 - [ ] Navidrome's web UI shows no scrobbles and play history shows nothing for radio listening.
+- [ ] As an admin: Radio shows +. Add a station (name, stream address, homepage): it appears in the list, plays, and shows in Navidrome's web UI. Leave the name blank: it's named after the stream's host. Type an address without http://: the form says why and stays open.
+- [ ] Swipe a station > Edit: the form shows its details; change the name: the list and Navidrome show the new name. Swipe > Delete, confirm: it's gone from the list and from Navidrome. Long-press offers Edit and Delete too.
+- [ ] Signed in as a non-admin user (if you have one): no +, no Edit or Delete.
 
 ### Audio levels (visualizer phase 1, from the Debug player)
 

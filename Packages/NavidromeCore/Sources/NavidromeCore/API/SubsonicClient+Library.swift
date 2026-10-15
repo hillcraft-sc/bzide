@@ -88,6 +88,19 @@ extension SubsonicClient {
         return email
     }
 
+    /// Whether the user is an admin on the server, which Navidrome requires
+    /// for changing radio stations. Missing means no.
+    public func isAdmin(username: String) async throws(SubsonicError) -> Bool {
+        struct Payload: Decodable {
+            struct User: Decodable {
+                let adminRole: Bool?
+            }
+            let user: User?
+        }
+        let user = try await request("getUser", parameters: [.init(name: "username", value: username)], as: Payload.self).user
+        return user?.adminRole ?? false
+    }
+
     /// Everything the user has favorited (starred): artists, albums and songs.
     public func favorites() async throws(SubsonicError) -> SearchResult {
         try await request("getStarred2", as: StarredPayload.self).result
@@ -123,6 +136,35 @@ extension SubsonicClient {
 
     public func radioStations() async throws(SubsonicError) -> [RadioStation] {
         try await request("getInternetRadioStations", as: ListPayload<RadioStation, RadioStationsKeys>.self).elements
+    }
+
+    /// Saves a new station on the server. Navidrome lets only admins change
+    /// stations (others get error 50) and doesn't return the new station, so
+    /// reload the list afterwards.
+    public func createRadioStation(_ station: RadioStationDraft.Valid) async throws(SubsonicError) {
+        _ = try await request("createInternetRadioStation", parameters: Self.stationParameters(station), as: EmptyPayload.self)
+    }
+
+    /// Replaces a station's name and addresses. Admins only on Navidrome.
+    public func updateRadioStation(id: String, _ station: RadioStationDraft.Valid) async throws(SubsonicError) {
+        let parameters = [URLQueryItem(name: "id", value: id)] + Self.stationParameters(station)
+        _ = try await request("updateInternetRadioStation", parameters: parameters, as: EmptyPayload.self)
+    }
+
+    /// Removes a station from the server, for every client. Admins only on Navidrome.
+    public func deleteRadioStation(id: String) async throws(SubsonicError) {
+        _ = try await request("deleteInternetRadioStation", parameters: [.init(name: "id", value: id)], as: EmptyPayload.self)
+    }
+
+    private static func stationParameters(_ station: RadioStationDraft.Valid) -> [URLQueryItem] {
+        var parameters = [
+            URLQueryItem(name: "streamUrl", value: station.streamURL.absoluteString),
+            URLQueryItem(name: "name", value: station.name),
+        ]
+        if let homePage = station.homePageURL {
+            parameters.append(.init(name: "homepageUrl", value: homePage.absoluteString))
+        }
+        return parameters
     }
 
     /// Random songs from the library, optionally only from one genre.
