@@ -81,7 +81,11 @@ struct RadioView: View {
         } message: {
             Text(errorMessage ?? "")
         }
-        .task { await model.load() }
+        .task(id: library.settings.settings.findStationsOnline) {
+            model.findsLogosOnline = library.settings.settings.findStationsOnline
+            await model.load()
+            await model.findMissingLogos()
+        }
         .refreshable { await model.load() }
     }
 
@@ -120,11 +124,7 @@ private struct StationRow: View {
     var body: some View {
         Button(action: play) {
             HStack(spacing: 12) {
-                Image(systemName: "headphones.sensor.tag.radiowaves.left.and.right") // dot.radiowaves.left.and.right
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32)
-                    .accessibilityHidden(true)
+                StationLogoView(library: library, coverArtID: station.coverArtID)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(station.name)
                         .foregroundStyle(isCurrent ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
@@ -165,5 +165,25 @@ private struct StationRow: View {
 
     private func play() {
         Task { await library.radio.start(station) }
+    }
+}
+
+/// A station's logo, or the radio symbol without one.
+struct StationLogoView: View {
+    let library: Library
+    let coverArtID: String?
+
+    static let symbol = "headphones.sensor.tag.radiowaves.left.and.right" // dot.radiowaves.left.and.right
+
+    var body: some View {
+        if let coverArtID {
+            ArtworkView(library: library, coverArtID: coverArtID, side: 40, placeholder: Self.symbol)
+        } else {
+            Image(systemName: Self.symbol)
+                .font(.title3)
+                .foregroundStyle(.secondary)
+                .frame(width: 40, height: 40)
+                .accessibilityHidden(true)
+        }
     }
 }

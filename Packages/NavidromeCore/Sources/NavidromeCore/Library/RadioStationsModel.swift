@@ -10,6 +10,10 @@ import Observation
 /// admin and to this iPhone for everyone else, so anyone can keep stations.
 /// Server changes are made there and the list is fetched again, so it always
 /// shows what the server has; this iPhone's are saved at once.
+///
+/// Stations show their logos (see `StationLogo`): the one Find Stations had
+/// when a station was added from there, or, while Find Stations Online is on,
+/// one looked up on Radio Browser by the station's stream address.
 @MainActor
 @Observable
 public final class RadioStationsModel {
@@ -20,14 +24,18 @@ public final class RadioStationsModel {
         public var create: @Sendable (RadioStationDraft.Valid) async throws(SubsonicError) -> Void
         public var update: @Sendable (String, RadioStationDraft.Valid) async throws(SubsonicError) -> Void
         public var delete: @Sendable (String) async throws(SubsonicError) -> Void
+        /// Radio Browser's logo for a stream address, or `nil` if it has none.
+        public var logo: @Sendable (URL) async throws -> URL?
 
         public init(
             stations: @escaping @Sendable () async throws(SubsonicError) -> [RadioStation],
             isAdmin: @escaping @Sendable () async throws(SubsonicError) -> Bool,
             create: @escaping @Sendable (RadioStationDraft.Valid) async throws(SubsonicError) -> Void,
             update: @escaping @Sendable (String, RadioStationDraft.Valid) async throws(SubsonicError) -> Void,
-            delete: @escaping @Sendable (String) async throws(SubsonicError) -> Void
+            delete: @escaping @Sendable (String) async throws(SubsonicError) -> Void,
+            logo: @escaping @Sendable (URL) async throws -> URL? = { _ in nil }
         ) {
+            self.logo = logo
             self.stations = stations
             self.isAdmin = isAdmin
             self.create = create
@@ -60,16 +68,22 @@ public final class RadioStationsModel {
     public private(set) var canEdit = false
     /// The stations saved on this iPhone, by name.
     public private(set) var phoneStations: [RadioStation]
+    /// Whether logos may be looked up on Radio Browser (Find Stations Online).
+    public var findsLogosOnline = false
 
     @ObservationIgnored private let sources: Sources
     @ObservationIgnored private let phone: PhoneStationStore
+    @ObservationIgnored private let logos: StationLogoStore
     @ObservationIgnored private var isFetching = false
+    @ObservationIgnored private var isFindingLogos = false
     @ObservationIgnored private var checkedAdmin = false
 
-    public init(sources: Sources, phone: PhoneStationStore) {
+    public init(sources: Sources, phone: PhoneStationStore, logos: StationLogoStore) {
         self.sources = sources
         self.phone = phone
-        phoneStations = Self.sorted(phone.load())
+        self.logos = logos
+        phoneStations = []
+        phoneStations = withLogos(Self.sorted(phone.load()))
     }
 
     /// The server's stations.
@@ -105,16 +119,18 @@ public final class RadioStationsModel {
             canEdit = admin
         }
         do {
-            state = .loaded(Self.sorted(try await sources.stations()))
+            state = .loaded(withLogos(Self.sorted(try await sources.stations())))
         } catch {
             if Task.isCancelled { return }
             if hadList { refreshError = error.localizedDescription } else { state = .failed(error.localizedDescription) }
         }
     }
 
-    /// Saves a new station, by default where `newStationPlace` says.
-    public func add(_ draft: RadioStationDraft, to place: Place? = nil) async throws(ChangeError) {
+    /// Saves a new station, by default where `newStationPlace` says, with its
+    /// logo if it came from Find Stations.
+    public func add(_ draft: RadioStationDraft, logo: URL? = nil, to place: Place? = nil) async throws(ChangeError) {
         let valid = try Self.validate(draft)
+        if let logo { logos.set(.logo(logo), for: valid.streamURL) }
         switch place ?? newStationPlace {
         case .server:
             try await change { () async throws(SubsonicError) in try await sources.create(valid) }
@@ -149,11 +165,44 @@ public final class RadioStationsModel {
         }
     }
 
+    /// Looks up logos for stations that have none known yet, one at a time,
+    /// while Find Stations Online is on. "None" is remembered, so each station
+    /// is asked about once; a failure isn't, so it's asked again next time.
+    public func findMissingLogos() async {
+        guard findsLogosOnline, !isFindingLogos else { return }
+        isFindingLogos = true
+        defer { isFindingLogos = false }
+        var asked = Set<URL>()
+        for station in stations + phoneStations where logos.entry(for: station.streamURL) == nil {
+            guard asked.insert(station.streamURL).inserted else { continue }
+            do {
+                let found = try await sources.logo(station.streamURL)
+                logos.set(found.map(StationLogoStore.Entry.logo) ?? .noLogo, for: station.streamURL)
+                if found != nil { refreshLogos() }
+            } catch {
+                if Task.isCancelled { return }
+            }
+        }
+    }
+
     // MARK: - Helpers
 
     private func savePhone(_ stations: [RadioStation]) {
-        phoneStations = Self.sorted(stations)
+        phoneStations = withLogos(Self.sorted(stations))
         phone.save(phoneStations)
+    }
+
+    private func withLogos(_ stations: [RadioStation]) -> [RadioStation] {
+        stations.map { station in
+            var station = station
+            if case .logo(let url) = logos.entry(for: station.streamURL) { station.logoURL = url } else { station.logoURL = nil }
+            return station
+        }
+    }
+
+    private func refreshLogos() {
+        if case .loaded(let stations) = state { state = .loaded(withLogos(stations)) }
+        phoneStations = withLogos(phoneStations)
     }
 
     private func change(_ save: () async throws(SubsonicError) -> Void) async throws(ChangeError) {

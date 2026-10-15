@@ -128,7 +128,7 @@ extension Song {
     /// and `stream` is the address to play (already resolved from a playlist
     /// file if the station's address was one).
     public init(station: RadioStation, stream: URL) {
-        self.init(id: station.songID, title: station.name)
+        self.init(id: station.songID, title: station.name, coverArtID: station.coverArtID)
         liveStreamURL = stream
     }
 }

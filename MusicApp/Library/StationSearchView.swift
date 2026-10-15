@@ -17,7 +17,7 @@ struct StationSearchView: View {
     /// A station the server refused, and why: offered for this iPhone instead.
     @State private var refused: (station: RadioBrowserStation, reason: String)?
 
-    static let optInExplanation = "Search Radio Browser (radio-browser.info), a free directory of internet radio stations, from Radio > Find Stations. This sends what you search for and the filters you choose there, and counts plays of stations you find there toward their popularity."
+    static let optInExplanation = "Search Radio Browser (radio-browser.info), a free directory of internet radio stations, from Radio > Find Stations. This sends what you search for and the filters you choose there, counts plays of stations you find there toward their popularity, and looks up logos for your stations by their stream addresses. Logos are loaded from the stations' own websites."
 
     init(library: Library, stations: RadioStationsModel) {
         self.library = library
@@ -178,7 +178,7 @@ struct StationSearchView: View {
         Task {
             defer { addingID = nil }
             do throws(RadioStationsModel.ChangeError) {
-                try await stations.add(station.draft, to: place)
+                try await stations.add(station.draft, logo: station.logoURL, to: place)
             } catch {
                 if case .server(let reason) = error, place == .server {
                     refused = (station, reason)
@@ -363,6 +363,7 @@ private struct FoundStationRow: View {
         HStack(spacing: 12) {
             Button(action: play) {
                 HStack(spacing: 12) {
+                    StationLogoView(library: library, coverArtID: station.radioStation.coverArtID)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(station.name)
                             .foregroundStyle(isCurrent ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))

@@ -66,7 +66,12 @@ public struct RadioBrowserStation: Sendable, Equatable, Identifiable, Decodable 
 
     /// The station as one to play. Its id can't collide with a server station's.
     public var radioStation: RadioStation {
-        RadioStation(id: "radiobrowser:\(id)", name: name, streamURL: streamURL, homePageURL: homePageURL)
+        RadioStation(id: "radiobrowser:\(id)", name: name, streamURL: streamURL, homePageURL: homePageURL, logoURL: logoURL)
+    }
+
+    /// The logo to show: the favicon over https (see `StationLogo`).
+    public var logoURL: URL? {
+        faviconURL.flatMap { StationLogo.usableURL($0.absoluteString) }
     }
 
     /// The station for saving: Add Station's form, filled in.

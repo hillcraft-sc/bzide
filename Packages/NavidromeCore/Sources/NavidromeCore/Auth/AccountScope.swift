@@ -4,8 +4,8 @@ import Foundation
 /// Keeps one account's data from leaking into another's.
 ///
 /// Downloads, the saved queue, unsent scrobbles, play history, cached cover
-/// art, the profile (its settings and pictures) and the radio stations saved
-/// on this iPhone all belong to the server
+/// art, the profile (its settings and pictures), the radio stations saved
+/// on this iPhone and their remembered logos all belong to the server
 /// and user they came from. Signing out leaves them in place, so signing back
 /// in to the same account keeps everything. Signing in to a different server
 /// or user deletes them first.
@@ -38,6 +38,7 @@ public struct AccountScope {
             support.appending(path: ProfileModel.picturesDirectoryName),
             caches.appending(path: ProfileModel.cacheDirectoryName),
             support.appending(path: PhoneStationStore.fileName),
+            support.appending(path: StationLogoStore.fileName),
         ]
     }
 

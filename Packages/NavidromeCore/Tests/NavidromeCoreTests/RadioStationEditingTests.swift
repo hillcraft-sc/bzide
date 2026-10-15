@@ -123,7 +123,7 @@ struct RadioStationsModelTests {
             create: { station async throws(SubsonicError) in try await server.create(station) },
             update: { id, station async throws(SubsonicError) in try await server.update(id, station) },
             delete: { id async throws(SubsonicError) in try await server.delete(id) }
-        ), phone: phone)
+        ), phone: phone, logos: StationLogoStore(fileURL: nil))
     }
 
     @Test func stationsAreSortedByName() async {

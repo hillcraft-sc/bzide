@@ -6,6 +6,9 @@ import UIKit
 /// every URL carries a fresh auth salt.
 ///
 /// Also keeps covers for downloaded music on disk, so it has artwork offline.
+///
+/// A radio station's logo has its own kind of id (`StationLogo`): it's fetched
+/// from the station's website, not the server, and scaled down here.
 final class ArtworkCache: ArtworkPinning {
     private let client: SubsonicClient
     private let store: CoverArtStore
@@ -81,11 +84,30 @@ final class ArtworkCache: ArtworkPinning {
 
     @concurrent
     private static func fetch(_ id: String, pixels: Int, client: SubsonicClient) async -> Data? {
+        if let logo = StationLogo.url(fromCoverArtID: id) { return await fetchLogo(logo, pixels: pixels) }
         guard let url = try? client.coverArtURL(id: id, size: pixels),
               let (data, response) = try? await session.data(from: url),
               (response as? HTTPURLResponse)?.statusCode == 200,
               response.mimeType?.hasPrefix("image/") == true
         else { return nil }
         return data
+    }
+
+    /// A logo as an image no bigger than asked for. Sites send favicons of
+    /// every size and type, often without an image type, so it's checked by
+    /// decoding it.
+    @concurrent
+    private static func fetchLogo(_ url: URL, pixels: Int) async -> Data? {
+        guard let (data, response) = try? await session.data(from: url),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              let image = UIImage(data: data)
+        else { return nil }
+        let longest = max(image.size.width * image.scale, image.size.height * image.scale)
+        guard longest > CGFloat(pixels), longest > 0 else { return data }
+        let scale = CGFloat(pixels) / longest
+        let size = CGSize(width: image.size.width * image.scale * scale, height: image.size.height * image.scale * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }.pngData()
     }
 }

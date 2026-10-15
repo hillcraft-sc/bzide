@@ -6,6 +6,8 @@ struct ArtworkView: View {
     let library: Library
     let coverArtID: String?
     let side: CGFloat
+    /// Shown while it loads or when there's none.
+    var placeholder = "music.note"
 
     @Environment(\.displayScale) private var displayScale
     @State private var image: UIImage?
@@ -16,7 +18,7 @@ struct ArtworkView: View {
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                Image(systemName: "music.note").foregroundStyle(.secondary)
+                Image(systemName: placeholder).foregroundStyle(.secondary)
             }
         }
         .frame(width: side, height: side)

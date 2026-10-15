@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 /// Cover art on disk, as the server sent it (image bytes, not decoded).
@@ -74,11 +75,14 @@ public struct CoverArtStore: Sendable {
     }
 
     /// Ids come from the server; anything outside a safe set is percent-encoded
-    /// so an id can never name a path outside the folder.
+    /// so an id can never name a path outside the folder. A long id (a station
+    /// logo's carries its address) is hashed, to stay within name limits.
     static func fileName(for id: String) -> String {
         var allowed = CharacterSet.alphanumerics
         allowed.insert(charactersIn: "-_")
-        return id.addingPercentEncoding(withAllowedCharacters: allowed) ?? "invalid"
+        let encoded = id.addingPercentEncoding(withAllowedCharacters: allowed) ?? "invalid"
+        guard encoded.count > 100 else { return encoded }
+        return "sha256-" + SHA256.hash(data: Data(id.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     private func read(_ url: URL) -> Data? {

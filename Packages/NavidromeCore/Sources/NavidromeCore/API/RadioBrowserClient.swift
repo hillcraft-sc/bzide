@@ -160,6 +160,14 @@ public struct RadioBrowserClient: Sendable {
         }
     }
 
+    /// The logo Radio Browser has for a stream, by its address (either the
+    /// address as entered there or the resolved stream), or `nil` if it has
+    /// none that can be loaded over https.
+    public func logo(forStream stream: URL) async throws -> URL? {
+        let found = try await get("json/stations/byurl", [URLQueryItem(name: "url", value: stream.absoluteString)], as: LossyList<RadioBrowserStation>.self).items
+        return found.lazy.compactMap(\.logoURL).first
+    }
+
     /// Tells Radio Browser a station was played, as it asks clients to; it
     /// counts one per station per day from the same address.
     public func countPlay(of stationID: String) async throws {

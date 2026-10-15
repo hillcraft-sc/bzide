@@ -35,6 +35,11 @@ final class Library {
     let spinOff: SpinOffModel
     private let client: SubsonicClient
     private let username: String
+    /// Which logo goes with which radio station, shared by every Radio screen.
+    private let stationLogos: StationLogoStore = {
+        let support = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        return StationLogoStore(fileURL: support?.appending(path: StationLogoStore.fileName))
+    }()
     /// Radio Browser is on the open internet: no shared cache or cookies.
     private let radioBrowser = RadioBrowserClient(transport: URLSessionTransport(session: URLSession(configuration: .ephemeral)))
 
@@ -232,8 +237,9 @@ final class Library {
             isAdmin: { [client, username] () async throws(SubsonicError) in try await client.isAdmin(username: username) },
             create: { [client] station async throws(SubsonicError) in try await client.createRadioStation(station) },
             update: { [client] id, station async throws(SubsonicError) in try await client.updateRadioStation(id: id, station) },
-            delete: { [client] id async throws(SubsonicError) in try await client.deleteRadioStation(id: id) }
-        ), phone: PhoneStationStore(fileURL: support?.appending(path: PhoneStationStore.fileName)))
+            delete: { [client] id async throws(SubsonicError) in try await client.deleteRadioStation(id: id) },
+            logo: { [radioBrowser] stream in try await radioBrowser.logo(forStream: stream) }
+        ), phone: PhoneStationStore(fileURL: support?.appending(path: PhoneStationStore.fileName)), logos: stationLogos)
     }
 
     func stationSearchModel() -> StationSearchModel {

@@ -9,13 +9,20 @@ public struct RadioStation: Sendable, Equatable, Identifiable, Codable {
     /// A direct stream, an HLS playlist, or a `.pls`/`.m3u` file listing streams.
     public var streamURL: URL
     public var homePageURL: URL?
+    /// Its logo (https), if known. Not from the server or saved with the
+    /// station: it's added from `StationLogoStore` when the list is shown.
+    public var logoURL: URL?
 
-    public init(id: String, name: String, streamURL: URL, homePageURL: URL? = nil) {
+    public init(id: String, name: String, streamURL: URL, homePageURL: URL? = nil, logoURL: URL? = nil) {
         self.id = id
         self.name = name
         self.streamURL = streamURL
         self.homePageURL = homePageURL
+        self.logoURL = logoURL
     }
+
+    /// The logo as cover art, for lists, Now Playing and the lock screen.
+    public var coverArtID: String? { logoURL.map(StationLogo.coverArtID) }
 
     private enum ServerKeys: String, CodingKey {
         case id, name, streamUrl, homePageUrl
