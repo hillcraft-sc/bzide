@@ -7,7 +7,6 @@ import SwiftUI
 struct LibraryView: View {
     let model: AppModel
     let library: Library
-    @State private var randomMix: RandomMixModel
     @State private var recentlyAdded: LoadModel<[Album]>
     @State private var recentlyPlayed: LoadModel<[Album]>
     @State private var spinItBack: LoadModel<[Album]>
@@ -20,13 +19,13 @@ struct LibraryView: View {
     init(model: AppModel, library: Library) {
         self.model = model
         self.library = library
-        _randomMix = State(initialValue: library.randomMixModel())
         _recentlyAdded = State(initialValue: library.recentlyAddedModel())
         _recentlyPlayed = State(initialValue: library.recentlyPlayedModel())
         _spinItBack = State(initialValue: library.spinItBackModel())
     }
 
     private var layout: LibraryLayout { model.libraryLayout.layout }
+    private var randomMix: RandomMixModel { library.randomMix }
 
     var body: some View {
         List {

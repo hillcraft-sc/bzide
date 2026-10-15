@@ -34,19 +34,31 @@ public final class StarModel {
     }
 
     public func toggle(_ target: StarTarget, fromServer: Bool) async {
+        await set(target, starred: !isStarred(target, fromServer: fromServer), fromServer: fromServer)
+    }
+
+    /// Stars or unstars, whatever it was: for "favorite this" from Siri or the
+    /// lock screen, where a second press mustn't undo the first. Returns
+    /// whether the server took it; already as asked counts as taken, and isn't
+    /// sent again.
+    @discardableResult
+    public func set(_ target: StarTarget, starred: Bool, fromServer: Bool) async -> Bool {
         // A second tap while the first is still on its way is ignored, so the
         // server never receives the two out of order.
-        guard !inFlight.contains(target) else { return }
+        guard !inFlight.contains(target) else { return false }
         let wasStarred = isStarred(target, fromServer: fromServer)
-        overrides[target] = !wasStarred
+        guard wasStarred != starred else { return true }
+        overrides[target] = starred
         error = nil
         inFlight.insert(target)
         defer { inFlight.remove(target) }
         do {
-            try await send(target, !wasStarred)
+            try await send(target, starred)
+            return true
         } catch {
             overrides[target] = wasStarred
             self.error = error.localizedDescription
+            return false
         }
     }
 }

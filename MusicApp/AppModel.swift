@@ -23,6 +23,9 @@ final class AppModel {
     private(set) var libraryError: String?
     /// Who is signed in, for Settings.
     private(set) var account: AccountSummary?
+    /// A Home Screen quick action waiting to run: the signed-in screens run
+    /// it as soon as they're up (at once if they already are) and clear it.
+    var pendingHomeScreenAction: HomeScreenAction?
     /// Visualizer phase 1 test: the player's live level meter, and the switch
     /// that taps playback for it. Off at every launch.
     var levelMeter: AudioLevelMeter { system.player.levelMeter }
@@ -52,6 +55,16 @@ final class AppModel {
         } catch {
             Self.logger.error("Couldn't read saved login: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    // MARK: - Home Screen quick actions
+
+    /// Returns whether the action is one of Bzide's.
+    @discardableResult
+    func requestHomeScreenAction(type: String) -> Bool {
+        guard let action = HomeScreenAction(type: type) else { return false }
+        pendingHomeScreenAction = action
+        return true
     }
 
     // MARK: - Sign in
@@ -114,6 +127,9 @@ final class AppModel {
         self.client = client
         if let library {
             Task { await library.profile.refresh() }
+            system.nowPlaying.onFavorite = { favorite in
+                Task { await library.setCurrentSongFavorite(favorite) }
+            }
         }
         self.scrobbler = scrobbler
         // Send anything left over from a previous run.
@@ -147,6 +163,7 @@ final class AppModel {
         system.player.setItems([], startPosition: 0)
         // The lock screen would otherwise keep controls for an engine that's gone.
         system.nowPlaying.update(nil)
+        system.nowPlaying.onFavorite = nil
         if let scrobbler {
             Task { await scrobbler.flush() }
         }

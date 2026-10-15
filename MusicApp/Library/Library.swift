@@ -251,6 +251,28 @@ final class Library {
         ))
     }
 
+    /// How favoriting the playing song went, for Siri, the lock screen
+    /// control and the system's like command.
+    enum CurrentFavoriteOutcome {
+        case done(Song)
+        case nothingPlaying
+        case radio
+        case failed(String)
+    }
+
+    /// Favorites (or unfavorites) the song playing now. Sets rather than
+    /// flips, so a second press can't undo it. A failure is left in
+    /// `stars.error` for the app's alert; Siri clears it and says it instead.
+    @discardableResult
+    func setCurrentSongFavorite(_ favorite: Bool) async -> CurrentFavoriteOutcome {
+        guard let song = engine.queue.current?.song else { return .nothingPlaying }
+        guard !song.isLive else { return .radio }
+        guard await stars.set(.song(id: song.id), starred: favorite, fromServer: song.isStarred) else {
+            return .failed(stars.error ?? "Couldn't reach your server.")
+        }
+        return .done(song)
+    }
+
     func songModel(id: String) -> LoadModel<Song> {
         LoadModel { [client] () async throws(SubsonicError) in try await client.song(id: id) }
     }
@@ -278,7 +300,11 @@ final class Library {
         }
     }
 
-    func randomMixModel() -> RandomMixModel {
+    /// Shared by the Library screen and the Random Mix quick action, so its
+    /// progress and errors show in one place.
+    private(set) lazy var randomMix: RandomMixModel = randomMixModel()
+
+    private func randomMixModel() -> RandomMixModel {
         RandomMixModel(
             fetch: { [client] count async throws(SubsonicError) in try await client.randomSongs(size: count) },
             downloadedSongs: { [downloads] in downloads.downloadedSongs() },

@@ -72,4 +72,30 @@ struct StarModelTests {
         #expect(server.requests.count == 1)
         #expect(model.isStarred(album, fromServer: false))
     }
+
+    @Test func favoritingSetsRatherThanFlips() async {
+        let model = makeModel()
+        // Already a favorite: nothing is sent, and it counts as done.
+        #expect(await model.set(album, starred: true, fromServer: true))
+        #expect(server.requests.isEmpty)
+
+        let favorite = Task { @MainActor in await model.set(album, starred: true, fromServer: false) }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .success(()))
+        #expect(await favorite.value)
+        #expect(server.requests == [StarRequest(target: album, starred: true)])
+        // A second press doesn't undo it.
+        #expect(await model.set(album, starred: true, fromServer: false))
+        #expect(server.requests.count == 1)
+        #expect(model.isStarred(album, fromServer: false))
+    }
+
+    @Test func aFailedFavoriteSaysSo() async {
+        let model = makeModel()
+        let favorite = Task { @MainActor in await model.set(album, starred: true, fromServer: false) }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .failure(.network(.notConnectedToInternet)))
+        #expect(await favorite.value == false)
+        #expect(!model.isStarred(album, fromServer: false))
+    }
 }

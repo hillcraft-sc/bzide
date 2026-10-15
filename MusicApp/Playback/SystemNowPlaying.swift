@@ -8,6 +8,9 @@ import UIKit
 /// Lives in the app target because artwork needs `UIImage`. Lives for the app's lifetime.
 final class SystemNowPlaying: NowPlayingControlling {
     var onCommand: (@MainActor (RemoteCommand) -> Void)?
+    /// The system's like command ("favorite this song" to Siri, and wherever
+    /// iOS offers liking): `true` to favorite, `false` to unfavorite.
+    var onFavorite: (@MainActor (Bool) -> Void)?
 
     /// Fetches cover art by id. Supplied by the app so this type never builds
     /// authenticated URLs itself.
@@ -36,6 +39,8 @@ final class SystemNowPlaying: NowPlayingControlling {
         // nothing before it. A station can't be restarted or scrubbed.
         commandCenter.previousTrackCommand.isEnabled = !info.isLiveStream
         commandCenter.changePlaybackPositionCommand.isEnabled = !info.isLiveStream
+        // A station can't be a favorite.
+        commandCenter.likeCommand.isEnabled = !info.isLiveStream
 
         var dictionary: [String: Any] = [
             MPMediaItemPropertyTitle: info.title,
@@ -96,6 +101,26 @@ final class SystemNowPlaying: NowPlayingControlling {
         register(commandCenter.previousTrackCommand) { _ in .previous }
         register(commandCenter.changePlaybackPositionCommand) { event in
             (event as? MPChangePlaybackPositionCommandEvent).map { .seek(to: $0.positionTime) }
+        }
+        // Liking is favoriting. Disliking isn't offered: a dislike isn't an
+        // unfavorite, and Bzide has no dislike.
+        commandCenter.likeCommand.localizedTitle = "Favorite"
+        commandCenter.likeCommand.localizedShortTitle = "Favorite"
+        commandCenter.likeCommand.isEnabled = true
+        commandCenter.likeCommand.addTarget(handler: Self.likeHandler(for: self))
+        commandCenter.dislikeCommand.isEnabled = false
+    }
+
+    /// Built nonisolated for the same reason as `handler`. A negative like
+    /// event is "unlike": unfavorite.
+    nonisolated private static func likeHandler(for target: SystemNowPlaying) -> (MPRemoteCommandEvent) -> MPRemoteCommandHandlerStatus {
+        { [weak target] event in
+            let favorite = !((event as? MPFeedbackCommandEvent)?.isNegative ?? false)
+            return MainActor.assumeIsolated {
+                guard let target, let onFavorite = target.onFavorite else { return .commandFailed }
+                onFavorite(favorite)
+                return .success
+            }
         }
     }
 

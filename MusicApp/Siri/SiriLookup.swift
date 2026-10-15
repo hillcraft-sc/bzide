@@ -41,12 +41,16 @@ enum SiriAccess {
 enum SiriError: Error, CustomLocalizedStringResourceConvertible {
     case signedOut
     case notFound
+    case nothingPlaying
+    case radio
     case server(String)
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .signedOut: "Sign in to your Navidrome server in Bzide first."
         case .notFound: "Bzide couldn't find that in your library."
+        case .nothingPlaying: "Nothing is playing in Bzide."
+        case .radio: "A radio station can't be a favorite."
         case .server(let message): "\(message)"
         }
     }

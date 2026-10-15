@@ -260,6 +260,17 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Play** (`playAudio` schema): plays the item as the long-press Play does (an artist's albums oldest first). Shuffle plays it shuffled; Repeat also turns on repeat all; "next" and "last" put it after the current song or at the end of the queue instead of replacing it.
 - **Add to Playlist** (`addToPlaylist` schema): adds the item to the named playlist with the same rules as the sheet (only new songs; long lists chunked). Siri says the result, e.g. "Added 8 songs to “Morning”. 2 were already there."; a failure is spoken as the server's message.
 - An artist with more than 100 songs asks for confirmation first, as the menus do.
+- **Favorite Current Song / Unfavorite Current Song**: hearts (or un-hearts) the song playing now on the server, as Now Playing's heart does. It sets rather than flips, so pressing it twice (from the Action button, a Shortcut or the lock screen control) can't undo it; already a favorite counts as done and isn't sent again. Siri says the result ("Added "Dawn" to your favorites."). Nothing playing: "Nothing is playing in Bzide."; a radio station: "A radio station can't be a favorite."; a failed request: the server's reason. Phrases work without setup ("Favorite this song in Bzide", "Favorite this in Bzide", "Add this song to my favorites in Bzide", "Unfavorite this song in Bzide", "Remove this song from my favorites in Bzide"); both also appear in Shortcuts and for the Action button. They run in the app's process (audio playback intents), where the queue and server connection are.
+- **The system's like command** (`MPRemoteCommandCenter.likeCommand`, titled "Favorite") does the same: Siri uses it for "favorite this song" or "like this song" said without "in Bzide", for whichever app is playing. A like favorites the playing song, an "unlike" unfavorites it; a failure shows the app's "Couldn't Change Favorite" alert. It's off while a station plays. Dislike isn't offered (Bzide has no dislike, and it isn't the same as unfavoriting).
+
+## Lock Screen and Control Center control
+
+- **Favorite Song** (in the BzideControls extension) can be put on the Lock Screen, in place of the flashlight or camera (Lock Screen > Customize), or in Control Center. Pressing it runs Favorite Current Song in the app: the playing song becomes a favorite, as with Siri. It always shows a plain heart: a control can't see what's playing or whether it's a favorite without an App Group, which the free developer account can't use. Pressing it again keeps the song a favorite. With nothing playing, or a radio station, nothing changes (the intent's message isn't shown by a control). If the system runs it outside the app (the app isn't running, so nothing's playing), it does nothing.
+
+## Home Screen quick actions
+
+- Long-pressing the app icon offers, in order: **Continue** (resumes the saved queue or the last radio station, which rejoins live; its subtitle names the song and artist, or the station; only offered when there's something to continue), **Random Mix**, **Mix My Cuts** and **Search** (opens the Search tab with the cursor in the search field, closing Now Playing if it's open). The mixes start as their Library buttons do, and their progress and errors show on the Library screen.
+- The menu is refreshed whenever the app leaves the foreground (so Continue names what's queued then) and when the signed-in screens appear; signing out clears it. An action that launches the app runs once it's signed in and the library is up.
 - Signed out, every Siri request fails with "Sign in to your Navidrome server in Bzide first." Siri needs Apple Intelligence; none of this works without it.
 
 ## Play history
@@ -557,6 +568,21 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Without the app open: "Play <album name> in Bzide", "Shuffle <artist> in Bzide", "Play <playlist> in Bzide".
 - [ ] "Play <artist with more than 100 songs> in Bzide": Siri asks first; saying no plays nothing.
 - [ ] Signed out: a Siri request says to sign in first.
+- [ ] Play a song, lock the phone, "Favorite this song in Bzide": Siri confirms; the heart is filled in Now Playing and Navidrome. Say it again: still a favorite (not undone). "Unfavorite this song in Bzide": cleared. On a radio station: Siri says it can't be a favorite.
+- [ ] Play a song and say just "Favorite this song" (or "I like this song"), without "in Bzide": Siri favorites it in Bzide instead of saying the app doesn't support liking.
+- [ ] Settings > Action Button > Shortcut > Bzide > Favorite Current Song (or a Shortcut): pressing it hearts the playing song.
+
+### Lock Screen and Control Center control
+
+- [ ] Lock Screen > Customize > Lock Screen > tap the flashlight (or camera) > remove it, add Bzide > Favorite Song. Play a song, lock the phone, press the heart: the song is a favorite (Now Playing's heart filled, and in Navidrome). Press again: still a favorite.
+- [ ] Add Favorite Song to Control Center: pressing it hearts the playing song too.
+- [ ] Play a radio station and press it: nothing changes, no error.
+
+### Home Screen quick actions
+
+- [ ] With something queued, go to the Home Screen and long-press the icon: Continue (naming the song, or the station), Random Mix, Mix My Cuts, Search. Each works: Continue resumes, the mixes start, Search opens Search with the keyboard up.
+- [ ] Force quit, then use each from the icon: the app opens and does it.
+- [ ] Clear the queue (or fresh sign-in with nothing played): no Continue. Sign out: the menu offers nothing of Bzide's.
 
 ### Play history
 - [ ] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear.

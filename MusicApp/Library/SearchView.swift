@@ -7,12 +7,16 @@ import SwiftUI
 /// The scope and filters are remembered until cleared.
 struct SearchView: View {
     let library: Library
+    /// Bumped to put the cursor in the search field (the Search quick action).
+    var focusRequest = 0
     @State private var model: SearchModel
+    @FocusState private var isSearchFocused: Bool
     /// The scope and filters, saved on this device.
     @AppStorage("searchFilters") private var savedFilters = Data()
 
-    init(library: Library) {
+    init(library: Library, focusRequest: Int = 0) {
         self.library = library
+        self.focusRequest = focusRequest
         _model = State(initialValue: library.searchModel())
     }
 
@@ -28,6 +32,10 @@ struct SearchView: View {
         .safeAreaInset(edge: .top) { filterSummary }
         .navigationTitle("Search")
         .searchable(text: Binding(get: { model.query }, set: { model.updateQuery($0) }), prompt: "Artists, albums, songs")
+        .searchFocused($isSearchFocused)
+        .onChange(of: focusRequest, initial: true) { _, request in
+            if request > 0 { isSearchFocused = true }
+        }
         .searchScopes(Binding(get: { model.filters.scope }, set: { model.filters.scope = $0 }), activation: .onSearchPresentation) {
             ForEach(SearchFilters.Scope.allCases, id: \.self) { scope in
                 Text(scope.title).tag(scope)

@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		000000000000000200000010 /* NavidromeCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000200000020 /* NavidromeCore */; };
+		6C1EC7EA308187D60026ADB3 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C1EC7E9308187D60026ADB3 /* WidgetKit.framework */; };
+		6C1EC7EC308187D60026ADB3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C1EC7EB308187D60026ADB3 /* SwiftUI.framework */; };
+		6C1EC7F7308187D70026ADB3 /* BzideControlsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -18,14 +21,50 @@
 			remoteGlobalIDString = 000000000000000100000000;
 			remoteInfo = MusicApp;
 		};
+		6C1EC7F5308187D70026ADB3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 000000000000000000000000 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6C1EC7E6308187D60026ADB3;
+			remoteInfo = BzideControlsExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6C1EC7F8308187D70026ADB3 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				6C1EC7F7308187D70026ADB3 /* BzideControlsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* MusicApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MusicApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000300000001 /* MusicAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MusicAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BzideControlsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		6C1EC7E9308187D60026ADB3 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = /System/Library/Frameworks/WidgetKit.framework; sourceTree = "<absolute>"; };
+		6C1EC7EB308187D60026ADB3 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = /System/Library/Frameworks/SwiftUI.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6C1EC7FC308187D70026ADB3 /* Exceptions for "BzideControls" folder in "BzideControlsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6C1EC7E6308187D60026ADB3 /* BzideControlsExtension */;
+		};
+		6C1EC7FD308187D70026ADB3 /* Exceptions for "MusicApp" folder in "BzideControlsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Siri/FavoriteIntentDefinitions.swift,
+			);
+			target = 6C1EC7E6308187D60026ADB3 /* BzideControlsExtension */;
+		};
 		6C6A5460307A79E400418E00 /* Exceptions for "MusicApp" folder in "MusicApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -40,6 +79,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				6C6A5460307A79E400418E00 /* Exceptions for "MusicApp" folder in "MusicApp" target */,
+				6C1EC7FD308187D70026ADB3 /* Exceptions for "MusicApp" folder in "BzideControlsExtension" target */,
 			);
 			path = MusicApp;
 			sourceTree = "<group>";
@@ -47,6 +87,14 @@
 		000000000000000300000002 /* MusicAppTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MusicAppTests;
+			sourceTree = "<group>";
+		};
+		6C1EC7ED308187D60026ADB3 /* BzideControls */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6C1EC7FC308187D70026ADB3 /* Exceptions for "BzideControls" folder in "BzideControlsExtension" target */,
+			);
+			path = BzideControls;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -63,6 +111,13 @@
 			files = (
 			);
 		};
+		6C1EC7E4308187D60026ADB3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				6C1EC7EC308187D60026ADB3 /* SwiftUI.framework in Frameworks */,
+				6C1EC7EA308187D60026ADB3 /* WidgetKit.framework in Frameworks */,
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -71,6 +126,8 @@
 			children = (
 				000000000000000000000010 /* MusicApp */,
 				000000000000000300000002 /* MusicAppTests */,
+				6C1EC7ED308187D60026ADB3 /* BzideControls */,
+				6C1EC7E8308187D60026ADB3 /* Frameworks */,
 				000000000000000000000020 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -80,8 +137,18 @@
 			children = (
 				000000000000000000000120 /* MusicApp.app */,
 				000000000000000300000001 /* MusicAppTests.xctest */,
+				6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		6C1EC7E8308187D60026ADB3 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6C1EC7E9308187D60026ADB3 /* WidgetKit.framework */,
+				6C1EC7EB308187D60026ADB3 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -94,8 +161,12 @@
 				000000000000000120000000 /* Sources */,
 				000000000000000130000000 /* Frameworks */,
 				000000000000000140000000 /* Resources */,
+				6C1EC7F8308187D70026ADB3 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
+			);
+			dependencies = (
+				6C1EC7F6308187D70026ADB3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				000000000000000000000010 /* MusicApp */,
@@ -129,6 +200,24 @@
 			productReference = 000000000000000300000001 /* MusicAppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		6C1EC7E6308187D60026ADB3 /* BzideControlsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6C1EC7FB308187D70026ADB3 /* Build configuration list for PBXNativeTarget "BzideControlsExtension" */;
+			buildPhases = (
+				6C1EC7E3308187D60026ADB3 /* Sources */,
+				6C1EC7E4308187D60026ADB3 /* Frameworks */,
+				6C1EC7E5308187D60026ADB3 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				6C1EC7ED308187D60026ADB3 /* BzideControls */,
+			);
+			name = BzideControlsExtension;
+			productName = BzideControlsExtension;
+			productReference = 6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -136,7 +225,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2630;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					000000000000000100000000 = {
@@ -145,6 +234,9 @@
 					000000000000000300000000 = {
 						CreatedOnToolsVersion = 27.0;
 						TestTargetID = 000000000000000100000000;
+					};
+					6C1EC7E6308187D60026ADB3 = {
+						CreatedOnToolsVersion = 27.0;
 					};
 				};
 			};
@@ -167,6 +259,7 @@
 			targets = (
 				000000000000000100000000 /* MusicApp */,
 				000000000000000300000000 /* MusicAppTests */,
+				6C1EC7E6308187D60026ADB3 /* BzideControlsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -178,6 +271,11 @@
 			);
 		};
 		000000000000000300000005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		6C1EC7E5308187D60026ADB3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -195,6 +293,11 @@
 			files = (
 			);
 		};
+		6C1EC7E3308187D60026ADB3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -202,6 +305,11 @@
 			isa = PBXTargetDependency;
 			target = 000000000000000100000000 /* MusicApp */;
 			targetProxy = 000000000000000300000020 /* PBXContainerItemProxy */;
+		};
+		6C1EC7F6308187D70026ADB3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6C1EC7E6308187D60026ADB3 /* BzideControlsExtension */;
+			targetProxy = 6C1EC7F5308187D70026ADB3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -462,6 +570,72 @@
 			};
 			name = Release;
 		};
+		6C1EC7F9308187D70026ADB3 /* Debug configuration for PBXNativeTarget "BzideControlsExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6S92GA582Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BzideControls/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Bzide;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.erichebert.musicapp.BzideControls;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		6C1EC7FA308187D70026ADB3 /* Release configuration for PBXNativeTarget "BzideControlsExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6S92GA582Q;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = BzideControls/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Bzide;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.erichebert.musicapp.BzideControls;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -486,6 +660,14 @@
 			buildConfigurations = (
 				000000000000000300000011 /* Debug configuration for PBXNativeTarget "MusicAppTests" */,
 				000000000000000300000012 /* Release configuration for PBXNativeTarget "MusicAppTests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		6C1EC7FB308187D70026ADB3 /* Build configuration list for PBXNativeTarget "BzideControlsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6C1EC7F9308187D70026ADB3 /* Debug configuration for PBXNativeTarget "BzideControlsExtension" */,
+				6C1EC7FA308187D70026ADB3 /* Release configuration for PBXNativeTarget "BzideControlsExtension" */,
 			);
 			defaultConfigurationName = Release;
 		};

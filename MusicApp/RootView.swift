@@ -6,19 +6,25 @@ struct RootView: View {
     let model: AppModel
     let library: Library
     @State private var isNowPlayingOpen = false
+    @State private var tab = RootTab.library
+    @State private var searchFocusRequest = 0
     @Environment(\.scenePhase) private var scenePhase
 
+    private enum RootTab: Hashable {
+        case library, search
+    }
+
     var body: some View {
-        TabView {
-            Tab("Library", systemImage: "music.note.house") {
+        TabView(selection: $tab) {
+            Tab("Library", systemImage: "music.note.house", value: RootTab.library) {
                 NavigationStack {
                     LibraryView(model: model, library: library)
                         .libraryDestinations(library)
                 }
             }
-            Tab(role: .search) {
+            Tab(value: RootTab.search, role: .search) {
                 NavigationStack {
-                    SearchView(library: library)
+                    SearchView(library: library, focusRequest: searchFocusRequest)
                         .libraryDestinations(library)
                 }
             }
@@ -38,9 +44,18 @@ struct RootView: View {
             library.engine.refreshGains()
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
+            // The icon's quick actions follow the queue (Continue names it).
+            if phase != .active { HomeScreenActions.update(current: library.engine.queue.current?.song) }
             guard phase == .active else { return }
             Task { await library.playlistRefresher.refreshAllIfDue() }
         }
+        .onChange(of: model.pendingHomeScreenAction, initial: true) { _, action in
+            guard let action else { return }
+            model.pendingHomeScreenAction = nil
+            run(action)
+        }
+        .onAppear { HomeScreenActions.update(current: library.engine.queue.current?.song) }
+        .onDisappear { HomeScreenActions.clear() }
         .playlistConfirmation(library.playlistEditor)
         .noticeBanner(library.spinOff.notice, seconds: 5) { library.spinOff.dismissNotice() }
         .alert("Couldn't Change Favorite", isPresented: favoriteErrorShown) {
@@ -73,6 +88,24 @@ struct RootView: View {
                 Task { await library.quickActions.confirm() }
             }
             Button("Cancel", role: .cancel) { library.quickActions.cancelConfirmation() }
+        }
+    }
+
+    private func run(_ action: HomeScreenAction) {
+        switch action {
+        case .resume:
+            tab = .library
+            library.engine.play()
+        case .randomMix:
+            tab = .library
+            Task { await library.randomMix.start() }
+        case .myCuts:
+            tab = .library
+            Task { await library.spinOff.startRated() }
+        case .search:
+            isNowPlayingOpen = false
+            tab = .search
+            searchFocusRequest += 1
         }
     }
 
