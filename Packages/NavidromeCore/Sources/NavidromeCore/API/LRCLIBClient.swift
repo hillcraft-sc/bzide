@@ -18,8 +18,6 @@ public struct LRCLIBClient: Sendable {
     private static let logger = Logger(subsystem: "MusicApp", category: "LRCLIB")
     /// LRCLIB asks clients to say who they are.
     static let userAgent = "Bzide (iOS music player for Navidrome)"
-    /// A search result this close in length (seconds) is the same recording.
-    static let durationTolerance: Double = 3
 
     public static let lrclib = URL(string: "https://lrclib.net") ?? URL(filePath: "/")
 
@@ -28,28 +26,38 @@ public struct LRCLIBClient: Sendable {
         self.baseURL = baseURL
     }
 
-    /// The song's lyrics, or `nil` if LRCLIB doesn't have it. Tries an exact
-    /// match on title, artist, album and length first, then a search by title
-    /// and artist, keeping a result of about the same length.
+    /// The song's lyrics, or `nil` if LRCLIB doesn't have this recording's.
+    /// Tries an exact match on title, artist, album and length, then the same
+    /// with the title's version note removed ("(2025 Remaster)"), then a
+    /// search by title and artist, keeping the best match (see
+    /// `LyricsMatching`). A weak match is turned down: no lyrics beat lyrics
+    /// for another recording.
     public func lyrics(title: String, artist: String?, album: String?, duration: Int?) async throws -> Result? {
-        var exact = [URLQueryItem(name: "track_name", value: title)]
-        if let artist { exact.append(.init(name: "artist_name", value: artist)) }
-        if let album { exact.append(.init(name: "album_name", value: album)) }
-        if let duration { exact.append(.init(name: "duration", value: String(duration))) }
-        if artist != nil, let record = try await fetch("api/get", exact, as: Record.self) {
-            return record.result
+        let cleaned = LyricsMatching.cleanTitle(title)
+        if artist != nil {
+            for name in cleaned == title ? [title] : [title, cleaned] {
+                if let record = try await fetch("api/get", exactQuery(name, artist: artist, album: album, duration: duration), as: Record.self) {
+                    return record.result
+                }
+            }
         }
 
-        var search = [URLQueryItem(name: "track_name", value: title)]
+        var search = [URLQueryItem(name: "track_name", value: cleaned)]
         if let artist { search.append(.init(name: "artist_name", value: artist)) }
         let found = try await fetch("api/search", search, as: [Record].self) ?? []
-        let sameLength = found.filter { record in
-            guard let duration, let length = record.duration else { return true }
-            return abs(length - Double(duration)) <= Self.durationTolerance
-        }
-        // Synced lyrics are better than plain ones.
-        let best = sameLength.first { $0.syncedLyrics?.isEmpty == false } ?? sameLength.first
-        return best?.result
+        let song = LyricsMatching.Song(title: title, artist: artist, album: album, duration: duration)
+        let best = found
+            .compactMap { record in LyricsMatching.score(record.candidate, for: song).map { (record, $0) } }
+            .max { $0.1 < $1.1 }
+        return best?.0.result
+    }
+
+    private func exactQuery(_ title: String, artist: String?, album: String?, duration: Int?) -> [URLQueryItem] {
+        var query = [URLQueryItem(name: "track_name", value: title)]
+        if let artist { query.append(.init(name: "artist_name", value: artist)) }
+        if let album { query.append(.init(name: "album_name", value: album)) }
+        if let duration { query.append(.init(name: "duration", value: String(duration))) }
+        return query
     }
 
     /// `nil` for a 404 (not found); throws for other failures.
@@ -67,10 +75,20 @@ public struct LRCLIBClient: Sendable {
     }
 
     private struct Record: Decodable {
+        let trackName: String?
+        let artistName: String?
+        let albumName: String?
         let duration: Double?
         let instrumental: Bool?
         let plainLyrics: String?
         let syncedLyrics: String?
+
+        var candidate: LyricsMatching.Candidate {
+            LyricsMatching.Candidate(
+                title: trackName, artist: artistName, album: albumName, duration: duration,
+                isSynced: syncedLyrics?.isEmpty == false
+            )
+        }
 
         var result: Result {
             Result(

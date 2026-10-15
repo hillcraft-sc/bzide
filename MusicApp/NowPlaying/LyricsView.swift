@@ -77,10 +77,46 @@ struct LyricsView: View {
                 .frame(width: 36, height: 36)
                 .background(.white.opacity(0.15), in: .circle)
             Spacer()
+            if case .loaded(let lyrics) = model.state, lyrics.isSynced, let songID = song?.id {
+                timingMenu(songID)
+            }
         }
         .tint(.white)
         .padding(.horizontal, 20)
         .padding(.top, 8)
+    }
+
+    /// Seconds earlier to show this song's lyrics (negative: later).
+    private var offset: TimeInterval {
+        song.map { library.lyricsTiming.offset(for: $0.id) } ?? 0
+    }
+
+    /// Nudges the lyrics earlier or later when they run behind or ahead of
+    /// the singing; remembered for the song.
+    private func timingMenu(_ songID: String) -> some View {
+        let timing = library.lyricsTiming
+        let current = timing.offset(for: songID)
+        return Menu {
+            Section("Lyrics out of step with the singing?") {
+                Button("Show Earlier (\u{2212}\(LyricsTiming.step.formatted()) s)", systemImage: "backward") { timing.earlier(songID) }
+                Button("Show Later (+\(LyricsTiming.step.formatted()) s)", systemImage: "forward") { timing.later(songID) }
+            }
+            if current != 0 {
+                Button("Reset Timing", systemImage: "arrow.counterclockwise") { timing.reset(songID) }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "timer")
+                if let shift = LyricsTiming.describe(current) {
+                    Text(shift).font(.footnote.weight(.semibold))
+                }
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 36)
+            .background(.white.opacity(0.15), in: .capsule)
+        }
+        .accessibilityLabel("Lyrics Timing")
+        .accessibilityValue(LyricsTiming.describe(current) ?? "Unchanged")
     }
 
     private var bottomBar: some View {
@@ -125,18 +161,19 @@ struct LyricsView: View {
         // The current line is worked out ten times a second; only that line
         // redraws every frame, to light its words.
         TimelineView(.periodic(from: .now, by: 0.1)) { timeline in
-            let time = clock.time(engine: engine, at: timeline.date)
+            let time = clock.time(engine: engine, at: timeline.date) + offset
             let current = lyrics.lineIndex(at: time)
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 26) {
                         ForEach(lyrics.lines) { line in
-                            LyricsLineView(line: line, current: current, clock: clock, engine: engine)
+                            LyricsLineView(line: line, current: current, clock: clock, engine: engine, offset: offset)
                                 .id(line.id)
                                 .contentShape(.rect)
                                 .onTapGesture {
                                     guard let start = line.start else { return }
-                                    engine.seek(to: start)
+                                    // Where the line shows, with the timing fix.
+                                    engine.seek(to: max(start - offset, 0))
                                     followingPausedUntil = .distantPast
                                 }
                         }
@@ -233,6 +270,8 @@ private struct LyricsLineView: View {
     let current: Int?
     let clock: LyricsClock
     let engine: PlaybackEngine
+    /// The song's timing fix: seconds earlier to show its lyrics.
+    let offset: TimeInterval
 
     private var isCurrent: Bool { line.id == current }
     private var distance: Int { abs(line.id - (current ?? -1)) }
@@ -243,7 +282,7 @@ private struct LyricsLineView: View {
                 breakDots
             } else if isCurrent {
                 TimelineView(.animation) { timeline in
-                    Text(Self.lit(line, at: clock.time(engine: engine, at: timeline.date)))
+                    Text(Self.lit(line, at: clock.time(engine: engine, at: timeline.date) + offset))
                 }
             } else {
                 Text(line.text).foregroundStyle(.white.opacity(0.35))

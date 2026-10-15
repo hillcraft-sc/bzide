@@ -23,6 +23,8 @@ final class Library {
     let downloads: DownloadManager
     let history: PlayHistory
     let lyrics: LyricsModel
+    /// The user's timing fixes for synced lyrics, per song.
+    let lyricsTiming = LyricsTiming()
     let profile: ProfileModel
     /// Keeps downloaded playlists in step with the server.
     let playlistRefresher: PlaylistDownloadRefresher
