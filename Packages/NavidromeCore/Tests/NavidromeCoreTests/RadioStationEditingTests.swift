@@ -123,7 +123,7 @@ struct RadioStationsModelTests {
             create: { station async throws(SubsonicError) in try await server.create(station) },
             update: { id, station async throws(SubsonicError) in try await server.update(id, station) },
             delete: { id async throws(SubsonicError) in try await server.delete(id) }
-        ), phone: phone, logos: StationLogoStore(fileURL: nil))
+        ), phone: phone, details: StationDetailsStore(fileURL: nil))
     }
 
     @Test func stationsAreSortedByName() async {
@@ -258,7 +258,8 @@ struct RadioStationsModelTests {
         try await first.add(RadioStationDraft(name: "Aria", streamURL: "http://aria.example.org:8000/;", homePageURL: "https://aria.example.org"))
 
         let relaunched = model(FakeServer(stations: []), phone: store)
-        #expect(relaunched.phoneStations == first.phoneStations)
+        #expect(relaunched.phoneStations.map(\.id) == first.phoneStations.map(\.id))
+        #expect(relaunched.phoneStations.map(\.name) == first.phoneStations.map(\.name))
         #expect(relaunched.phoneStations.first?.streamURL.absoluteString == "http://aria.example.org:8000/;")
     }
 

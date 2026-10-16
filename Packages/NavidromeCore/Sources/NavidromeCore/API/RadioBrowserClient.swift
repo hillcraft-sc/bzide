@@ -172,12 +172,18 @@ public struct RadioBrowserClient: Sendable {
         }
     }
 
-    /// The logo Radio Browser has for a stream, by its address (either the
-    /// address as entered there or the resolved stream), or `nil` if it has
-    /// none that can be loaded over https.
-    public func logo(forStream stream: URL) async throws -> URL? {
+    /// What Radio Browser has for a stream, by its address (either the
+    /// address as entered there or the resolved stream): its best listing,
+    /// the one with a usable logo if any, or `nil` if it isn't listed.
+    public func details(forStream stream: URL) async throws -> StationDetails? {
         let found = try await get("json/stations/byurl", [URLQueryItem(name: "url", value: stream.absoluteString)], as: LossyList<RadioBrowserStation>.self).items
-        return found.lazy.compactMap(\.logoURL).first
+        guard let best = found.first(where: { $0.logoURL != nil }) ?? found.first else { return nil }
+        var details = StationDetails(best)
+        // Fill in what the best listing lacks from the others.
+        details.countryCode = details.countryCode ?? found.lazy.compactMap(\.countryCode).first
+        details.bitrate = details.bitrate ?? found.lazy.compactMap(\.bitrate).first
+        if details.tags.isEmpty { details.tags = found.first { !$0.tags.isEmpty }?.tags ?? [] }
+        return details
     }
 
     /// Tells Radio Browser a station was played, as it asks clients to; it

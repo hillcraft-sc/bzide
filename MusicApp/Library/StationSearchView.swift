@@ -30,10 +30,13 @@ struct StationSearchView: View {
     var body: some View {
         Group {
             if isOn {
-                results
-                    .searchable(text: $model.query.name, placement: .navigationBarDrawer(displayMode: .always), prompt: "Station Name")
-                    .safeAreaInset(edge: .top, spacing: 0) { filterBar }
-                    .task(id: model.query) { await model.update() }
+                FilterBarStack {
+                    filterBar
+                } content: {
+                    results
+                }
+                .searchable(text: $model.query.name, placement: .navigationBarDrawer(displayMode: .always), prompt: "Station Name")
+                .task(id: model.query) { await model.update() }
             } else {
                 optIn
             }
@@ -74,50 +77,19 @@ struct StationSearchView: View {
     // MARK: - Filters
 
     private var filterBar: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                FilterButton(
-                    title: model.query.countryCode.map { RadioBrowserClient.Country(code: $0, stationCount: 0).name() } ?? "Country",
-                    isSet: model.query.countryCode != nil
-                ) { picking = .country }
-                FilterButton(title: model.query.tag ?? "Genre", isSet: model.query.tag != nil) { picking = .genre }
-                Menu {
-                    Picker("Quality", selection: $model.query.minimumBitrate) {
-                        Text("Any Quality").tag(Int?.none)
-                        ForEach(RadioBrowserClient.Query.bitrateChoices, id: \.self) { bitrate in
-                            Text("\(bitrate) kbps or more").tag(Int?.some(bitrate))
-                        }
-                    }
-                } label: {
-                    FilterLabel(
-                        title: model.query.minimumBitrate.map { "\($0)+ kbps" } ?? "Quality",
-                        systemImage: "chevron.down", isSet: model.query.minimumBitrate != nil
-                    )
-                }
-                Menu {
-                    Picker("Sort By", selection: $model.query.order) {
-                        ForEach(RadioBrowserClient.Order.allCases, id: \.self) { order in
-                            Text(order.title).tag(order)
-                        }
-                    }
-                } label: {
-                    FilterLabel(title: model.query.order.title, systemImage: "arrow.up.arrow.down", isSet: false)
-                }
-                if model.query.countryCode != nil || model.query.tag != nil || model.query.minimumBitrate != nil {
-                    Button("Clear Filters", systemImage: "xmark.circle.fill") {
-                        model.query.countryCode = nil
-                        model.query.tag = nil
-                        model.query.minimumBitrate = nil
-                    }
-                    .labelStyle(.iconOnly)
-                    .foregroundStyle(.secondary)
-                }
+        StationFilterBar(
+            country: model.query.countryCode.map { RadioBrowserClient.Country(code: $0, stationCount: 0).name() },
+            genre: model.query.tag,
+            minimumBitrate: $model.query.minimumBitrate,
+            order: $model.query.order, orders: RadioBrowserClient.Order.allCases, orderTitle: { $0.title },
+            pickCountry: { picking = .country },
+            pickGenre: { picking = .genre },
+            clear: {
+                model.query.countryCode = nil
+                model.query.tag = nil
+                model.query.minimumBitrate = nil
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-        }
-        .scrollIndicators(.hidden)
-        .background(.bar)
+        )
     }
 
     // MARK: - Results
@@ -192,7 +164,7 @@ struct StationSearchView: View {
         Task {
             defer { addingID = nil }
             do throws(RadioStationsModel.ChangeError) {
-                try await stations.add(station.draft, logo: station.logoURL, to: place)
+                try await stations.add(station.draft, details: StationDetails(station), to: place)
             } catch {
                 if case .server(let reason) = error, place == .server {
                     refused = (station, reason)
@@ -201,42 +173,6 @@ struct StationSearchView: View {
                 }
             }
         }
-    }
-}
-
-private enum FilterKind: String, Identifiable {
-    case country, genre
-    var id: String { rawValue }
-}
-
-/// A filter in the bar: its value when one is chosen, tinted.
-private struct FilterButton: View {
-    let title: String
-    let isSet: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            FilterLabel(title: title, systemImage: "chevron.down", isSet: isSet)
-        }
-    }
-}
-
-private struct FilterLabel: View {
-    let title: String
-    let systemImage: String
-    let isSet: Bool
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text(title).lineLimit(1)
-            Image(systemName: systemImage).imageScale(.small)
-        }
-        .font(.subheadline.weight(isSet ? .semibold : .regular))
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .foregroundStyle(isSet ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
-        .background(isSet ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.fill.tertiary), in: .capsule)
     }
 }
 
@@ -278,84 +214,6 @@ private struct GenrePicker: View {
             pinnedTitle: nil,
             choose: { model.query.tag = $0 }
         )
-    }
-}
-
-private struct FilterOption: Identifiable {
-    let id: String
-    let title: String
-    let count: Int
-}
-
-/// A searchable list to pick one filter value from, or Any.
-private struct FilterPicker<Item>: View {
-    let title: String
-    let anyTitle: String
-    let state: LoadState<[Item]>
-    let load: () async -> Void
-    let selection: String?
-    let option: (Item) -> FilterOption
-    /// Shown above the rest under `pinnedTitle`, if it's in the list.
-    let pinnedID: String?
-    let pinnedTitle: String?
-    let choose: (String?) -> Void
-
-    @State private var search = ""
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            LoadStateView(state: state, retry: load) { items in
-                let options = items.map(option)
-                let shown = search.isEmpty ? options : options.filter { $0.title.localizedStandardContains(search) }
-                List {
-                    if search.isEmpty {
-                        Section {
-                            row(id: nil, title: anyTitle, count: nil)
-                        }
-                        if let pinnedTitle, let pinned = options.first(where: { $0.id == pinnedID }) {
-                            Section(pinnedTitle) {
-                                row(id: pinned.id, title: pinned.title, count: pinned.count)
-                            }
-                        }
-                    }
-                    Section {
-                        ForEach(shown) { row(id: $0.id, title: $0.title, count: $0.count) }
-                    }
-                }
-                .overlay {
-                    if shown.isEmpty && !search.isEmpty { ContentUnavailableView.search(text: search) }
-                }
-            }
-            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always))
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) { dismiss() }
-                }
-            }
-            .task { await load() }
-        }
-    }
-
-    private func row(id: String?, title: String, count: Int?) -> some View {
-        Button {
-            choose(id)
-            dismiss()
-        } label: {
-            HStack {
-                Text(title).foregroundStyle(.primary)
-                Spacer()
-                if let count {
-                    Text(count.formatted()).foregroundStyle(.secondary).monospacedDigit()
-                }
-                if id == selection {
-                    Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityLabel("Selected")
-                }
-            }
-            .contentShape(.rect)
-        }
     }
 }
 

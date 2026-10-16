@@ -43,29 +43,58 @@ struct StationLogoTests {
         #expect(CoverArtStore.fileName(for: "al-1") == "al-1")
     }
 
-    @Test func theStoreRemembersLogosAndMisses() throws {
-        let file = FileManager.default.temporaryDirectory.appending(path: "StationLogos-\(UUID().uuidString).json")
+    @Test func theStoreRemembersDetailsAndMisses() throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: "StationDetails-\(UUID().uuidString).json")
         let stream = try #require(URL(string: "https://stream.example.com/waves"))
         let other = try #require(URL(string: "https://stream.example.com/other"))
-        let logo = try #require(URL(string: "https://example.com/logo.png"))
-        let store = StationLogoStore(fileURL: file)
+        let details = StationDetails(logoURL: URL(string: "https://example.com/logo.png"), countryCode: "US", tags: ["jazz"], codec: "MP3", bitrate: 128)
+        let store = StationDetailsStore(fileURL: file)
         #expect(store.entry(for: stream) == nil)
-        store.set(.logo(logo), for: stream)
-        store.set(.noLogo, for: other)
+        #expect(store.needsLookUp(stream))
+        store.set(details, for: stream)
+        store.set(nil, for: other)
 
-        let reopened = StationLogoStore(fileURL: file)
-        #expect(reopened.entry(for: stream) == .logo(logo))
-        #expect(reopened.entry(for: other) == .noLogo)
+        let reopened = StationDetailsStore(fileURL: file)
+        #expect(reopened.details(for: stream) == details)
+        #expect(reopened.entry(for: other) == .notListed)
+        #expect(!reopened.needsLookUp(stream))
+        #expect(!reopened.needsLookUp(other))
+    }
+
+    @Test func logosFromTheOldStoreCarryOverAndAreLookedUpOnceMore() throws {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "Details-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let old = #"{"https://stream.example.com/waves":"https://example.com/logo.png","https://stream.example.com/none":""}"#
+        try Data(old.utf8).write(to: folder.appending(path: StationDetailsStore.oldLogosFileName))
+        let store = StationDetailsStore(fileURL: folder.appending(path: StationDetailsStore.fileName))
+        let waves = try #require(URL(string: "https://stream.example.com/waves"))
+        #expect(store.details(for: waves)?.logoURL?.absoluteString == "https://example.com/logo.png")
+        #expect(store.needsLookUp(waves))
+        #expect(store.needsLookUp(try #require(URL(string: "https://stream.example.com/none"))))
+        #expect(!FileManager.default.fileExists(atPath: folder.appending(path: StationDetailsStore.oldLogosFileName).path(percentEncoded: false)))
+    }
+
+    @Test func firstSeenIsRecordedOnce() {
+        let store = StationDetailsStore(fileURL: nil)
+        let monday = Date(timeIntervalSince1970: 1_000_000)
+        store.noteSeen(["rs-1"], at: monday)
+        store.noteSeen(["rs-1", "rs-2"], at: monday.addingTimeInterval(86_400))
+        #expect(store.firstSeen("rs-1") == monday)
+        #expect(store.firstSeen("rs-2") == monday.addingTimeInterval(86_400))
+        #expect(store.firstSeen("rs-3") == nil)
     }
 
     @Test func radioBrowserIsAskedByStreamAddress() async throws {
         let servers = #"[{"name":"one.api.example.test"}]"#
-        let found = #"[{"stationuuid":"u-1","name":"A","url":"https://stream.example.com/waves","favicon":""},{"stationuuid":"u-2","name":"B","url":"https://stream.example.com/waves","favicon":"http://example.com/logo.png"}]"#
+        let found = #"[{"stationuuid":"u-1","name":"A","url":"https://stream.example.com/waves","favicon":"","countrycode":"GB","bitrate":192,"codec":"AAC","tags":"news"},{"stationuuid":"u-2","name":"B","url":"https://stream.example.com/waves","favicon":"http://example.com/logo.png","countrycode":"","bitrate":0,"tags":""}]"#
         let transport = FakeTransport(.json(servers), .json(found))
         let client = RadioBrowserClient(transport: transport, directory: URL(string: "https://all.api.example.test")!, shuffle: { $0 })
-        let logo = try await client.logo(forStream: URL(string: "http://radio.example.org:8000/;")!)
-        // The first station with a usable logo, over https.
-        #expect(logo?.absoluteString == "https://example.com/logo.png")
+        let details = try await client.details(forStream: URL(string: "http://radio.example.org:8000/;")!)
+        // The listing with a usable logo (over https), filled in from the other.
+        #expect(details?.logoURL?.absoluteString == "https://example.com/logo.png")
+        #expect(details?.countryCode == "GB")
+        #expect(details?.bitrate == 192)
+        #expect(details?.tags == ["news"])
         let url = try #require(await transport.requests.last?.url)
         #expect(url.path() == "/json/stations/byurl")
         #expect(url.queryParameters["url"] == "http://radio.example.org:8000/;")
@@ -73,7 +102,7 @@ struct StationLogoTests {
 }
 
 @MainActor
-struct StationLogoLookupTests {
+struct StationDetailsLookupTests {
     private actor Asked {
         var streams: [URL] = []
         func add(_ url: URL) { streams.append(url) }
@@ -82,39 +111,43 @@ struct StationLogoLookupTests {
     private static let waves = RadioStation(id: "rs-1", name: "Night Waves", streamURL: URL(string: "https://stream.example.com/waves")!)
     private static let bop = RadioStation(id: "rs-2", name: "Bop", streamURL: URL(string: "https://stream.example.com/bop")!)
     nonisolated private static let logo = URL(string: "https://example.com/waves.png")!
+    nonisolated private static let wavesDetails = StationDetails(logoURL: logo, countryCode: "US", tags: ["jazz"], codec: "MP3", bitrate: 128)
 
     private func model(
-        stations: [RadioStation], logos: StationLogoStore = StationLogoStore(fileURL: nil), asked: Asked,
-        answer: @escaping @Sendable (URL) throws -> URL? = { $0.lastPathComponent == "waves" ? StationLogoLookupTests.logo : nil }
+        stations: [RadioStation], details: StationDetailsStore = StationDetailsStore(fileURL: nil), asked: Asked,
+        now: @escaping @Sendable () -> Date = { .now },
+        answer: @escaping @Sendable (URL) throws -> StationDetails? = { $0.lastPathComponent == "waves" ? StationDetailsLookupTests.wavesDetails : nil }
     ) -> RadioStationsModel {
         RadioStationsModel(sources: .init(
             stations: { stations },
             isAdmin: { false },
             create: { _ in }, update: { _, _ in }, delete: { _ in },
-            logo: { stream in
+            details: { stream in
                 await asked.add(stream)
                 return try answer(stream)
             }
-        ), phone: PhoneStationStore(fileURL: nil), logos: logos)
+        ), phone: PhoneStationStore(fileURL: nil), details: details, now: now)
     }
 
-    @Test func missingLogosAreLookedUpOnceAndShown() async {
+    @Test func missingDetailsAreLookedUpOnceAndShown() async {
         let asked = Asked()
-        let logos = StationLogoStore(fileURL: nil)
-        let radio = model(stations: [Self.waves, Self.bop], logos: logos, asked: asked)
-        radio.findsLogosOnline = true
+        let store = StationDetailsStore(fileURL: nil)
+        let radio = model(stations: [Self.waves, Self.bop], details: store, asked: asked)
+        radio.findsDetailsOnline = true
         await radio.load()
-        #expect(radio.stations.allSatisfy { $0.logoURL == nil })
-        await radio.findMissingLogos()
-        #expect(radio.stations.first { $0.id == "rs-1" }?.logoURL == Self.logo)
-        #expect(radio.stations.first { $0.id == "rs-2" }?.logoURL == nil)
+        #expect(radio.stations.allSatisfy { $0.logoURL == nil && $0.details == nil })
+        await radio.findMissingDetails()
+        let waves = radio.stations.first { $0.id == "rs-1" }
+        #expect(waves?.logoURL == Self.logo)
+        #expect(waves?.details?.countryCode == "US")
+        #expect(radio.stations.first { $0.id == "rs-2" }?.details == nil)
 
-        // Next time: known, logo or not, so nothing is asked.
-        let again = model(stations: [Self.waves, Self.bop], logos: logos, asked: asked)
-        again.findsLogosOnline = true
+        // Next time: known, listed or not, so nothing is asked.
+        let again = model(stations: [Self.waves, Self.bop], details: store, asked: asked)
+        again.findsDetailsOnline = true
         await again.load()
-        #expect(again.stations.first { $0.id == "rs-1" }?.logoURL == Self.logo)
-        await again.findMissingLogos()
+        #expect(again.stations.first { $0.id == "rs-1" }?.details == Self.wavesDetails)
+        await again.findMissingDetails()
         #expect(await asked.streams.count == 2)
     }
 
@@ -122,25 +155,34 @@ struct StationLogoLookupTests {
         let asked = Asked()
         let radio = model(stations: [Self.waves], asked: asked)
         await radio.load()
-        await radio.findMissingLogos()
+        await radio.findMissingDetails()
         #expect(await asked.streams.isEmpty)
     }
 
     @Test func aFailedLookupIsTriedAgain() async {
-        let asked = Asked()
-        let logos = StationLogoStore(fileURL: nil)
-        let radio = model(stations: [Self.waves], logos: logos, asked: asked, answer: { _ in throw URLError(.timedOut) })
-        radio.findsLogosOnline = true
+        let store = StationDetailsStore(fileURL: nil)
+        let radio = model(stations: [Self.waves], details: store, asked: Asked(), answer: { _ in throw URLError(.timedOut) })
+        radio.findsDetailsOnline = true
         await radio.load()
-        await radio.findMissingLogos()
-        #expect(logos.entry(for: Self.waves.streamURL) == nil)
+        await radio.findMissingDetails()
+        #expect(store.needsLookUp(Self.waves.streamURL))
     }
 
-    @Test func aStationAddedFromFindStationsKeepsItsLogo() async throws {
+    @Test func aStationAddedFromFindStationsKeepsItsDetails() async throws {
         let radio = model(stations: [], asked: Asked())
         await radio.load()
-        try await radio.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"), logo: Self.logo)
+        try await radio.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"), details: Self.wavesDetails)
         #expect(radio.phoneStations.first?.logoURL == Self.logo)
+        #expect(radio.phoneStations.first?.details == Self.wavesDetails)
         #expect(radio.phoneStations.first?.coverArtID == StationLogo.coverArtID(for: Self.logo))
+    }
+
+    @Test func stationsAreDatedWhenFirstSeen() async throws {
+        let monday = Date(timeIntervalSince1970: 1_000_000)
+        let radio = model(stations: [Self.waves], asked: Asked(), now: { monday })
+        await radio.load()
+        #expect(radio.stations.first?.firstSeen == monday)
+        try await radio.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"))
+        #expect(radio.phoneStations.first?.firstSeen == monday)
     }
 }

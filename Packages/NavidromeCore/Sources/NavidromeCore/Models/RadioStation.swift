@@ -10,8 +10,13 @@ public struct RadioStation: Sendable, Equatable, Identifiable, Codable {
     public var streamURL: URL
     public var homePageURL: URL?
     /// Its logo (https), if known. Not from the server or saved with the
-    /// station: it's added from `StationLogoStore` when the list is shown.
+    /// station: it's added from `StationDetailsStore` when the list is shown,
+    /// with `details` and `firstSeen`.
     public var logoURL: URL?
+    /// Country, genres and quality, if known (from Radio Browser).
+    public var details: StationDetails?
+    /// When Bzide first listed it: when it was added, if that was in Bzide.
+    public var firstSeen: Date?
 
     public init(id: String, name: String, streamURL: URL, homePageURL: URL? = nil, logoURL: URL? = nil) {
         self.id = id

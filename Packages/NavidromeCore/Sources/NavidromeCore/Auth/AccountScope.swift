@@ -5,7 +5,7 @@ import Foundation
 ///
 /// Downloads, the saved queue, unsent scrobbles, play history, cached cover
 /// art, the profile (its settings and pictures), the radio stations saved
-/// on this iPhone and their remembered logos all belong to the server
+/// on this iPhone and what's remembered about saved stations all belong to the server
 /// and user they came from. Signing out leaves them in place, so signing back
 /// in to the same account keeps everything. Signing in to a different server
 /// or user deletes them first.
@@ -38,7 +38,8 @@ public struct AccountScope {
             support.appending(path: ProfileModel.picturesDirectoryName),
             caches.appending(path: ProfileModel.cacheDirectoryName),
             support.appending(path: PhoneStationStore.fileName),
-            support.appending(path: StationLogoStore.fileName),
+            support.appending(path: StationDetailsStore.fileName),
+            support.appending(path: StationDetailsStore.oldLogosFileName),
         ]
     }
 

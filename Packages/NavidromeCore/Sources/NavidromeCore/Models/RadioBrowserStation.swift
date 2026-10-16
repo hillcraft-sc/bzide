@@ -80,16 +80,5 @@ public struct RadioBrowserStation: Sendable, Equatable, Identifiable, Decodable 
     }
 
     /// A line under the name, e.g. "US · MP3 128 kbps · jazz, smooth jazz".
-    public var summary: String {
-        var parts: [String] = []
-        if let countryCode { parts.append(countryCode) }
-        switch (codec, bitrate) {
-        case let (codec?, bitrate?): parts.append("\(codec) \(bitrate) kbps")
-        case let (codec?, nil): parts.append(codec)
-        case let (nil, bitrate?): parts.append("\(bitrate) kbps")
-        case (nil, nil): break
-        }
-        if !tags.isEmpty { parts.append(tags.prefix(3).joined(separator: ", ")) }
-        return parts.joined(separator: " · ")
-    }
+    public var summary: String { StationDetails(self).summary }
 }
