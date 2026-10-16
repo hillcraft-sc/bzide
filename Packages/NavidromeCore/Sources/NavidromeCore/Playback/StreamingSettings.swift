@@ -44,6 +44,8 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     public var liveWeatherCity: String
     /// What Apple's geocoder matched it to, once looked up.
     public var liveWeatherPlace: LiveWeatherPlace?
+    /// How Spin the Dial picks stations.
+    public var spinTheDial: DialSettings
     /// Off by default: evening out loudness with the songs' ReplayGain.
     public var volumeNormalization: VolumeNormalization
     /// Off by default: when a queue reaches its last song, spin off from it
@@ -60,7 +62,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
         downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original,
         findLyricsOnline: Bool = false, findStationsOnline: Bool = false,
-        liveWeather: Bool = false, liveWeatherUsesLocation: Bool = true, liveWeatherCity: String = "", liveWeatherPlace: LiveWeatherPlace? = nil, volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
+        liveWeather: Bool = false, liveWeatherUsesLocation: Bool = true, liveWeatherCity: String = "", liveWeatherPlace: LiveWeatherPlace? = nil, spinTheDial: DialSettings = DialSettings(), volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
         includeMehInMixes: Bool = false, myCutsIncludeFavorites: Bool = true
     ) {
         self.wifiQuality = wifiQuality
@@ -73,6 +75,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         self.liveWeatherUsesLocation = liveWeatherUsesLocation
         self.liveWeatherCity = liveWeatherCity
         self.liveWeatherPlace = liveWeatherPlace
+        self.spinTheDial = spinTheDial
         self.volumeNormalization = volumeNormalization
         self.keepSpinning = keepSpinning
         self.includeMehInMixes = includeMehInMixes
@@ -80,7 +83,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, findStationsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, findStationsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -98,6 +101,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         liveWeatherUsesLocation = (try? c.decodeIfPresent(Bool.self, forKey: .liveWeatherUsesLocation)) ?? defaults.liveWeatherUsesLocation
         liveWeatherCity = (try? c.decodeIfPresent(String.self, forKey: .liveWeatherCity)) ?? defaults.liveWeatherCity
         liveWeatherPlace = (try? c.decodeIfPresent(LiveWeatherPlace.self, forKey: .liveWeatherPlace)) ?? nil
+        spinTheDial = (try? c.decodeIfPresent(DialSettings.self, forKey: .spinTheDial)) ?? defaults.spinTheDial
         volumeNormalization = (try? c.decodeIfPresent(VolumeNormalization.self, forKey: .volumeNormalization)) ?? defaults.volumeNormalization
         keepSpinning = (try? c.decodeIfPresent(Bool.self, forKey: .keepSpinning)) ?? defaults.keepSpinning
         includeMehInMixes = (try? c.decodeIfPresent(Bool.self, forKey: .includeMehInMixes)) ?? defaults.includeMehInMixes

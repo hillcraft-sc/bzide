@@ -40,6 +40,7 @@ public struct AccountScope {
             support.appending(path: PhoneStationStore.fileName),
             support.appending(path: StationDetailsStore.fileName),
             support.appending(path: StationDetailsStore.oldLogosFileName),
+            support.appending(path: DialLog.fileName),
         ]
     }
 

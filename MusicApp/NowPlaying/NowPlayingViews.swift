@@ -47,8 +47,22 @@ struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isVisualizerOpen = false
     @State private var isLyricsOpen = false
+    /// The saved stations, loaded while a dialed station plays, so Save
+    /// Station shows only for one that isn't saved.
+    @State private var savedStations: RadioStationsModel?
+    /// The dialed station saved from here, which then reads "Saved".
+    @State private var savedSongID: String?
 
     private var engine: PlaybackEngine { library.engine }
+
+    /// For a dialed station, once the saved stations have loaded: whether
+    /// it's saved (just now here, or already), or can be.
+    private func saveState(_ song: Song) -> SaveStationButton.Status? {
+        guard SpinTheDialModel.isDialed(song), let savedStations, case .loaded = savedStations.state,
+              let savable = library.spinTheDial.savable(song) else { return nil }
+        if savedSongID == song.id { return .justSaved }
+        return savedStations.contains(stream: savable.stream) ? .alreadySaved : .unsaved
+    }
 
     private var savableQueue: [Song] {
         engine.queue.entries.map(\.song).filter { !$0.isLive }
@@ -97,6 +111,13 @@ struct NowPlayingView: View {
                         .buttonStyle(.borderless)
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
+                        // A station Spin the Dial found, not saved yet.
+                        if let status = saveState(song), let savedStations {
+                            SaveStationButton(library: library, song: song, stations: savedStations, status: status) {
+                                savedSongID = song.id
+                            }
+                            .listRowSeparator(.hidden)
+                        }
                     }
                 }
                 .themedRows()
@@ -136,10 +157,19 @@ struct NowPlayingView: View {
                     }
                 }
             }
+            .task(id: engine.queue.current?.song.id) {
+                // Here, on the screen, which always exists: a task on the button
+                // itself wouldn't run while it shows nothing.
+                guard let song = engine.queue.current?.song, SpinTheDialModel.isDialed(song) else { return }
+                let stations = savedStations ?? library.radioStationsModel()
+                savedStations = stations
+                await stations.load()
+            }
             .addToPlaylistSheet(library)
             .infoSheet(library)
-            .playlistConfirmation(library.playlistEditor)
-            .noticeBanner(library.spinOff.notice, seconds: 5) { library.spinOff.dismissNotice() }
+            // The app's messages here while Now Playing is on top (not
+            // while the visualizer or Lyrics covers it: they show them).
+            .appMessages(library, isEnabled: !isVisualizerOpen && !isLyricsOpen)
             .fullScreenCover(isPresented: $isVisualizerOpen) {
                 VisualizerView(model: model, engine: engine)
             }

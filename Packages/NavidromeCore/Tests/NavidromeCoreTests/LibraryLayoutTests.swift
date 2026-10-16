@@ -8,7 +8,7 @@ struct LibraryLayoutTests {
         // Carousels start hidden, so Library stays simple.
         #expect(layout.shown == LibraryFeature.allCases.filter { !$0.isCarousel })
         #expect(layout.groups == [
-            .mixes([.randomMix, .ratedShuffle]),
+            .mixes([.randomMix, .ratedShuffle, .spinTheDial]),
             .links([.artists, .albums, .playlists, .favorites, .genres, .radio, .downloads, .history]),
         ])
     }
@@ -19,7 +19,7 @@ struct LibraryLayoutTests {
         layout.setShown(.recentlyPlayed, true)
         layout.setShown(.spinItBack, true)
         #expect(layout.groups.prefix(4) == [
-            .carousel(.recentlyAdded), .carousel(.recentlyPlayed), .carousel(.spinItBack), .mixes([.randomMix, .ratedShuffle]),
+            .carousel(.recentlyAdded), .carousel(.recentlyPlayed), .carousel(.spinItBack), .mixes([.randomMix, .ratedShuffle, .spinTheDial]),
         ])
     }
 
@@ -29,6 +29,7 @@ struct LibraryLayoutTests {
         layout.setShown(.radio, false)
         layout.setShown(.randomMix, false)
         layout.setShown(.ratedShuffle, false)
+        layout.setShown(.spinTheDial, false)
         #expect(!layout.shown.contains(.radio))
         #expect(layout.groups.first == .carousel(.recentlyAdded))
         #expect(layout.groups.count == 2)
@@ -38,9 +39,9 @@ struct LibraryLayoutTests {
         var layout = LibraryLayout()
         layout.setShown(.recentlyAdded, true)
         // Artists and Albums to the top; Recently Added after them.
-        layout.move(fromOffsets: IndexSet([5, 6]), toOffset: 0)
+        layout.move(fromOffsets: IndexSet([6, 7]), toOffset: 0)
         #expect(layout.shown.prefix(3) == [.artists, .albums, .recentlyAdded])
-        #expect(layout.groups.prefix(3) == [.links([.artists, .albums]), .carousel(.recentlyAdded), .mixes([.randomMix, .ratedShuffle])])
+        #expect(layout.groups.prefix(3) == [.links([.artists, .albums]), .carousel(.recentlyAdded), .mixes([.randomMix, .ratedShuffle, .spinTheDial])])
     }
 
     @Test func itsSavedAndRestored() throws {
@@ -66,12 +67,12 @@ struct LibraryLayoutTests {
         // History after Downloaded. New carousels arrive hidden; a saved
         // choice for one (Recently Added here) is kept.
         #expect(layout.entries.map(\.item) == [
-            .albums, .artists, .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle,
+            .albums, .artists, .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle, .spinTheDial,
             .playlists, .favorites, .genres, .radio, .downloads, .history,
         ])
         #expect(layout.entries.first?.isShown == true)
         #expect(layout.entries[1].isShown == false)
-        #expect(layout.entries.allSatisfy { [.ratedShuffle, .favorites, .genres, .history].contains($0.item) ? $0.isShown : true })
+        #expect(layout.entries.allSatisfy { [.ratedShuffle, .spinTheDial, .favorites, .genres, .history].contains($0.item) ? $0.isShown : true })
         #expect(layout.entries.allSatisfy { [.recentlyPlayed, .spinItBack].contains($0.item) ? !$0.isShown : true })
     }
 

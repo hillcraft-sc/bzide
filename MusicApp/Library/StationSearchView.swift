@@ -81,7 +81,7 @@ struct StationSearchView: View {
             country: model.query.countryCode.map { RadioBrowserClient.Country(code: $0, stationCount: 0).name() },
             genre: model.query.tag,
             minimumBitrate: $model.query.minimumBitrate,
-            order: $model.query.order, orders: RadioBrowserClient.Order.allCases, orderTitle: { $0.title },
+            order: $model.query.order, orders: RadioBrowserClient.Order.sortable, orderTitle: { $0.title },
             pickCountry: { picking = .country },
             pickGenre: { picking = .genre },
             clear: {

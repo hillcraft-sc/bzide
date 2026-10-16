@@ -56,39 +56,8 @@ struct RootView: View {
         }
         .onAppear { HomeScreenActions.update(current: library.engine.queue.current?.song) }
         .onDisappear { HomeScreenActions.clear() }
-        .playlistConfirmation(library.playlistEditor)
-        .noticeBanner(library.spinOff.notice, seconds: 5) { library.spinOff.dismissNotice() }
-        .alert("Couldn't Change Favorite", isPresented: favoriteErrorShown) {
-            Button("OK") { library.stars.dismissError() }
-        } message: {
-            Text(library.stars.error ?? "")
-        }
-        .alert("Couldn't Change Rating", isPresented: ratingErrorShown) {
-            Button("OK") { library.ratings.dismissError() }
-        } message: {
-            Text(library.ratings.error ?? "")
-        }
-        .alert("Couldn't Play Station", isPresented: radioErrorShown) {
-            Button("OK") { library.radio.dismissError() }
-        } message: {
-            Text(library.radio.error ?? "")
-        }
-        .alert("Couldn't Load Songs", isPresented: quickActionsErrorShown) {
-            Button("OK") { library.quickActions.dismissError() }
-        } message: {
-            Text(library.quickActions.error ?? "")
-        }
-        .confirmationDialog(
-            confirmationTitle,
-            isPresented: confirmationShown,
-            titleVisibility: .visible,
-            presenting: library.quickActions.confirmation
-        ) { confirmation in
-            Button(Self.confirmButton(confirmation.action)) {
-                Task { await library.quickActions.confirm() }
-            }
-            Button("Cancel", role: .cancel) { library.quickActions.cancelConfirmation() }
-        }
+        // Messages from anywhere in the app, shown here unless Now Playing is open.
+        .appMessages(library, isEnabled: !isNowPlayingOpen)
     }
 
     private func run(_ action: HomeScreenAction) {
@@ -107,53 +76,5 @@ struct RootView: View {
             tab = .search
             searchFocusRequest += 1
         }
-    }
-
-    private var favoriteErrorShown: Binding<Bool> {
-        Binding(get: { library.stars.error != nil }, set: { if !$0 { library.stars.dismissError() } })
-    }
-
-    private var radioErrorShown: Binding<Bool> {
-        Binding(get: { library.radio.error != nil }, set: { if !$0 { library.radio.dismissError() } })
-    }
-
-    private var quickActionsErrorShown: Binding<Bool> {
-        Binding(get: { library.quickActions.error != nil }, set: { if !$0 { library.quickActions.dismissError() } })
-    }
-
-    private var confirmationShown: Binding<Bool> {
-        Binding(
-            get: { library.quickActions.confirmation != nil },
-            set: { if !$0 { library.quickActions.cancelConfirmation() } }
-        )
-    }
-
-    /// "Add 340 songs by Artist to the queue?"
-    private var confirmationTitle: String {
-        guard let confirmation = library.quickActions.confirmation else { return "" }
-        let songs = "\(confirmation.songCount) songs by \(confirmation.artist.name)"
-        return switch confirmation.action {
-        case .play: "Play \(songs)?"
-        case .shuffle: "Shuffle \(songs)?"
-        case .playNext: "Play \(songs) next?"
-        case .addToQueue: "Add \(songs) to the queue?"
-        case .addToPlaylist: "Add \(songs) to a playlist?"
-        case .download: "Download \(songs)?"
-        }
-    }
-
-    private static func confirmButton(_ action: QuickActions.Action) -> String {
-        switch action {
-        case .play: "Play"
-        case .shuffle: "Shuffle"
-        case .playNext: "Play Next"
-        case .addToQueue: "Add to Queue"
-        case .addToPlaylist: "Choose Playlist"
-        case .download: "Download"
-        }
-    }
-
-    private var ratingErrorShown: Binding<Bool> {
-        Binding(get: { library.ratings.error != nil }, set: { if !$0 { library.ratings.dismissError() } })
     }
 }

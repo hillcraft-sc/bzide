@@ -12,6 +12,8 @@ struct SettingsView: View {
     let signOut: () -> Void
     /// The bare player screen kept for exercising playback.
     let debugPlayer: () -> DebugPlayerView
+    /// Radio Browser's genres, for Spin the Dial's Genres.
+    let stationSearch: () -> StationSearchModel
     @State private var isConfirmingRemoveAll = false
     @State private var isConfirmingSignOut = false
     @State private var isConfirmingClearHistory = false
@@ -106,6 +108,30 @@ struct SettingsView: View {
             } footer: {
                 Text(StationSearchView.optInExplanation)
             }
+            .themedRows(grouped: true)
+            Section {
+                Picker("Mode", selection: $settings.settings.spinTheDial.mode) {
+                    ForEach(DialSettings.Mode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                Toggle("My Country Only", isOn: $settings.settings.spinTheDial.myCountryOnly)
+                NavigationLink {
+                    DialGenresView(makeModel: stationSearch, genres: $settings.settings.spinTheDial.genres)
+                } label: {
+                    LabeledContent("Genres", value: dialGenresSummary)
+                }
+                Picker("Minimum Quality", selection: $settings.settings.spinTheDial.minimumBitrate) {
+                    Text("Any").tag(Int?.none)
+                    ForEach(RadioBrowserClient.Query.bitrateChoices, id: \.self) { Text("\($0) kbps").tag(Int?.some($0)) }
+                }
+            } header: {
+                Text("Spin the Dial")
+            } footer: {
+                Text(settings.settings.findStationsOnline
+                    ? Self.dialExplanation(settings.settings.spinTheDial.mode)
+                    : "Spin the Dial finds stations on Radio Browser, so it needs Find Stations Online. Turn that on above to use it.")
+            }
+            // It uses Radio Browser: off with Find Stations Online.
+            .disabled(!settings.settings.findStationsOnline)
             .themedRows(grouped: true)
             Section {
                 Picker("Keep History For", selection: $history.retention) {
@@ -363,6 +389,89 @@ struct AvatarImage: View {
         .frame(width: side, height: side)
         .clipShape(.circle)
         .accessibilityHidden(true)
+    }
+}
+
+extension SettingsView {
+    var dialGenresSummary: String {
+        let genres = settings.settings.spinTheDial.genres
+        switch genres.count {
+        case 0: return "Any"
+        case 1, 2: return genres.joined(separator: ", ")
+        default: return "\(genres.count) genres"
+        }
+    }
+
+    static func dialExplanation(_ mode: DialSettings.Mode) -> String {
+        let how = switch mode {
+        case .myTaste: "My Taste picks genres from what you listen to: your play history (recent plays count more) and favorites."
+        case .myLibrary: "My Library picks genres from your library, not from what you've played."
+        case .surpriseMe: "Surprise Me plays any working station, anywhere."
+        case .somethingNew: "Something New picks genres outside your library and listening, and stations you haven't saved or dialed before."
+        }
+        return how + " Spin the Dial uses Radio Browser (Find Stations Online), which gets the genre and these settings for each spin, never your listening history. Next on a dialed station spins again."
+    }
+}
+
+/// Spin the Dial's Genres: Radio Browser's most common genres to pick any
+/// number from; none picked means any genre.
+private struct DialGenresView: View {
+    @State private var model: StationSearchModel
+    @Binding var genres: [String]
+    @State private var search = ""
+
+    /// The model is made once, so the genres load once while the list is open.
+    init(makeModel: () -> StationSearchModel, genres: Binding<[String]>) {
+        _model = State(initialValue: makeModel())
+        _genres = genres
+    }
+
+    var body: some View {
+        LoadStateView(state: model.tags, retry: model.loadTags) { tags in
+            let shown = search.isEmpty ? tags : tags.filter { $0.name.localizedStandardContains(search) }
+            List {
+                if search.isEmpty {
+                    Section {
+                        row("Any Genre", isChecked: genres.isEmpty) { genres = [] }
+                    }
+                    if !genres.isEmpty {
+                        Section("Chosen") {
+                            ForEach(genres, id: \.self) { genre in
+                                row(genre, isChecked: true) { genres.removeAll { $0 == genre } }
+                            }
+                        }
+                    }
+                }
+                Section {
+                    ForEach(shown) { tag in
+                        row(tag.name, count: tag.stationCount, isChecked: genres.contains(tag.name)) { toggle(tag.name) }
+                    }
+                }
+            }
+            .overlay {
+                if shown.isEmpty && !search.isEmpty { ContentUnavailableView.search(text: search) }
+            }
+        }
+        .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always))
+        .navigationTitle("Genres")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await model.loadTags() }
+    }
+
+    private func toggle(_ genre: String) {
+        if genres.contains(genre) { genres.removeAll { $0 == genre } } else { genres.append(genre) }
+    }
+
+    private func row(_ title: String, count: Int? = nil, isChecked: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title).foregroundStyle(.primary)
+                Spacer()
+                if let count { Text(count.formatted()).foregroundStyle(.secondary).monospacedDigit() }
+                if isChecked { Image(systemName: "checkmark").foregroundStyle(.tint).accessibilityLabel("Chosen") }
+            }
+            .contentShape(.rect)
+        }
     }
 }
 

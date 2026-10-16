@@ -271,6 +271,10 @@ public final class PlaybackEngine {
 
     public func next() {
         defer { publishNowPlaying() }
+        if canSkipStation, let song = queue.current?.song {
+            stationSkipper?.skip(song)
+            return
+        }
         cancelRecovery()
         guard let target = nextEntry else { return }
         if isPlayerLoaded, preloadEntry?.id == target.id {
@@ -736,7 +740,7 @@ public final class PlaybackEngine {
                 duration: live ? nil : duration,
                 elapsed: live ? 0 : position,
                 isPlaying: status == .playing,
-                hasNext: nextEntry != nil,
+                hasNext: canGoNext,
                 hasPrevious: !live && queue.hasPrevious,
                 isLiveStream: live
             )
@@ -799,9 +803,32 @@ public final class PlaybackEngine {
         queue.current?.song.isLive == true
     }
 
-    /// Whether next has somewhere to go (including repeat all's wrap-around).
+    /// Whether next has somewhere to go (including repeat all's wrap-around),
+    /// or, for a radio station, whether `stationSkipper` can change it.
     public var canGoNext: Bool {
-        nextEntry != nil
+        nextEntry != nil || canSkipStation
+    }
+
+    /// What Next does on a radio station, which has no next track: set by
+    /// features that pick stations (Spin the Dial spins again). `canSkip` says
+    /// whether it applies to the station playing; `skip` does it.
+    public struct StationSkipper {
+        public var canSkip: @MainActor (Song) -> Bool
+        public var skip: @MainActor (Song) -> Void
+
+        public init(canSkip: @escaping @MainActor (Song) -> Bool, skip: @escaping @MainActor (Song) -> Void) {
+            self.canSkip = canSkip
+            self.skip = skip
+        }
+    }
+
+    public var stationSkipper: StationSkipper? {
+        didSet { publishNowPlaying() }
+    }
+
+    private var canSkipStation: Bool {
+        guard nextEntry == nil, let song = queue.current?.song, song.isLive, let stationSkipper else { return false }
+        return stationSkipper.canSkip(song)
     }
 
     /// What to show as the title: for a station, the song it announced, if any.

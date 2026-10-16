@@ -3,7 +3,7 @@ import Observation
 
 /// Something the Library screen can show.
 public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
-    case recentlyAdded, recentlyPlayed, spinItBack, randomMix, ratedShuffle
+    case recentlyAdded, recentlyPlayed, spinItBack, randomMix, ratedShuffle, spinTheDial
     case artists, albums, playlists, favorites, genres, radio, downloads, history
 
     public var title: String {
@@ -13,6 +13,7 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         case .spinItBack: "Spin It Back"
         case .randomMix: "Random Mix"
         case .ratedShuffle: "Mix My Cuts"
+        case .spinTheDial: "Spin the Dial"
         case .artists: "Artists"
         case .albums: "Albums"
         case .playlists: "Playlists"
@@ -35,9 +36,10 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         !isCarousel
     }
 
-    /// Plays something at once (Random Mix, Mix My Cuts) rather than opening a list.
+    /// Plays something at once (Random Mix, Mix My Cuts, Spin the Dial)
+    /// rather than opening a list.
     public var isMix: Bool {
-        self == .randomMix || self == .ratedShuffle
+        self == .randomMix || self == .ratedShuffle || self == .spinTheDial
     }
 
     /// Opens a list, rather than being a section of its own.

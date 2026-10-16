@@ -17,18 +17,25 @@ public struct RadioBrowserClient: Sendable {
         public var name: String
         /// ISO 3166-1 alpha-2, e.g. "US".
         public var countryCode: String?
-        /// A genre tag, matched exactly (e.g. "jazz", not "acid jazz").
+        /// A genre tag, matched exactly (e.g. "jazz", not "acid jazz") unless
+        /// `tagIsLoose`, when it matches tags containing it ("rock" finds
+        /// "classic rock").
         public var tag: String?
+        public var tagIsLoose = false
         /// Only stations streaming at least this many kbps. Stations that
         /// don't report a bitrate (Radio Browser lists them as 0) are left out
         /// once one is chosen.
         public var minimumBitrate: Int?
         public var order: Order
 
-        public init(name: String = "", countryCode: String? = nil, tag: String? = nil, minimumBitrate: Int? = nil, order: Order = .mostPlayed) {
+        public init(
+            name: String = "", countryCode: String? = nil, tag: String? = nil, tagIsLoose: Bool = false,
+            minimumBitrate: Int? = nil, order: Order = .mostPlayed
+        ) {
             self.name = name
             self.countryCode = countryCode
             self.tag = tag
+            self.tagIsLoose = tagIsLoose
             self.minimumBitrate = minimumBitrate
             self.order = order
         }
@@ -49,12 +56,18 @@ public struct RadioBrowserClient: Sendable {
         /// Radio Browser's `votes`.
         case topRated = "votes"
         case name
+        /// A random order, for Spin the Dial's Surprise Me. Not a sort the user picks.
+        case random
+
+        /// The orders Find Stations offers.
+        public static let sortable: [Order] = [.mostPlayed, .topRated, .name]
 
         public var title: String {
             switch self {
             case .mostPlayed: "Most Played"
             case .topRated: "Top Rated"
             case .name: "Name"
+            case .random: "Random"
             }
         }
     }
@@ -120,7 +133,7 @@ public struct RadioBrowserClient: Sendable {
         if let code = query.countryCode { items.append(.init(name: "countrycode", value: code)) }
         if let tag = query.tag {
             items.append(.init(name: "tag", value: tag))
-            items.append(.init(name: "tagExact", value: "true"))
+            items.append(.init(name: "tagExact", value: query.tagIsLoose ? "false" : "true"))
         }
         if let bitrate = query.minimumBitrate {
             items.append(.init(name: "bitrateMin", value: String(bitrate)))
@@ -128,7 +141,7 @@ public struct RadioBrowserClient: Sendable {
         items += [
             .init(name: "order", value: query.order.rawValue),
             // Most played and top rated: highest first.
-            .init(name: "reverse", value: query.order == .name ? "false" : "true"),
+            .init(name: "reverse", value: query.order == .name || query.order == .random ? "false" : "true"),
             .init(name: "hidebroken", value: "true"),
             .init(name: "offset", value: String(offset)),
             .init(name: "limit", value: String(limit)),

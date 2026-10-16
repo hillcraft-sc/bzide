@@ -63,6 +63,8 @@ struct VisualizerView: View {
         }
         .preferredColorScheme(.dark)
         .statusBarHidden()
+        // It covers Now Playing, and its Next can spin the dial: the app's messages show here.
+        .appMessages(model.library)
         .onAppear {
             meteringBefore = model.isMetering
             model.isMetering = true

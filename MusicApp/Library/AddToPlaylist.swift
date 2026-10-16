@@ -43,11 +43,6 @@ extension View {
     func addToPlaylistSheet(_ library: Library, isEnabled: Bool = true) -> some View {
         modifier(AddToPlaylistPresenter(library: library, isEnabled: isEnabled))
     }
-
-    /// Briefly shows what the last playlist change did.
-    func playlistConfirmation(_ editor: PlaylistEditor) -> some View {
-        modifier(PlaylistConfirmation(editor: editor))
-    }
 }
 
 private struct AddToPlaylistPresenter: ViewModifier {
@@ -180,13 +175,5 @@ struct PlaylistRow: View {
             }
         }
         .contentShape(.rect)
-    }
-}
-
-private struct PlaylistConfirmation: ViewModifier {
-    let editor: PlaylistEditor
-
-    func body(content: Content) -> some View {
-        content.noticeBanner(editor.confirmation) { editor.dismissConfirmation() }
     }
 }

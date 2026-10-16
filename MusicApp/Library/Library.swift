@@ -48,6 +48,8 @@ final class Library {
         contact: Bundle.main.object(forInfoDictionaryKey: "METNorwayContact") as? String ?? "",
         transport: URLSessionTransport(session: URLSession(configuration: .ephemeral))
     ))
+    /// Spin the Dial, shared by the Library button and Next on a dialed station.
+    private(set) lazy var spinTheDial: SpinTheDialModel = makeSpinTheDial()
     /// Radio Browser is on the open internet: no shared cache or cookies.
     private let radioBrowser = RadioBrowserClient(transport: URLSessionTransport(session: URLSession(configuration: .ephemeral)))
 
@@ -150,6 +152,11 @@ final class Library {
                 }
             }
         )
+        // Next on a dialed station spins again.
+        engine.stationSkipper = .init(
+            canSkip: { SpinTheDialModel.isDialed($0) },
+            skip: { [weak self] _ in Task { await self?.spinTheDialNow() } }
+        )
     }
 
     /// The profile picture settings, saved with the account's other data.
@@ -248,6 +255,33 @@ final class Library {
             delete: { [client] id async throws(SubsonicError) in try await client.deleteRadioStation(id: id) },
             details: { [radioBrowser] stream in try await radioBrowser.details(forStream: stream) }
         ), phone: PhoneStationStore(fileURL: support?.appending(path: PhoneStationStore.fileName)), details: stationDetails)
+    }
+
+    private func makeSpinTheDial() -> SpinTheDialModel {
+        let support = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let phone = PhoneStationStore(fileURL: support?.appending(path: PhoneStationStore.fileName))
+        return SpinTheDialModel(
+            sources: .init(
+                stations: { [radioBrowser] query in try await radioBrowser.stations(query, limit: 100) },
+                history: { [history] in history.entries },
+                favorites: { [client] () async throws(SubsonicError) in try await client.favorites().songs },
+                libraryGenres: { [client] () async throws(SubsonicError) in try await client.genres() },
+                popularTags: { [radioBrowser] in try await radioBrowser.tags() },
+                savedStreams: { [client] in
+                    let server = (try? await client.radioStations()) ?? []
+                    return Set((server + phone.load()).map(\.streamURL))
+                },
+                play: { [radio] station in await radio.start(station) },
+                countPlay: { [radioBrowser] id in try await radioBrowser.countPlay(of: id) }
+            ),
+            log: DialLog(fileURL: support?.appending(path: DialLog.fileName))
+        )
+    }
+
+    /// Spins the dial with the current settings: from the Library button,
+    /// and Next on a dialed station.
+    func spinTheDialNow() async {
+        await spinTheDial.spin(settings.settings.spinTheDial, countryCode: Locale.current.region?.identifier)
     }
 
     func stationSearchModel() -> StationSearchModel {

@@ -33,6 +33,8 @@ struct LyricsView: View {
             // Behind, so the cover (scaled to fill) can't widen the layout.
             .background { background }
             .preferredColorScheme(.dark)
+            // It covers Now Playing: the app's messages show here.
+            .appMessages(library)
         .task(id: "\(song?.id ?? "")|\(onlineAllowed)") {
             await model.load(song, onlineAllowed: onlineAllowed)
         }

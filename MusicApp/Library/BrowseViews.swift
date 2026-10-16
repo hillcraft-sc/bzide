@@ -11,6 +11,8 @@ struct LibraryView: View {
     @State private var recentlyPlayed: LoadModel<[Album]>
     @State private var spinItBack: LoadModel<[Album]>
     @State private var isEditing = false
+    /// Spin the Dial was tapped with Find Stations Online off.
+    @State private var isAskingForStations = false
     /// Remembered on this device: display preferences, nothing to sync.
     @AppStorage("recentlyAddedCollapsed") private var isRecentlyAddedCollapsed = false
     @AppStorage("recentlyPlayedCollapsed") private var isRecentlyPlayedCollapsed = false
@@ -72,7 +74,8 @@ struct LibraryView: View {
                     SettingsView(
                         settings: library.settings, downloads: library.downloads, history: library.history,
                         appearance: model.appearance, profile: library.profile, account: model.account, signOut: model.signOut,
-                        debugPlayer: { DebugPlayerView(model: model, engine: library.engine) }
+                        debugPlayer: { DebugPlayerView(model: model, engine: library.engine) },
+                        stationSearch: { library.stationSearchModel() }
                     )
                 } label: {
                     // The user's Gravatar, if they've turned it on and one was found.
@@ -86,6 +89,15 @@ struct LibraryView: View {
                     }
                 }
             }
+        }
+        .alert("Find Stations Online", isPresented: $isAskingForStations) {
+            Button("Turn On and Spin") {
+                library.settings.settings.findStationsOnline = true
+                Task { await library.spinTheDialNow() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Spin the Dial finds stations on Radio Browser (radio-browser.info). Turning on Find Stations Online sends it the genre and settings for each spin, never your listening history.")
         }
         .sheet(isPresented: $isEditing) {
             EditLibrarySheet(layout: model.libraryLayout)
@@ -125,11 +137,27 @@ struct LibraryView: View {
         _ = await (added, played, again)
     }
 
-    /// Random Mix and Mix My Cuts, in the order chosen, in one block.
+    /// Random Mix, Mix My Cuts and Spin the Dial, in the order chosen, in one block.
     private func mixesSection(_ items: [LibraryFeature]) -> some View {
         Section {
             ForEach(items, id: \.self) { item in
                 switch item {
+                case .spinTheDial:
+                    Button {
+                        if library.settings.settings.findStationsOnline {
+                            Task { await library.spinTheDialNow() }
+                        } else {
+                            isAskingForStations = true
+                        }
+                    } label: {
+                        HStack {
+                            Label("Spin the Dial", systemImage: item.symbol)
+                            Spacer()
+                            if library.spinTheDial.isSpinning { ProgressView() }
+                        }
+                    }
+                    .disabled(library.spinTheDial.isSpinning)
+                    .accessibilityHint("Plays a radio station picked for you from Radio Browser")
                 case .ratedShuffle:
                     Button {
                         Task { await library.spinOff.startRated() }
@@ -229,6 +257,7 @@ extension LibraryFeature {
         case .spinItBack: "arrow.uturn.backward.circle"
         case .randomMix: "shuffle"
         case .ratedShuffle: "flame" // "hand.thumbsup" 
+        case .spinTheDial: "dial.medium"
         case .artists: "music.microphone"
         case .albums: "square.stack"
         case .playlists: "music.note.list"
@@ -251,7 +280,7 @@ extension LibraryFeature {
         case .radio: .radio
         case .downloads: .downloads
         case .history: .history
-        case .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle: nil
+        case .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle, .spinTheDial: nil
         }
     }
 }
