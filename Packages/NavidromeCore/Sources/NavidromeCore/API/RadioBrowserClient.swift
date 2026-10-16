@@ -189,14 +189,28 @@ public struct RadioBrowserClient: Sendable {
     /// address as entered there or the resolved stream): its best listing,
     /// the one with a usable logo if any, or `nil` if it isn't listed.
     public func details(forStream stream: URL) async throws -> StationDetails? {
-        let found = try await get("json/stations/byurl", [URLQueryItem(name: "url", value: stream.absoluteString)], as: LossyList<RadioBrowserStation>.self).items
-        guard let best = found.first(where: { $0.logoURL != nil }) ?? found.first else { return nil }
+        let found = try await listings(forStream: stream)
+        guard let best = Self.best(found) else { return nil }
         var details = StationDetails(best)
         // Fill in what the best listing lacks from the others.
         details.countryCode = details.countryCode ?? found.lazy.compactMap(\.countryCode).first
         details.bitrate = details.bitrate ?? found.lazy.compactMap(\.bitrate).first
         if details.tags.isEmpty { details.tags = found.first { !$0.tags.isEmpty }?.tags ?? [] }
         return details
+    }
+
+    /// Radio Browser's listing for a stream, for Station Info: the one with a
+    /// usable logo if several, or `nil` if it isn't listed.
+    public func listing(forStream stream: URL) async throws -> RadioBrowserStation? {
+        Self.best(try await listings(forStream: stream))
+    }
+
+    private func listings(forStream stream: URL) async throws -> [RadioBrowserStation] {
+        try await get("json/stations/byurl", [URLQueryItem(name: "url", value: stream.absoluteString)], as: LossyList<RadioBrowserStation>.self).items
+    }
+
+    private static func best(_ found: [RadioBrowserStation]) -> RadioBrowserStation? {
+        found.first { $0.logoURL != nil } ?? found.first
     }
 
     /// Tells Radio Browser a station was played, as it asks clients to; it

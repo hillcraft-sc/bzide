@@ -64,6 +64,16 @@ struct NowPlayingView: View {
         return savedStations.contains(stream: savable.stream) ? .alreadySaved : .unsaved
     }
 
+    /// Station Info for the station playing.
+    private func openStationInfo() {
+        guard let song = engine.queue.current?.song else { return }
+        let saved = (savedStations?.stations ?? []) + (savedStations?.phoneStations ?? [])
+        guard let subject = StationInfoSubject.playing(
+            song, saved: saved, tuned: library.spinTheDial.tuned?.station, announced: engine.streamTitle
+        ) else { return }
+        library.info.open(.station(subject, playing: song.liveStreamURL))
+    }
+
     private var savableQueue: [Song] {
         engine.queue.entries.map(\.song).filter { !$0.isLive }
     }
@@ -155,9 +165,11 @@ struct NowPlayingView: View {
                 ToolbarItem(placement: .primaryAction) {
                     SleepTimerMenu(timer: library.sleepTimer, isLive: engine.isLive)
                 }
-                // Nothing in it applies to a radio station.
-                if !engine.isLive {
-                    ToolbarItem(placement: .primaryAction) {
+                // Nothing in the menu applies to a radio station; it has Station Info instead.
+                ToolbarItem(placement: .primaryAction) {
+                    if engine.isLive {
+                        Button("Station Info", systemImage: "info.circle", action: openStationInfo)
+                    } else {
                         moreMenu
                     }
                 }
@@ -174,7 +186,7 @@ struct NowPlayingView: View {
             .task(id: engine.queue.current?.song.id) {
                 // Here, on the screen, which always exists: a task on the button
                 // itself wouldn't run while it shows nothing.
-                guard let song = engine.queue.current?.song, SpinTheDialModel.isDialed(song) else { return }
+                guard let song = engine.queue.current?.song, song.isLive else { return }
                 let stations = savedStations ?? library.radioStationsModel()
                 savedStations = stations
                 await stations.load()

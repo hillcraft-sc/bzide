@@ -10,11 +10,14 @@ final class InfoRequest {
     enum Target: Identifiable {
         case song(Song)
         case album(id: String)
+        /// `playing` is the address being streamed, if it's playing.
+        case station(StationInfoSubject, playing: URL?)
 
         var id: String {
             switch self {
             case .song(let song): "song:\(song.id)"
             case .album(let id): "album:\(id)"
+            case .station(let subject, _): "station:\(subject.stream.absoluteString)"
             }
         }
     }
@@ -59,6 +62,7 @@ extension View {
             switch target {
             case .song(let song): SongInfoView(library: library, song: song)
             case .album(let id): AlbumInfoView(library: library, id: id)
+            case .station(let subject, let playing): StationInfoView(library: library, subject: subject, playing: playing)
             }
         }
     }
@@ -115,6 +119,32 @@ private struct AlbumInfoView: View {
             }
         }
         .task { await model.load() }
+    }
+}
+
+/// Everything known about a radio station: what Bzide knows straight away,
+/// then Radio Browser's listing (with Find Stations Online on) and the
+/// stream's own description as they arrive.
+private struct StationInfoView: View {
+    let library: Library
+    let subject: StationInfoSubject
+    let playing: URL?
+    @State private var model: StationInfoModel
+
+    init(library: Library, subject: StationInfoSubject, playing: URL?) {
+        self.library = library
+        self.subject = subject
+        self.playing = playing
+        _model = State(initialValue: library.stationInfoModel())
+    }
+
+    var body: some View {
+        InfoList(
+            library: library, title: "Station Info", coverArtID: subject.coverArtID,
+            heading: subject.name, subheading: model.isLoading ? "Looking up…" : nil,
+            sections: StationInfo.sections(for: subject, listing: model.listing, headers: model.headers)
+        )
+        .task { await model.load(subject, playing: playing, lookUpOnline: library.settings.settings.findStationsOnline) }
     }
 }
 

@@ -18,6 +18,15 @@ public struct RadioBrowserStation: Sendable, Equatable, Identifiable, Decodable 
     public var codec: String?
     /// In kbps.
     public var bitrate: Int?
+    /// For Station Info: languages ("english,spanish"), the state or region,
+    /// votes, plays in the last day, whether Radio Browser's last check found
+    /// it working, and whether it's an HLS stream.
+    public var language: String?
+    public var state: String?
+    public var votes: Int?
+    public var clickCount: Int?
+    public var lastCheckOK: Bool?
+    public var isHLS = false
 
     public init(
         id: String, name: String, streamURL: URL, homePageURL: URL? = nil, faviconURL: URL? = nil,
@@ -36,6 +45,7 @@ public struct RadioBrowserStation: Sendable, Equatable, Identifiable, Decodable 
 
     private enum Keys: String, CodingKey {
         case stationuuid, name, url, url_resolved, homepage, favicon, tags, countrycode, codec, bitrate
+        case language, state, votes, clickcount, lastcheckok, hls
     }
 
     public init(from decoder: any Decoder) throws {
@@ -62,6 +72,12 @@ public struct RadioBrowserStation: Sendable, Equatable, Identifiable, Decodable 
             codec: codec.flatMap { $0.isEmpty || $0.uppercased() == "UNKNOWN" ? nil : $0.uppercased() },
             bitrate: bitrate.flatMap { $0 > 0 ? $0 : nil }
         )
+        language = c.lenientString(.language).flatMap { $0.isEmpty ? nil : $0 }
+        state = c.lenientString(.state).flatMap { $0.isEmpty ? nil : $0 }
+        votes = c.lenientInt(.votes)
+        clickCount = c.lenientInt(.clickcount)
+        lastCheckOK = c.lenientInt(.lastcheckok).map { $0 == 1 }
+        isHLS = c.lenientInt(.hls) == 1
     }
 
     /// The station as one to play. Its id can't collide with a server station's.

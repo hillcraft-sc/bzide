@@ -224,6 +224,9 @@ private struct StationRow: View {
         .foregroundStyle(.primary)
         .contextMenu {
             Button("Play", systemImage: "play.fill", action: play)
+            Button("Station Info", systemImage: "info.circle") {
+                library.info.open(.station(StationInfoSubject(station), playing: nil))
+            }
             if let homePage = station.homePageURL {
                 Button("Open Homepage", systemImage: "safari") { openURL(homePage) }
             }

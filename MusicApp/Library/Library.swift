@@ -289,6 +289,13 @@ final class Library {
         await spinTheDial.spin(settings.settings.spinTheDial, countryCode: Locale.current.region?.identifier)
     }
 
+    func stationInfoModel() -> StationInfoModel {
+        StationInfoModel(sources: .init(
+            listing: { [radioBrowser] stream in try await radioBrowser.listing(forStream: stream) },
+            headers: { stream in try await StreamHeaderReader.headers(stream) }
+        ))
+    }
+
     func stationSearchModel() -> StationSearchModel {
         StationSearchModel(sources: .init(
             stations: { [radioBrowser] query, offset in try await radioBrowser.stations(query, offset: offset) },
