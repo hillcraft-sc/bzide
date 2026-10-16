@@ -100,6 +100,18 @@ struct RadioBrowserClientTests {
         #expect(search.queryParameters["offset"] == "100")
     }
 
+    @Test func aMinimumBitrateIsSentOnlyWhenChosen() async throws {
+        let transport = FakeTransport(.json(Sample.servers), .json("[]"), .json("[]"))
+        let radioBrowser = client(transport)
+        _ = try await radioBrowser.stations(.init(minimumBitrate: 192))
+        _ = try await radioBrowser.stations(.init())
+        let urls = await transport.requests.compactMap(\.url)
+        #expect(urls[1].queryParameters["bitrateMin"] == "192")
+        #expect(urls[2].queryParameters["bitrateMin"] == nil)
+        // A quality filter means it's no longer just what's popular.
+        #expect(!RadioBrowserClient.Query(minimumBitrate: 128).isPopular)
+    }
+
     @Test func countriesAreCombinedAndCounted() async throws {
         let countries = #"[{"name":"The United States Of America","iso_3166_1":"US","stationcount":6000},{"name":"United States","iso_3166_1":"us","stationcount":12},{"name":"Germany","iso_3166_1":"DE","stationcount":3000},{"name":"Nowhere","iso_3166_1":"","stationcount":5},{"name":"Empty","iso_3166_1":"ZZ","stationcount":0}]"#
         let transport = FakeTransport(.json(Sample.servers), .json(countries))

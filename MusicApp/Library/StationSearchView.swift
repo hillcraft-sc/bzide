@@ -82,6 +82,19 @@ struct StationSearchView: View {
                 ) { picking = .country }
                 FilterButton(title: model.query.tag ?? "Genre", isSet: model.query.tag != nil) { picking = .genre }
                 Menu {
+                    Picker("Quality", selection: $model.query.minimumBitrate) {
+                        Text("Any Quality").tag(Int?.none)
+                        ForEach(RadioBrowserClient.Query.bitrateChoices, id: \.self) { bitrate in
+                            Text("\(bitrate) kbps or more").tag(Int?.some(bitrate))
+                        }
+                    }
+                } label: {
+                    FilterLabel(
+                        title: model.query.minimumBitrate.map { "\($0)+ kbps" } ?? "Quality",
+                        systemImage: "chevron.down", isSet: model.query.minimumBitrate != nil
+                    )
+                }
+                Menu {
                     Picker("Sort By", selection: $model.query.order) {
                         ForEach(RadioBrowserClient.Order.allCases, id: \.self) { order in
                             Text(order.title).tag(order)
@@ -90,10 +103,11 @@ struct StationSearchView: View {
                 } label: {
                     FilterLabel(title: model.query.order.title, systemImage: "arrow.up.arrow.down", isSet: false)
                 }
-                if model.query.countryCode != nil || model.query.tag != nil {
+                if model.query.countryCode != nil || model.query.tag != nil || model.query.minimumBitrate != nil {
                     Button("Clear Filters", systemImage: "xmark.circle.fill") {
                         model.query.countryCode = nil
                         model.query.tag = nil
+                        model.query.minimumBitrate = nil
                     }
                     .labelStyle(.iconOnly)
                     .foregroundStyle(.secondary)

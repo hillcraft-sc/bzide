@@ -19,19 +19,28 @@ public struct RadioBrowserClient: Sendable {
         public var countryCode: String?
         /// A genre tag, matched exactly (e.g. "jazz", not "acid jazz").
         public var tag: String?
+        /// Only stations streaming at least this many kbps. Stations that
+        /// don't report a bitrate (Radio Browser lists them as 0) are left out
+        /// once one is chosen.
+        public var minimumBitrate: Int?
         public var order: Order
 
-        public init(name: String = "", countryCode: String? = nil, tag: String? = nil, order: Order = .mostPlayed) {
+        public init(name: String = "", countryCode: String? = nil, tag: String? = nil, minimumBitrate: Int? = nil, order: Order = .mostPlayed) {
             self.name = name
             self.countryCode = countryCode
             self.tag = tag
+            self.minimumBitrate = minimumBitrate
             self.order = order
         }
 
         /// No name or filters, most played first: what's popular right now.
         public var isPopular: Bool {
-            name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && countryCode == nil && tag == nil && order == .mostPlayed
+            name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && countryCode == nil && tag == nil
+                && minimumBitrate == nil && order == .mostPlayed
         }
+
+        /// The Quality filter's choices, in kbps.
+        public static let bitrateChoices = [128, 192, 256, 320]
     }
 
     public enum Order: String, CaseIterable, Sendable {
@@ -112,6 +121,9 @@ public struct RadioBrowserClient: Sendable {
         if let tag = query.tag {
             items.append(.init(name: "tag", value: tag))
             items.append(.init(name: "tagExact", value: "true"))
+        }
+        if let bitrate = query.minimumBitrate {
+            items.append(.init(name: "bitrateMin", value: String(bitrate)))
         }
         items += [
             .init(name: "order", value: query.order.rawValue),
