@@ -594,10 +594,10 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 
 ### Spin the Dial
 
-- [ ] Library shows Spin the Dial under Mix My Cuts. With Find Stations Online off, tapping it offers Turn On and Spin; with it on, a station plays within a few seconds with a banner ("Tuned to … · genre · country"), the genre one you listen to.
-- [ ] While a dialed station plays, Next (Now Playing and the lock screen) spins to a different station; a saved station's Next stays off.
-- [ ] Now Playing on a dialed station: Save Station under the controls. Tap it: it reads "Saved", and the station is in Radio with its logo and details (server for an admin, else This iPhone). Spin to it again later, or dial one you've saved: "In Your Stations" instead of the button.
-- [ ] Set tight restrictions (e.g. a rare genre and 320 kbps), dial a station, open Now Playing and tap Next: the "try fewer restrictions" alert shows over Now Playing (and over the visualizer, if open there).
+- [x] Library shows Spin the Dial under Mix My Cuts. With Find Stations Online off, tapping it offers Turn On and Spin; with it on, a station plays within a few seconds with a banner ("Tuned to … · genre · country"), the genre one you listen to. (2026-10-16)
+- [x] While a dialed station plays, Next (Now Playing and the lock screen) spins to a different station; a saved station's Next stays off. (2026-10-16)
+- [x] Now Playing on a dialed station: Save Station under the controls. Tap it: it reads "Saved", and the station is in Radio with its logo and details (server for an admin, else This iPhone). Spin to it again later, or dial one you've saved: "In Your Stations" instead of the button. (2026-10-16)
+- [x] Set tight restrictions (e.g. a rare genre and 320 kbps), dial a station, open Now Playing and tap Next: the "try fewer restrictions" alert shows over Now Playing (and over the visualizer, if open there). (2026-10-16)
 - [ ] Settings: Spin the Dial sits under Radio; turn Find Stations Online off: its controls gray out and the footer says to turn it on.
 - [ ] Settings > Spin the Dial: Surprise Me gives stations from anywhere; My Country Only keeps them to your country; Genres > pick two: only those; Minimum Quality 320 kbps: only 320 kbps stations (or the "try fewer restrictions" message). Something New: genres you don't play, and nothing you've saved.
 
