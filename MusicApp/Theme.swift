@@ -98,8 +98,16 @@ private struct ThemedRows: ViewModifier {
     let grouped: Bool
     @Environment(\.catppuccin) private var palette
 
+    /// Always a color, never nil (the system default) for the system themes:
+    /// a list caches its rows' backgrounds, and a row switching from none to
+    /// a color while its list was hidden (behind Settings, where the theme is
+    /// changed) kept showing none until relaunch. The system colors here are
+    /// what a list draws by default.
     func body(content: Content) -> some View {
-        content.listRowBackground(palette.map { $0.rowBackground(grouped: grouped) })
+        content.listRowBackground(
+            palette.map { $0.rowBackground(grouped: grouped) }
+                ?? Color(uiColor: grouped ? .secondarySystemGroupedBackground : .systemBackground)
+        )
     }
 }
 
