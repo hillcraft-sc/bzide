@@ -1,14 +1,14 @@
 /// The app's three-level rating, stored on the server as Subsonic's 1–5 stars.
 public enum Rating: Int, Sendable, CaseIterable {
     case meh = 2
-    case dontHateIt = 3
-    case rocks = 5
+    case like = 3
+    case love = 5
 
     public var title: String {
         switch self {
         case .meh: "Meh"
-        case .dontHateIt: "Don't Hate It"
-        case .rocks: "Rocks"
+        case .like: "Like"
+        case .love: "Love"
         }
     }
 
@@ -26,8 +26,8 @@ public enum Rating: Int, Sendable, CaseIterable {
     public init?(serverValue: Int?) {
         switch serverValue {
         case 1, 2: self = .meh
-        case 3: self = .dontHateIt
-        case 4, 5: self = .rocks
+        case 3: self = .like
+        case 4, 5: self = .love
         default: return nil
         }
     }

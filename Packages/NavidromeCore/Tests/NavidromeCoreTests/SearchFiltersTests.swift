@@ -16,7 +16,7 @@ struct SearchFiltersTests {
             Album(id: "al-3", name: "Kept Album", isStarred: true),
         ],
         songs: [
-            Song(id: "so-1", title: "Rocks", isStarred: true, userRating: 5),
+            Song(id: "so-1", title: "Love", isStarred: true, userRating: 5),
             Song(id: "so-2", title: "Meh", userRating: 1),
             Song(id: "so-3", title: "Plain"),
         ]
@@ -41,9 +41,9 @@ struct SearchFiltersTests {
     }
 
     @Test func ratingFilters() {
-        #expect(apply(SearchFilters(rating: .rocks)).songs.map(\.id) == ["so-1"])
+        #expect(apply(SearchFilters(rating: .love)).songs.map(\.id) == ["so-1"])
         #expect(apply(SearchFilters(rating: .meh)).albums.map(\.id) == ["al-2"])
-        #expect(apply(SearchFilters(rating: .dontHateIt)).albums.map(\.id) == ["al-1"])
+        #expect(apply(SearchFilters(rating: .like)).albums.map(\.id) == ["al-1"])
         let unrated = apply(SearchFilters(rating: .unrated))
         #expect(unrated.songs.map(\.id) == ["so-3"])
         #expect(unrated.artists.map(\.id) == ["ar-2"])
@@ -64,14 +64,14 @@ struct SearchFiltersTests {
     }
 
     @Test func filtersCombine() {
-        let filters = SearchFilters(scope: .songs, rating: .rocks, favoritesOnly: true)
+        let filters = SearchFilters(scope: .songs, rating: .love, favoritesOnly: true)
         #expect(apply(filters).songs.map(\.id) == ["so-1"])
-        #expect(filters.summary == "Rocks · Favorites")
+        #expect(filters.summary == "Love · Favorites")
     }
 
     @Test func asksForMoreWhenFocusedOrFiltering() {
         #expect(SearchFilters().requestCounts == (20, 20, 20))
-        #expect(SearchFilters(rating: .rocks).requestCounts == (100, 100, 100))
+        #expect(SearchFilters(rating: .love).requestCounts == (100, 100, 100))
         #expect(SearchFilters(scope: .songs).requestCounts == (0, 0, 100))
         #expect(SearchFilters(scope: .artists, favoritesOnly: true).requestCounts == (100, 0, 0))
     }
@@ -140,6 +140,15 @@ struct SearchFiltersTests {
     }
 
     // MARK: The library catalog
+
+    @Test func ratingFiltersSavedUnderTheOldNamesStillLoad() throws {
+        // Love and Like were once Rocks and Don't Hate It.
+        let love = try JSONDecoder().decode(SearchFilters.RatingFilter.self, from: Data(#""rocks""#.utf8))
+        let like = try JSONDecoder().decode(SearchFilters.RatingFilter.self, from: Data(#""dontHateIt""#.utf8))
+        #expect(love == .love && love.title == "Love")
+        #expect(like == .like && like.title == "Like")
+        #expect(String(decoding: try JSONEncoder().encode(SearchFilters.RatingFilter.love), as: UTF8.self) == #""rocks""#)
+    }
 
     @Test func refreshingTheCatalogFetchesEverythingAgainAtOnce() async throws {
         let fetches = Mutex((artists: 0, songs: 0))

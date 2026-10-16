@@ -6,7 +6,7 @@ import Testing
 struct MehInMixesTests {
     private let meh = Song(id: "meh", title: "Meh", userRating: 2)
     private let alsoMeh = Song(id: "meh-1", title: "One Star", userRating: 1)
-    private let rocks = Song(id: "rocks", title: "Rocks", userRating: 5)
+    private let rocks = Song(id: "rocks", title: "Love", userRating: 5)
     private let unrated = Song(id: "unrated", title: "Unrated")
 
     @Test func mehSongsAreLeftOutUnlessIncluded() {

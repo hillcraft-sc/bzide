@@ -5,8 +5,8 @@ import Testing
 
 @MainActor
 struct MyCutsTests {
-    /// A library of `count` songs; every tenth is rated Rocks (5), every
-    /// tenth plus one Don't Hate It (3), every tenth plus two Meh (2).
+    /// A library of `count` songs; every tenth is rated Love (5), every
+    /// tenth plus one Like (3), every tenth plus two Meh (2).
     private final class Library: Sendable {
         let songs: [Song]
         /// Pages are fetched from several tasks at once, so the record is locked.
@@ -45,7 +45,7 @@ struct MyCutsTests {
         let library = Library(count: 4_321)
         let found = try await pool(library).songs()
         #expect(found.librarySize == 4_321)
-        // Rocks (indexes 0, 10… 4320: 433) and Don't Hate It (1, 11… 4311: 432);
+        // Love (indexes 0, 10… 4320: 433) and Like (1, 11… 4311: 432);
         // Meh and unrated are left out.
         #expect(found.songs.count == 433 + 432)
         #expect(found.songs.allSatisfy { [3, 5].contains($0.userRating ?? 0) })
@@ -182,7 +182,7 @@ struct MyCutsTests {
             offset == 0 ? [Song(id: "so-1", title: "Song", userRating: ratings.withLock { $0 })] : []
         })
         #expect(try await pool.songs().songs.isEmpty)
-        // Rated Rocks elsewhere: still the old answer until refreshed.
+        // Rated Love elsewhere: still the old answer until refreshed.
         ratings.withLock { $0 = 5 }
         #expect(try await pool.songs().songs.isEmpty)
         try await pool.refresh()
@@ -200,7 +200,7 @@ struct MyCutsTests {
     @Test func favoritesCountUnlessRatedMeh() {
         let favorite = Song(id: "fav", title: "Favorite", isStarred: true)
         let mehFavorite = Song(id: "meh-fav", title: "Meh Favorite", isStarred: true, userRating: 2)
-        let rocks = Song(id: "rocks", title: "Rocks", userRating: 5)
+        let rocks = Song(id: "rocks", title: "Love", userRating: 5)
         #expect(RatedSongPool.qualifies(favorite, includeFavorites: true))
         #expect(!RatedSongPool.qualifies(favorite, includeFavorites: false))
         #expect(!RatedSongPool.qualifies(mehFavorite, includeFavorites: true))

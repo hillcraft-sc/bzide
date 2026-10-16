@@ -1,6 +1,6 @@
 import Foundation
 
-/// The candidates for My Cuts (songs rated Rocks or Don't Hate It, and
+/// The candidates for My Cuts (songs rated Love or Like, and
 /// favorites), and how many songs were looked through to find them (0 means
 /// the server listed none at all). Which favorites count is decided when
 /// playing (`qualifies`), since that's a setting.
@@ -14,8 +14,8 @@ public struct RatedSongs: Sendable, Equatable {
     }
 }
 
-/// Finds every song that could be in My Cuts (Mix My Cuts): rated Rocks or
-/// Don't Hate It, or a favorite. Subsonic has no way to ask for songs by
+/// Finds every song that could be in My Cuts (Mix My Cuts): rated Love or
+/// Like, or a favorite. Subsonic has no way to ask for songs by
 /// rating, so this pages through the whole library (each song comes with its
 /// rating and favorite) and keeps those. The
 /// answer is kept for a while, since looking through a large library takes a
@@ -57,13 +57,13 @@ public actor RatedSongPool {
         _ = try await songs()
     }
 
-    /// A rating of Rocks or Don't Hate It (3 or more of the server's 5 stars).
+    /// A rating of Love or Like (3 or more of the server's 5 stars).
     static func isRated(_ song: Song) -> Bool {
         guard let rating = Rating(serverValue: song.userRating) else { return false }
-        return rating == .rocks || rating == .dontHateIt
+        return rating == .love || rating == .like
     }
 
-    /// Whether a song is in My Cuts: rated Rocks or Don't Hate It, or (when
+    /// Whether a song is in My Cuts: rated Love or Like, or (when
     /// favorites are included) a favorite, unless it's rated Meh, the more
     /// specific verdict.
     public static func qualifies(_ song: Song, includeFavorites: Bool) -> Bool {
@@ -71,7 +71,7 @@ public actor RatedSongPool {
         return includeFavorites && song.isStarred && Rating(serverValue: song.userRating) != .meh
     }
 
-    /// The whole library, keeping songs rated Rocks or Don't Hate It, or favorites.
+    /// The whole library, keeping songs rated Love or Like, or favorites.
     private static func lookThrough(_ fetchPage: @escaping FetchPage) async throws -> RatedSongs {
         let all = try await PagedListing.all(fetchPage)
         var seen = Set<String>()

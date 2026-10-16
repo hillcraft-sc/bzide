@@ -174,7 +174,7 @@ struct FavoriteButton: View {
     }
 }
 
-/// Meh, Don't Hate It or Rocks, with a checkmark on the current one; choosing it again
+/// Meh, Like or Love, with a checkmark on the current one; choosing it again
 /// clears it. Reads and writes through the shared `RatingModel`.
 struct RateMenu: View {
     let ratings: RatingModel
@@ -201,8 +201,8 @@ extension Rating {
     var face: String {
         switch self {
         case .meh: "😩"
-        case .dontHateIt: "👌"
-        case .rocks: "😈"
+        case .like: "👌"
+        case .love: "😈"
         }
     }
 }

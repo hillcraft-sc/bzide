@@ -66,7 +66,7 @@ struct MediaInfoTests {
         #expect(values["ReplayGain"] == "Track \u{2212}6.1 dB · Album \u{2212}5.8 dB")
         #expect(values["Plays"] == "14")
         #expect(values["Added"] == "Mar 3, 2026")
-        #expect(values["Rating"] == "Rocks")
+        #expect(values["Rating"] == "Love")
         #expect(values["Favorite"] == "Yes")
         #expect(values["BPM"] == nil)
         #expect(values["Comment"] == nil)

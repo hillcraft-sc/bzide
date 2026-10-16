@@ -6,7 +6,7 @@ import Observation
 public enum SpinOffSeed: Codable, Equatable, Sendable {
     case song(id: String, title: String, genre: String?)
     case artist(id: String, name: String)
-    /// My Cuts (Mix My Cuts): endless songs rated Rocks or Don't Hate It,
+    /// My Cuts (Mix My Cuts): endless songs rated Love or Like,
     /// and favorites if included. Saved as `rated`, its first name.
     case rated
 
@@ -122,7 +122,7 @@ public final class SpinOffModel {
         await start(.artist(id: artist.id, name: artist.name), first: [])
     }
 
-    /// Mix My Cuts: endless songs rated Rocks or Don't Hate It (and favorites,
+    /// Mix My Cuts: endless songs rated Love or Like (and favorites,
     /// if included), reshuffled once all have played.
     public func startRated() async {
         guard !isStarting else { return }
@@ -140,7 +140,7 @@ public final class SpinOffModel {
         guard !cuts.isEmpty else {
             notice = found.librarySize == 0
                 ? "This server didn't list its songs, so My Cuts can't be found."
-                : "Nothing in My Cuts yet. Rate songs Rocks or Don't Hate It, or favorite them, from their long-press menu."
+                : "Nothing in My Cuts yet. Rate the songs you Love or Like, or favorite them, from their long-press menu."
             return
         }
         engine.startSpinOff(.rated, songs: Array(cuts.shuffled().prefix(Self.batchSize)))

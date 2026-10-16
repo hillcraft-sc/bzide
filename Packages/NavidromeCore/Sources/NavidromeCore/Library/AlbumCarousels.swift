@@ -55,14 +55,14 @@ public enum SpinItBack {
     }
 
     /// How much an album deserves a re-listen, or `nil` if it doesn't: it must
-    /// be liked (rated Rocks or Don't Hate It, a favorite, or played a few
+    /// be liked (rated Love or Like, a favorite, or played a few
     /// times), and not rated Meh.
     static func score(_ album: Album, now: Date) -> Double? {
         let rating = Rating(serverValue: album.userRating)
         if rating == .meh { return nil }
         let plays = album.details.playCount ?? 0
         guard rating != nil || album.isStarred || plays >= 2 else { return nil }
-        let liking = (rating == .rocks ? 1.0 : rating == .dontHateIt ? 0.7 : 0.35)
+        let liking = (rating == .love ? 1.0 : rating == .like ? 0.7 : 0.35)
             + (album.isStarred ? 0.4 : 0)
             + min(log2(1 + Double(plays)) / 6, 0.6)
         return liking * timeAway(album.details.lastPlayed, now: now)

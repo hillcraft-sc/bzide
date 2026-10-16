@@ -81,7 +81,7 @@ struct SearchView: View {
         .accessibilityValue(model.filters.summary ?? "None")
     }
 
-    /// What's narrowing the results, e.g. "Albums · Rocks · Favorites", with Clear.
+    /// What's narrowing the results, e.g. "Albums · Love · Favorites", with Clear.
     @ViewBuilder
     private var filterSummary: some View {
         let parts = [model.filters.scope == .all ? nil : model.filters.scope.title, model.filters.summary].compactMap { $0 }

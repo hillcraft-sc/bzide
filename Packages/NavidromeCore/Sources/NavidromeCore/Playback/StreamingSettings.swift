@@ -58,7 +58,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     /// rated Meh.
     public var includeMehInMixes: Bool
     /// On by default: favorites (hearts) are in My Cuts, as well as songs
-    /// rated Rocks or Don't Hate It.
+    /// rated Love or Like.
     public var myCutsIncludeFavorites: Bool
 
     public init(

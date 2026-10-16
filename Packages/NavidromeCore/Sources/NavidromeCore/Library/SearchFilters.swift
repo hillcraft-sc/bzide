@@ -17,13 +17,14 @@ public struct SearchFilters: Codable, Equatable, Sendable {
     }
 
     public enum RatingFilter: String, Codable, CaseIterable, Sendable {
-        case any, rocks, dontHateIt, meh, unrated
+        // Love and Like were once Rocks and Don't Hate It; their saved names stay.
+        case any, love = "rocks", like = "dontHateIt", meh, unrated
 
         public var title: String {
             switch self {
             case .any: "Any Rating"
-            case .rocks: Rating.rocks.title
-            case .dontHateIt: Rating.dontHateIt.title
+            case .love: Rating.love.title
+            case .like: Rating.like.title
             case .meh: Rating.meh.title
             case .unrated: "Unrated"
             }
@@ -34,8 +35,8 @@ public struct SearchFilters: Codable, Equatable, Sendable {
             let rating = Rating(serverValue: serverRating)
             switch self {
             case .any: return true
-            case .rocks: return rating == .rocks
-            case .dontHateIt: return rating == .dontHateIt
+            case .love: return rating == .love
+            case .like: return rating == .like
             case .meh: return rating == .meh
             case .unrated: return rating == nil
             }
@@ -60,7 +61,7 @@ public struct SearchFilters: Codable, Equatable, Sendable {
         rating != .any || favoritesOnly || downloadedOnly
     }
 
-    /// The filters in use, e.g. "Rocks · Favorites"; `nil` when none.
+    /// The filters in use, e.g. "Love · Favorites"; `nil` when none.
     public var summary: String? {
         let parts = [
             rating == .any ? nil : rating.title,
