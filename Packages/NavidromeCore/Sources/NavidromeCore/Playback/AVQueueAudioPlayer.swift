@@ -307,7 +307,7 @@ public final class AVQueueAudioPlayer: AudioPlayer {
 }
 
 /// Reads "now playing" titles out of a live stream's timed metadata (Shoutcast
-/// and Icecast `StreamTitle`, or a common title). AVFoundation calls it on the
+/// and Icecast `StreamTitle`, or a common title and artist, as HLS sends). AVFoundation calls it on the
 /// queue it was given, but it's kept nonisolated and hands each title to a
 /// `@Sendable` closure, which hops to the main actor itself.
 private final class StreamTitleReader: NSObject, AVPlayerItemMetadataOutputPushDelegate, Sendable {
@@ -323,18 +323,23 @@ private final class StreamTitleReader: NSObject, AVPlayerItemMetadataOutputPushD
         from track: AVPlayerItemTrack?
     ) {
         let items = groups.flatMap(\.items)
-        let titleItem = items.first { $0.identifier == .icyMetadataStreamTitle }
-            ?? items.first { $0.commonKey == .commonKeyTitle }
-        guard let titleItem else { return }
+        // Shoutcast/Icecast: "Artist - Title" in one. HLS (ID3): the title,
+        // with the artist alongside, joined into the same form.
+        let icyItem = items.first { $0.identifier == .icyMetadataStreamTitle }
+        let titleItem = icyItem ?? items.first { $0.commonKey == .commonKeyTitle }
+        let artistItem = icyItem == nil ? items.first { $0.commonKey == .commonKeyArtist } : nil
+        guard titleItem != nil || artistItem != nil else { return }
         // AVMetadataItem is immutable (changes need the separate
         // AVMutableMetadataItem), so the task can read it safely even though
         // the SDK doesn't mark it Sendable.
-        nonisolated(unsafe) let item = titleItem
+        nonisolated(unsafe) let title = titleItem
+        nonisolated(unsafe) let artist = artistItem
         let key = ObjectIdentifier(output)
         let onTitle = onTitle
         Task {
-            let title = try? await item.load(.stringValue)
-            onTitle(key, title ?? nil)
+            let titleText = try? await title?.load(.stringValue)
+            let artistText = try? await artist?.load(.stringValue)
+            onTitle(key, StreamAnnouncement.combined(title: titleText ?? nil, artist: artistText ?? nil))
         }
     }
 }
