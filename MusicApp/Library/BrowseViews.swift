@@ -75,7 +75,8 @@ struct LibraryView: View {
                         settings: library.settings, downloads: library.downloads, history: library.history,
                         appearance: model.appearance, profile: library.profile, account: model.account, signOut: model.signOut,
                         debugPlayer: { DebugPlayerView(model: model, engine: library.engine) },
-                        stationSearch: { library.stationSearchModel() }
+                        stationSearch: { library.stationSearchModel() },
+                        refreshLibrary: { try await library.refreshLibrary() }
                     )
                 } label: {
                     // The user's Gravatar, if they've turned it on and one was found.

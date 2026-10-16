@@ -14,6 +14,14 @@ struct SettingsView: View {
     let debugPlayer: () -> DebugPlayerView
     /// Radio Browser's genres, for Spin the Dial's Genres.
     let stationSearch: () -> StationSearchModel
+    /// Fetches the library's lists again now.
+    let refreshLibrary: () async throws -> Void
+    @State private var refreshState = RefreshState.idle
+
+    private enum RefreshState: Equatable {
+        case idle, refreshing, done
+        case failed(String)
+    }
     @State private var isConfirmingRemoveAll = false
     @State private var isConfirmingSignOut = false
     @State private var isConfirmingClearHistory = false
@@ -36,11 +44,30 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("Signed in as \(account.username) on \(account.server)")
+                    Button {
+                        refresh()
+                    } label: {
+                        HStack {
+                            Text("Refresh Library")
+                            Spacer()
+                            switch refreshState {
+                            case .idle: EmptyView()
+                            case .refreshing: ProgressView()
+                            case .done: Image(systemName: "checkmark").foregroundStyle(.secondary)
+                            case .failed: Image(systemName: "exclamationmark.triangle").foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .disabled(refreshState == .refreshing)
                     Button("Sign Out", role: .destructive) { isConfirmingSignOut = true }
                 } header: {
                     Text("Account")
                 } footer: {
-                    Text("Downloads, history and the queue stay on this iPhone for when you sign back in. Signing in to a different server or user removes them.")
+                    if case .failed(let message) = refreshState {
+                        Text("Couldn't refresh: \(message)")
+                    } else {
+                        Text("Refresh Library fetches your library again now, so new music, ratings and favorites show at once in Search's filters, Spin It Back and Mix My Cuts, which otherwise keep their copy for 30 minutes. Downloads, history and the queue stay on this iPhone for when you sign back in. Signing in to a different server or user removes them.")
+                    }
                 }
                 .themedRows(grouped: true)
             }
@@ -390,6 +417,21 @@ struct AvatarImage: View {
         .frame(width: side, height: side)
         .clipShape(.circle)
         .accessibilityHidden(true)
+    }
+}
+
+extension SettingsView {
+    /// Refresh Library: the lists again now; done (✓) or why not.
+    func refresh() {
+        refreshState = .refreshing
+        Task {
+            do {
+                try await refreshLibrary()
+                refreshState = .done
+            } catch {
+                refreshState = .failed(error.localizedDescription)
+            }
+        }
     }
 }
 

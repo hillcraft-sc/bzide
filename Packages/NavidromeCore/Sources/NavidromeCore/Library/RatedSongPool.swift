@@ -50,6 +50,13 @@ public actor RatedSongPool {
         return result
     }
 
+    /// Looks through the library again now (Settings > Refresh Library), so
+    /// ratings and favorites changed elsewhere count at once.
+    public func refresh() async throws {
+        found = nil
+        _ = try await songs()
+    }
+
     /// A rating of Rocks or Don't Hate It (3 or more of the server's 5 stars).
     static func isRated(_ song: Song) -> Bool {
         guard let rating = Rating(serverValue: song.userRating) else { return false }

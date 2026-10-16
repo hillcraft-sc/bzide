@@ -31,6 +31,8 @@ final class Library {
     let sleepTimer: SleepTimer
     /// The whole library, for browsing Search by filter (kept for 30 minutes).
     let catalog: LibraryCatalog
+    /// The songs Mix My Cuts picks from (kept for 30 minutes).
+    private let ratedSongs: RatedSongPool
     /// Endless music grown from a song or artist, and Keep Spinning.
     let spinOff: SpinOffModel
     private let client: SubsonicClient
@@ -86,6 +88,7 @@ final class Library {
         ))
         // Mix My Cuts looks through the whole library for rated and favorite songs.
         let ratedSongs = RatedSongPool { count, offset in try await client.allSongs(count: count, offset: offset) }
+        self.ratedSongs = ratedSongs
         self.spinOff = SpinOffModel(
             engine: engine,
             sources: .init(
@@ -301,6 +304,15 @@ final class Library {
             ),
             log: DialLog(fileURL: support?.appending(path: DialLog.fileName))
         )
+    }
+
+    /// Fetches the library's lists again now, rather than waiting out their
+    /// 30 minutes (Settings > Refresh Library): what Search browses by
+    /// filter and Spin It Back use, and the songs Mix My Cuts picks from.
+    func refreshLibrary() async throws {
+        async let catalogDone: Void = catalog.refresh()
+        async let ratedDone: Void = ratedSongs.refresh()
+        _ = try await (catalogDone, ratedDone)
     }
 
     /// Spins the dial with the current settings: from the Library button,

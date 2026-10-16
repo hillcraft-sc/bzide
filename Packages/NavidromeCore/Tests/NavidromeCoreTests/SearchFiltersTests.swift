@@ -141,6 +141,27 @@ struct SearchFiltersTests {
 
     // MARK: The library catalog
 
+    @Test func refreshingTheCatalogFetchesEverythingAgainAtOnce() async throws {
+        let fetches = Mutex((artists: 0, songs: 0))
+        let albumNames = Mutex(["Old Album"])
+        let catalog = LibraryCatalog(sources: .init(
+            artists: { fetches.withLock { $0.artists += 1 }; return [Artist(id: "ar-1", name: "Band")] },
+            albumsPage: { _, offset in
+                offset == 0 ? albumNames.withLock { $0 }.enumerated().map { Album(id: "al-\($0.offset)", name: $0.element) } : []
+            },
+            songsPage: { _, _ in fetches.withLock { $0.songs += 1 }; return [] }
+        ))
+        #expect(try await catalog.browse(.albums).albums.map(\.name) == ["Old Album"])
+        albumNames.withLock { $0 = ["Old Album", "New Album"] }
+        // Still fresh: the old copy.
+        #expect(try await catalog.browse(.albums).albums.count == 1)
+        try await catalog.refresh()
+        #expect(try await catalog.browse(.albums).albums.map(\.name) == ["Old Album", "New Album"])
+        // Every list was fetched by the refresh, once.
+        #expect(fetches.withLock { $0.artists } == 1)
+        #expect(fetches.withLock { $0.songs } >= 1)
+    }
+
     @Test func theCatalogListsTheWholeLibraryOnceForAWhile() async throws {
         // Pages are fetched from several tasks at once, so the count is locked.
         let albumPages = Mutex(0)

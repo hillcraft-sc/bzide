@@ -101,6 +101,16 @@ public actor LibraryCatalog {
         return fetched
     }
 
+    /// Fetches every list again now (Settings > Refresh Library), so the
+    /// next browse has the server's latest. If the fetch fails, the lists
+    /// are fetched again the next time they're needed.
+    public func refresh() async throws {
+        artists = nil
+        albums = nil
+        songs = nil
+        _ = try await browse(.all)
+    }
+
     private func isFresh(_ date: Date) -> Bool {
         now().timeIntervalSince(date) < Self.lifetime
     }

@@ -176,6 +176,19 @@ struct MyCutsTests {
 
     // MARK: Favorites
 
+    @Test func refreshingLooksThroughTheLibraryAgainAtOnce() async throws {
+        let ratings = Mutex(0)
+        let pool = RatedSongPool(fetchPage: { _, offset in
+            offset == 0 ? [Song(id: "so-1", title: "Song", userRating: ratings.withLock { $0 })] : []
+        })
+        #expect(try await pool.songs().songs.isEmpty)
+        // Rated Rocks elsewhere: still the old answer until refreshed.
+        ratings.withLock { $0 = 5 }
+        #expect(try await pool.songs().songs.isEmpty)
+        try await pool.refresh()
+        #expect(try await pool.songs().songs.map(\.id) == ["so-1"])
+    }
+
     @Test func favoritesAreKeptAsCandidates() async throws {
         let library = Library(count: 10)
         let starred = Song(id: "fav", title: "Favorite", isStarred: true)
