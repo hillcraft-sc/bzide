@@ -89,6 +89,11 @@ struct NowPlayingView: View {
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
                     TransportControls(engine: engine)
+                    // The song a station is playing, when it's in the library.
+                    if engine.isLive, let match = library.onAir.match {
+                        InYourLibraryBadge(library: library, song: match)
+                            .listRowSeparator(.hidden)
+                    }
                     if let song = engine.queue.current?.song {
                         HStack(spacing: 32) {
                             // A station isn't on the server, so it can't be favorited or
@@ -157,6 +162,15 @@ struct NowPlayingView: View {
                     }
                 }
             }
+            // Looks for the station's announced song in the library as it changes.
+            .task(id: "\(engine.queue.current?.song.id ?? "")|\(engine.streamTitle ?? "")") {
+                let current = engine.queue.current?.song
+                await library.onAir.update(
+                    announced: current?.isLive == true ? engine.streamTitle : nil,
+                    stationName: current?.title
+                )
+            }
+            .libraryDestinations(library)
             .task(id: engine.queue.current?.song.id) {
                 // Here, on the screen, which always exists: a task on the button
                 // itself wouldn't run while it shows nothing.
@@ -184,5 +198,33 @@ struct NowPlayingView: View {
                 activity.appEntityIdentifier = EntityIdentifier(for: SongEntity.self, identifier: song.id)
             }
         }
+    }
+}
+
+/// Under a station's controls when the song it's playing is in the library:
+/// play your copy instead, or open its album.
+private struct InYourLibraryBadge: View {
+    let library: Library
+    let song: Song
+
+    var body: some View {
+        Menu {
+            Button("Play It Now", systemImage: "play.fill") {
+                library.engine.play(songs: [song])
+            }
+            if let albumID = song.albumID {
+                NavigationLink(value: LibraryRoute.album(id: albumID)) {
+                    Label("Go to Album", systemImage: "square.stack")
+                }
+            }
+        } label: {
+            Label("In Your Library", systemImage: "music.note.house")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(.tint.opacity(0.15), in: .capsule)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityHint("\(song.title) by \(song.artist ?? "an unknown artist") is in your library")
     }
 }

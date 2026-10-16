@@ -48,6 +48,11 @@ final class Library {
         contact: Bundle.main.object(forInfoDictionaryKey: "METNorwayContact") as? String ?? "",
         transport: URLSessionTransport(session: URLSession(configuration: .ephemeral))
     ))
+    /// Whether the song a station is playing is in the library (Now Playing's
+    /// "In Your Library"). Only the user's server is searched.
+    private(set) lazy var onAir = OnAirMatchModel { [client] query async throws(SubsonicError) in
+        try await client.search(query, artistCount: 0, albumCount: 0, songCount: 20).songs
+    }
     /// Spin the Dial, shared by the Library button and Next on a dialed station.
     private(set) lazy var spinTheDial: SpinTheDialModel = makeSpinTheDial()
     /// Radio Browser is on the open internet: no shared cache or cookies.
