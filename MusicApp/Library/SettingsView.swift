@@ -103,10 +103,11 @@ struct SettingsView: View {
             .themedRows(grouped: true)
             Section {
                 Toggle("Find Stations Online", isOn: $settings.settings.findStationsOnline)
+                Toggle("Look Up Songs Online", isOn: $settings.settings.lookUpSongsOnline)
             } header: {
                 Text("Radio")
             } footer: {
-                Text(StationSearchView.optInExplanation)
+                Text(StationSearchView.optInExplanation + "\n\nLook Up Songs Online: for the song a station is playing, Song Info and its album cover come from MusicBrainz (musicbrainz.org) and the Cover Art Archive, which get only its artist and title.")
             }
             .themedRows(grouped: true)
             Section {

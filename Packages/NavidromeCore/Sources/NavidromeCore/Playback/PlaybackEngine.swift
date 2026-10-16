@@ -736,7 +736,7 @@ public final class PlaybackEngine {
                 title: currentTitle ?? song.title,
                 artist: currentSubtitle,
                 album: song.album,
-                coverArtID: song.coverArtID,
+                coverArtID: currentCoverArtID,
                 duration: live ? nil : duration,
                 elapsed: live ? 0 : position,
                 isPlaying: status == .playing,
@@ -829,6 +829,19 @@ public final class PlaybackEngine {
     private var canSkipStation: Bool {
         guard nextEntry == nil, let song = queue.current?.song, song.isLive, let stationSkipper else { return false }
         return stationSkipper.canSkip(song)
+    }
+
+    /// For a station: the cover of the song it's playing, when known (set by
+    /// `OnAirTracker`); cleared when the entry changes.
+    public var onAirCoverArtID: String? {
+        didSet { if oldValue != onAirCoverArtID { publishNowPlaying() } }
+    }
+
+    /// The cover to show everywhere (Now Playing, the mini player, the lock
+    /// screen): for a station, the on-air song's when known, else its logo.
+    public var currentCoverArtID: String? {
+        guard let song = queue.current?.song else { return nil }
+        return song.isLive ? onAirCoverArtID ?? song.coverArtID : song.coverArtID
     }
 
     /// What to show as the title: for a station, the song it announced, if any.
@@ -933,6 +946,7 @@ public final class PlaybackEngine {
         position = 0
         lastSavedPosition = 0
         streamTitle = nil
+        onAirCoverArtID = nil
         duration = metadataDuration
         beginPlay()
         if !queue.isEmpty, queue.upNext.count <= Self.runningLowCount {

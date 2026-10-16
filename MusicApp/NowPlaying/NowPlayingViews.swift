@@ -14,7 +14,7 @@ struct MiniPlayer: View {
         HStack(spacing: 12) {
             Button(action: open) {
                 HStack(spacing: 12) {
-                    ArtworkView(library: library, coverArtID: engine.queue.current?.song.coverArtID, side: 32)
+                    ArtworkView(library: library, coverArtID: engine.currentCoverArtID, side: 32)
                     Text(engine.currentTitle ?? "Not Playing")
                         .lineLimit(1)
                         .foregroundStyle(engine.queue.isEmpty ? .secondary : .primary)
@@ -64,6 +64,17 @@ struct NowPlayingView: View {
         return savedStations.contains(stream: savable.stream) ? .alreadySaved : .unsaved
     }
 
+
+    /// Song Info for the song a station is playing: the library's own, if
+    /// it's in the library, else what MusicBrainz has (or just the title).
+    private func openOnAirSongInfo() {
+        if let match = library.onAir.match {
+            library.info.open(.song(match))
+        } else if let song = library.onAir.onAir {
+            library.info.open(.onAirSong(song, library.onAirInfo.details))
+        }
+    }
+
     /// Station Info for the station playing.
     private func openStationInfo() {
         guard let song = engine.queue.current?.song else { return }
@@ -92,10 +103,16 @@ struct NowPlayingView: View {
     }
 
     var body: some View {
+        // Read here, not inside the list's rows: a list builds its rows apart
+        // from the body, and a cover arriving alone (the station's song looked
+        // up) wouldn't redraw them.
+        let artwork = engine.currentCoverArtID
         NavigationStack {
             List {
                 Section {
-                    ArtworkView(library: library, coverArtID: engine.queue.current?.song.coverArtID, side: 280)
+                    ArtworkView(library: library, coverArtID: artwork, side: 280)
+                        // A fresh view for a new cover, so it never keeps the old one.
+                        .id(artwork)
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
                     TransportControls(engine: engine)
@@ -168,19 +185,15 @@ struct NowPlayingView: View {
                 // Nothing in the menu applies to a radio station; it has Station Info instead.
                 ToolbarItem(placement: .primaryAction) {
                     if engine.isLive {
-                        Button("Station Info", systemImage: "info.circle", action: openStationInfo)
+                        Menu("Info", systemImage: "info.circle") {
+                            Button("Station Info", systemImage: "antenna.radiowaves.left.and.right", action: openStationInfo)
+                            Button("Song Info", systemImage: "music.note", action: openOnAirSongInfo)
+                                .disabled(library.onAir.onAir == nil)
+                        }
                     } else {
                         moreMenu
                     }
                 }
-            }
-            // Looks for the station's announced song in the library as it changes.
-            .task(id: "\(engine.queue.current?.song.id ?? "")|\(engine.streamTitle ?? "")") {
-                let current = engine.queue.current?.song
-                await library.onAir.update(
-                    announced: current?.isLive == true ? engine.streamTitle : nil,
-                    stationName: current?.title
-                )
             }
             .libraryDestinations(library)
             .task(id: engine.queue.current?.song.id) {

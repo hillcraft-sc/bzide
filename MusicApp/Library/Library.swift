@@ -53,6 +53,13 @@ final class Library {
     private(set) lazy var onAir = OnAirMatchModel { [client] query async throws(SubsonicError) in
         try await client.search(query, artistCount: 0, albumCount: 0, songCount: 20).songs
     }
+    /// MusicBrainz's details for the song a station is playing (Song Info and
+    /// the cover), while Look Up Songs Online is on. MusicBrainz is on the
+    /// open internet: no shared cache or cookies.
+    private(set) lazy var onAirInfo: OnAirInfoModel = makeOnAirInfo()
+    /// Follows what a station is playing, for the on-air cover everywhere
+    /// (the lock screen too) and Now Playing's badge and Song Info.
+    private var onAirTracker: OnAirTracker?
     /// Spin the Dial, shared by the Library button and Next on a dialed station.
     private(set) lazy var spinTheDial: SpinTheDialModel = makeSpinTheDial()
     /// Radio Browser is on the open internet: no shared cache or cookies.
@@ -162,6 +169,11 @@ final class Library {
             canSkip: { SpinTheDialModel.isDialed($0) },
             skip: { [weak self] _ in Task { await self?.spinTheDialNow() } }
         )
+        let tracker = OnAirTracker(engine: engine, match: onAir, info: onAirInfo) { [settings] in
+            settings.settings.lookUpSongsOnline
+        }
+        onAirTracker = tracker
+        tracker.start()
     }
 
     /// The profile picture settings, saved with the account's other data.
@@ -260,6 +272,14 @@ final class Library {
             delete: { [client] id async throws(SubsonicError) in try await client.deleteRadioStation(id: id) },
             details: { [radioBrowser] stream in try await radioBrowser.details(forStream: stream) }
         ), phone: PhoneStationStore(fileURL: support?.appending(path: PhoneStationStore.fileName)), details: stationDetails)
+    }
+
+    private func makeOnAirInfo() -> OnAirInfoModel {
+        let musicBrainz = MusicBrainzClient(
+            contact: Bundle.main.object(forInfoDictionaryKey: "MusicBrainzContact") as? String ?? "",
+            transport: URLSessionTransport(session: URLSession(configuration: .ephemeral))
+        )
+        return OnAirInfoModel { song in try await musicBrainz.details(for: song) }
     }
 
     private func makeSpinTheDial() -> SpinTheDialModel {

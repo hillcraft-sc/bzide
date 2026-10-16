@@ -5,7 +5,7 @@ import Observation
 /// (Shoutcast/Icecast `StreamTitle`), which is free text: usually
 /// "Artist - Title", sometimes "Title by Artist", and sometimes just the
 /// station's name, an ad or a web address, which aren't songs.
-public struct OnAirSong: Equatable, Sendable {
+public struct OnAirSong: Hashable, Sendable {
     public var artist: String
     public var title: String
 

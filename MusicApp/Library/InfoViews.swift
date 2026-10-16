@@ -12,12 +12,15 @@ final class InfoRequest {
         case album(id: String)
         /// `playing` is the address being streamed, if it's playing.
         case station(StationInfoSubject, playing: URL?)
+        /// The song a station is playing, from MusicBrainz if looked up.
+        case onAirSong(OnAirSong, OnAirDetails?)
 
         var id: String {
             switch self {
             case .song(let song): "song:\(song.id)"
             case .album(let id): "album:\(id)"
             case .station(let subject, _): "station:\(subject.stream.absoluteString)"
+            case .onAirSong(let song, _): "onair:\(song.artist)|\(song.title)"
             }
         }
     }
@@ -63,6 +66,12 @@ extension View {
             case .song(let song): SongInfoView(library: library, song: song)
             case .album(let id): AlbumInfoView(library: library, id: id)
             case .station(let subject, let playing): StationInfoView(library: library, subject: subject, playing: playing)
+            case .onAirSong(let song, let details):
+                InfoList(
+                    library: library, title: "Song Info", coverArtID: details?.coverURL.map(StationLogo.coverArtID),
+                    heading: details?.title ?? song.title, subheading: details?.artist ?? song.artist,
+                    sections: details?.sections ?? song.sections
+                )
             }
         }
     }
@@ -149,7 +158,7 @@ private struct StationInfoView: View {
 }
 
 /// The sheet itself: the cover and name, then each section's rows.
-private struct InfoList: View {
+struct InfoList: View {
     let library: Library
     let title: String
     let coverArtID: String?
