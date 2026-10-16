@@ -116,9 +116,13 @@ struct NowPlayingView: View {
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
                     TransportControls(engine: engine)
-                    // The song a station is playing, when it's in the library.
+                    // The song a station is playing: in the library, or not (once
+                    // the search has said so), to add to the Wishlist.
                     if engine.isLive, let match = library.onAir.match {
                         InYourLibraryBadge(library: library, song: match)
+                            .listRowSeparator(.hidden)
+                    } else if engine.isLive, let onAir = library.onAir.onAir, !library.onAir.isSearching {
+                        WishlistButton(library: library, song: onAir, station: engine.queue.current?.song.title)
                             .listRowSeparator(.hidden)
                     }
                     if let song = engine.queue.current?.song {
@@ -251,5 +255,29 @@ private struct InYourLibraryBadge: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityHint("\(song.title) by \(song.artist ?? "an unknown artist") is in your library")
+    }
+}
+
+/// Under a station's controls when the song it's playing isn't in the
+/// library: add it to the Wishlist, or see that it's there.
+private struct WishlistButton: View {
+    let library: Library
+    let song: OnAirSong
+    let station: String?
+
+    var body: some View {
+        Group {
+            if library.wishlist.contains(song) {
+                Label("Tagged", systemImage: "checkmark")
+                    .foregroundStyle(.secondary)
+            } else {
+                Button("Tag Song", systemImage: "tag") {
+                    library.wishlist.add(song, station: station, details: library.onAirInfo.details)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .frame(maxWidth: .infinity)
     }
 }

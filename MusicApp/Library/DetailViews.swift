@@ -9,6 +9,7 @@ enum LibraryRoute: Hashable {
     case playlists
     case downloads
     case history
+    case wishlist
     case radio
     case favorites
     case genres
@@ -27,6 +28,7 @@ extension View {
             case .playlists: PlaylistsView(library: library)
             case .downloads: DownloadsView(library: library)
             case .history: HistoryView(library: library)
+            case .wishlist: WishlistView(library: library)
             case .radio: RadioView(library: library)
             case .favorites: FavoritesView(library: library)
             case .genres: GenreGrid(library: library).navigationTitle("Genres")

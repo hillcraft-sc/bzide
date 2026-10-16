@@ -4,7 +4,7 @@ import Observation
 /// Something the Library screen can show.
 public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
     case recentlyAdded, recentlyPlayed, spinItBack, randomMix, ratedShuffle, spinTheDial
-    case artists, albums, playlists, favorites, genres, radio, downloads, history
+    case artists, albums, playlists, favorites, genres, radio, downloads, history, wishlist
 
     public var title: String {
         switch self {
@@ -22,6 +22,7 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         case .radio: "Radio"
         case .downloads: "Downloaded"
         case .history: "History"
+        case .wishlist: "Tagged Radio Songs"
         }
     }
 

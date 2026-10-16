@@ -9,7 +9,7 @@ struct LibraryLayoutTests {
         #expect(layout.shown == LibraryFeature.allCases.filter { !$0.isCarousel })
         #expect(layout.groups == [
             .mixes([.randomMix, .ratedShuffle, .spinTheDial]),
-            .links([.artists, .albums, .playlists, .favorites, .genres, .radio, .downloads, .history]),
+            .links([.artists, .albums, .playlists, .favorites, .genres, .radio, .downloads, .history, .wishlist]),
         ])
     }
 
@@ -54,7 +54,7 @@ struct LibraryLayoutTests {
 
     @Test func aSavedLayoutFromAnotherVersionStillWorks() throws {
         // Unknown "podcasts", a repeated "albums", and no Recently Played, Spin It
-        // Back, Mix My Cuts, favorites, genres or history (added later).
+        // Back, Mix My Cuts, favorites, genres, history or wishlist (added later).
         let saved = """
         {"entries":[{"item":"albums","isShown":true},{"item":"podcasts","isShown":true},
         {"item":"artists","isShown":false},{"item":"albums","isShown":false},{"item":"recentlyAdded","isShown":true},
@@ -64,15 +64,15 @@ struct LibraryLayoutTests {
         let layout = try JSONDecoder().decode(LibraryLayout.self, from: Data(saved.utf8))
         // New items go in their usual place: the carousels after Recently Added,
         // Mix My Cuts after Random Mix, Favorites and Genres after Playlists,
-        // History after Downloaded. New carousels arrive hidden; a saved
+        // History and Wishlist after Downloaded. New carousels arrive hidden; a saved
         // choice for one (Recently Added here) is kept.
         #expect(layout.entries.map(\.item) == [
             .albums, .artists, .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle, .spinTheDial,
-            .playlists, .favorites, .genres, .radio, .downloads, .history,
+            .playlists, .favorites, .genres, .radio, .downloads, .history, .wishlist,
         ])
         #expect(layout.entries.first?.isShown == true)
         #expect(layout.entries[1].isShown == false)
-        #expect(layout.entries.allSatisfy { [.ratedShuffle, .spinTheDial, .favorites, .genres, .history].contains($0.item) ? $0.isShown : true })
+        #expect(layout.entries.allSatisfy { [.ratedShuffle, .spinTheDial, .favorites, .genres, .history, .wishlist].contains($0.item) ? $0.isShown : true })
         #expect(layout.entries.allSatisfy { [.recentlyPlayed, .spinItBack].contains($0.item) ? !$0.isShown : true })
     }
 

@@ -267,6 +267,7 @@ extension LibraryFeature {
         case .radio: "headphones.sensor.tag.radiowaves.left.and.right" // dot.radiowaves.left.and.right
         case .downloads: "arrow.down.circle"
         case .history: "clock.arrow.circlepath"
+        case .wishlist: "tag"
         }
     }
 
@@ -281,6 +282,7 @@ extension LibraryFeature {
         case .radio: .radio
         case .downloads: .downloads
         case .history: .history
+        case .wishlist: .wishlist
         case .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle, .spinTheDial: nil
         }
     }

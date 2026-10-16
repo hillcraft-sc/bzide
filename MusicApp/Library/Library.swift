@@ -59,6 +59,14 @@ final class Library {
     /// the cover), while Look Up Songs Online is on. MusicBrainz is on the
     /// open internet: no shared cache or cookies.
     private(set) lazy var onAirInfo: OnAirInfoModel = makeOnAirInfo()
+    /// Songs heard on the radio to remember. On this iPhone, whichever
+    /// account is signed in, so it isn't part of the account's data.
+    private(set) lazy var wishlist: Wishlist = {
+        let support = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        return Wishlist(fileURL: support?.appending(path: Wishlist.fileName)) { [client] query async throws(SubsonicError) in
+            try await client.search(query, artistCount: 0, albumCount: 0, songCount: 20).songs
+        }
+    }()
     /// Follows what a station is playing, for the on-air cover everywhere
     /// (the lock screen too) and Now Playing's badge and Song Info.
     private var onAirTracker: OnAirTracker?

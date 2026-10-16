@@ -86,6 +86,19 @@ struct OnAirMatchModelTests {
         #expect(await searches.queries.filter { $0 == "Blur Song 2" }.count == 2)
     }
 
+    @Test func itSaysWhenItsStillSearching() async {
+        let searches = Searches()
+        let onAir = model(searches)
+        #expect(!onAir.isSearching)
+        await searches.setFailing(true)
+        await onAir.update(announced: "Blur - Song 2", stationName: nil)
+        #expect(!onAir.isSearching)
+        await searches.setFailing(false)
+        await onAir.update(announced: "Blur - Song 2", stationName: nil)
+        #expect(!onAir.isSearching)
+        #expect(onAir.match == nil)
+    }
+
     @Test func noTitleOrNotASongClearsTheMatch() async {
         let onAir = model(Searches(), results: ["Radiohead Karma Police": [Self.karma]])
         await onAir.update(announced: "Radiohead - Karma Police", stationName: nil)

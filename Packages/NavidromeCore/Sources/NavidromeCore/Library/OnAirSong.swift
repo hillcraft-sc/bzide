@@ -77,6 +77,9 @@ public final class OnAirMatchModel {
     public private(set) var onAir: OnAirSong?
     /// The library's copy of it, if there is one.
     public private(set) var match: Song?
+    /// Whether the library is still being searched for the song on air, so
+    /// "not in the library" isn't known yet.
+    public private(set) var isSearching = false
 
     @ObservationIgnored private let search: Search
     @ObservationIgnored private var answers: [String: Song?] = [:]
@@ -94,16 +97,20 @@ public final class OnAirMatchModel {
         onAir = song
         guard let announced, let song else {
             match = nil
+            isSearching = false
             return
         }
         if let known = answers[announced] {
             match = known
+            isSearching = false
             return
         }
         match = nil
+        isSearching = true
         let found = await find(song)
         // Another title came in meanwhile.
         guard latest == announced, !Task.isCancelled else { return }
+        isSearching = false
         switch found {
         case .success(let song):
             answers[announced] = song
