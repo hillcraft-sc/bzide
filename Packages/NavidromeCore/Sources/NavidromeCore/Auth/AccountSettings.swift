@@ -1,9 +1,11 @@
 import Foundation
 
-/// Keeps each account's settings, so every user on a shared iPhone has their
-/// own: theme, Library layout, playback options, the outside-service
-/// switches, filters, and files that go with them (Tagged Radio Songs, and
-/// the profile: its picture choice, email and saved pictures).
+/// Keeps each account's settings and small data, so every user on a shared
+/// iPhone has their own: theme, Library layout, playback options, the
+/// outside-service switches, filters, and files: the saved queue, play
+/// history, unsent scrobbles, the profile (picture choice, email, saved
+/// pictures), stations saved on the iPhone and what's remembered about
+/// stations, Spin the Dial's log, and Tagged Radio Songs.
 ///
 /// Settings live in UserDefaults, where the app reads them, for whoever is
 /// signed in. When a different account signs in (see `AccountScope`), the
@@ -43,6 +45,13 @@ public struct AccountSettings {
                 support.appending(path: Wishlist.fileName),
                 support.appending(path: ProfileModel.fileName),
                 support.appending(path: ProfileModel.picturesDirectoryName),
+                support.appending(path: FileQueueStore.fileName),
+                support.appending(path: FileScrobbleStore.fileName),
+                support.appending(path: PlayHistory.fileName),
+                support.appending(path: PhoneStationStore.fileName),
+                support.appending(path: StationDetailsStore.fileName),
+                support.appending(path: StationDetailsStore.oldLogosFileName),
+                support.appending(path: DialLog.fileName),
             ]
         )
     }

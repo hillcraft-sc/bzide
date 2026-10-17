@@ -141,4 +141,33 @@ struct AccountSettingsTests {
         #expect(!list.removesFound)
         #expect(list.removeFoundAfter == .week)
     }
+
+    @Test func aSwitchIsSpottedBeforeSigningIn() {
+        // Nothing recorded yet: not a switch.
+        #expect(!scope.isDifferentAccount(account("ann")))
+        scope.prepare(for: account("ann"))
+        #expect(!scope.isDifferentAccount(account("ann")))
+        #expect(scope.isDifferentAccount(account("bob")))
+    }
+
+    @Test func theSameServerAtANewAddressKeepsEverything() throws {
+        scope.prepare(for: account("ann"))
+        defaults.set("mocha", forKey: "theme")
+        try writeTagged("ann's songs")
+        let local = ServerCredentials(baseURL: URL(string: "http://192.168.1.20:4533")!, username: "ann", password: "sesame")
+        #expect(scope.isDifferentAccount(local))
+        scope.adopt(local)
+        #expect(!scope.isDifferentAccount(local))
+        #expect(!scope.prepare(for: local))
+        #expect(defaults.string(forKey: "theme") == "mocha")
+        #expect(taggedText == "ann's songs")
+    }
+
+    @Test func aFolderSizeCountsEverythingInIt() throws {
+        let folder = root.appending(path: "Downloads/al-1")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        try Data(count: 10_000).write(to: folder.appending(path: "so-1.flac"))
+        #expect(AccountScope.size(of: root.appending(path: "Downloads")) >= 10_000)
+        #expect(AccountScope.size(of: root.appending(path: "Missing")) == 0)
+    }
 }

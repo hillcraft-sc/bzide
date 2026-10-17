@@ -3,14 +3,15 @@ import Foundation
 
 /// Keeps one account's data from leaking into another's.
 ///
-/// Downloads, the saved queue, unsent scrobbles, play history, cached cover
-/// art (and Gravatar pictures), the radio stations saved
-/// on this iPhone and what's remembered about saved stations all belong to the server
-/// and user they came from. Signing out leaves them in place, so signing back
-/// in to the same account keeps everything. Signing in to a different server
-/// or user deletes them first. Settings are different: each account keeps its
-/// own, set aside and brought back by `AccountSettings`, and so does the
-/// profile (its picture choice, email and saved pictures).
+/// Everything on the iPhone belongs to the server and user it came from.
+/// Signing out leaves it in place, so signing back in to the same account
+/// keeps everything. When a different server or user signs in, the large,
+/// re-fetchable data (downloads, cached cover art and Gravatar pictures) is
+/// deleted, and the rest (settings, the queue, play history, unsent
+/// scrobbles, the profile, saved stations, Tagged Radio Songs…) is set aside
+/// for that account by `AccountSettings`, and comes back when it signs in
+/// again. The app warns before a switch (`isDifferentAccount`) and offers
+/// `adopt` for the same server reached at a new address.
 ///
 /// The owning account is remembered as a fingerprint (a hash of server address
 /// and username), so neither is stored outside the Keychain.
@@ -27,28 +28,49 @@ public struct AccountScope {
         self.settings = settings
     }
 
-    /// Every file and folder holding account data, in their standard places.
+    /// The data deleted on a switch, in its standard places: downloads and
+    /// caches, which can be fetched again. (Everything else is set aside; see
+    /// `AccountSettings.standard()`.)
     public static func standardDataLocations() throws -> [URL] {
         let fileManager = FileManager.default
         let support = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         let caches = try fileManager.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         return [
-            support.appending(path: FileQueueStore.fileName),
-            support.appending(path: FileScrobbleStore.fileName),
-            support.appending(path: PlayHistory.fileName),
             support.appending(path: DownloadManager.directoryName),
             caches.appending(path: CoverArtStore.directoryName),
             caches.appending(path: ProfileModel.cacheDirectoryName),
-            support.appending(path: PhoneStationStore.fileName),
-            support.appending(path: StationDetailsStore.fileName),
-            support.appending(path: StationDetailsStore.oldLogosFileName),
-            support.appending(path: DialLog.fileName),
         ]
     }
 
+    /// Whether signing in with these would switch accounts: the data here
+    /// belongs to another (and isn't from before accounts were tracked).
+    public func isDifferentAccount(_ credentials: ServerCredentials) -> Bool {
+        guard let owner = defaults.string(forKey: Self.fingerprintKey) else { return false }
+        return owner != Self.fingerprint(of: credentials)
+    }
+
+    /// Makes these the owner of everything here, without switching: for the
+    /// same server reached at a different address (say, the local network
+    /// instead of the domain), which counts as a different account otherwise.
+    public func adopt(_ credentials: ServerCredentials) {
+        defaults.set(Self.fingerprint(of: credentials), forKey: Self.fingerprintKey)
+    }
+
+    /// Bytes in a folder and everything in it (0 if it's missing), for the
+    /// warning before a switch.
+    public static func size(of folder: URL) -> Int64 {
+        guard let items = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.totalFileAllocatedSizeKey]) else { return 0 }
+        var total: Int64 = 0
+        for case let item as URL in items {
+            total += Int64((try? item.resourceValues(forKeys: [.totalFileAllocatedSizeKey]).totalFileAllocatedSize) ?? 0)
+        }
+        return total
+    }
+
     /// Call before any account data or settings are loaded. If the data on the
-    /// device belongs to a different account, swaps the settings to this
-    /// account's and deletes the data; then records this one as the owner.
+    /// device belongs to a different account, sets its settings and data aside,
+    /// brings back this account's, and deletes the downloads and caches; then
+    /// records this one as the owner.
     /// Returns whether it switched.
     ///
     /// With no owner recorded (data from before this check existed), the data is

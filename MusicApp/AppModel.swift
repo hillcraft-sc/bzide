@@ -18,6 +18,8 @@ final class AppModel {
     private(set) var library: Library?
     private(set) var isSigningIn = false
     private(set) var signInError: String?
+    /// A sign-in that would switch accounts, waiting for the user to confirm.
+    private(set) var pendingSwitch: AccountSwitch?
     private(set) var albums: [Album] = []
     private(set) var playlists: [Playlist] = []
     private(set) var libraryError: String?
@@ -81,6 +83,12 @@ final class AppModel {
         defer { isSigningIn = false }
         do {
             try await SubsonicClient(credentials: credentials).ping()
+            // Another account's data is here: say what a switch removes first.
+            if let scope = try? Self.accountScope(), scope.isDifferentAccount(credentials) {
+                let downloads = (try? DownloadManager.applicationSupportDirectory()).map(AccountScope.size) ?? 0
+                pendingSwitch = AccountSwitch(credentials: credentials, downloadBytes: downloads)
+                return
+            }
             try credentialStore.save(credentials)
             start(with: credentials)
         } catch let error as SubsonicError {
@@ -88,6 +96,28 @@ final class AppModel {
         } catch {
             signInError = error.localizedDescription
         }
+    }
+
+    /// Goes ahead with the pending switch. `sameServer`: it's the same server at
+    /// another address, so everything here is kept as this account's.
+    func confirmSwitch(sameServer: Bool) {
+        guard let pending = pendingSwitch else { return }
+        pendingSwitch = nil
+        if sameServer { try? Self.accountScope().adopt(pending.credentials) }
+        do {
+            try credentialStore.save(pending.credentials)
+            start(with: pending.credentials)
+        } catch {
+            signInError = error.localizedDescription
+        }
+    }
+
+    func cancelSwitch() {
+        pendingSwitch = nil
+    }
+
+    private static func accountScope() throws -> AccountScope {
+        AccountScope(dataLocations: try AccountScope.standardDataLocations(), settings: try AccountSettings.standard())
     }
 
     /// Builds everything that belongs to the signed-in account on top of the
@@ -143,8 +173,7 @@ final class AppModel {
     /// one account; signing in to another removes them first.
     private func removeOtherAccountsData(for credentials: ServerCredentials) {
         do {
-            let scope = AccountScope(dataLocations: try AccountScope.standardDataLocations(), settings: try AccountSettings.standard())
-            if scope.prepare(for: credentials) {
+            if try Self.accountScope().prepare(for: credentials) {
                 Self.logger.notice("Signed in to a different account; switched settings and removed the previous account's data")
                 // These stay loaded between sign-ins; read this account's.
                 system.settings.reload()
@@ -292,4 +321,12 @@ struct AccountSummary: Equatable {
         server = credentials.baseURL.host(percentEncoded: false) ?? credentials.baseURL.absoluteString
         username = credentials.username
     }
+}
+
+/// Signing in as an account other than the one whose data is on the iPhone.
+struct AccountSwitch: Identifiable {
+    let id = UUID()
+    let credentials: ServerCredentials
+    /// What the previous account's downloads take up, removed by the switch.
+    let downloadBytes: Int64
 }
