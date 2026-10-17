@@ -130,9 +130,16 @@ public final class StreamingSettingsModel {
     /// replaced by the defaults rather than blocking playback.
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        settings = defaults.data(forKey: Self.key)
-            .flatMap { try? JSONDecoder().decode(StreamingSettings.self, from: $0) }
-            ?? StreamingSettings()
+        settings = Self.load(defaults)
+    }
+
+    /// Reads them again, after another account's settings were put in place.
+    public func reload() {
+        settings = Self.load(defaults)
+    }
+
+    private static func load(_ defaults: UserDefaults) -> StreamingSettings {
+        defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(StreamingSettings.self, from: $0) } ?? StreamingSettings()
     }
 
     private func save() {

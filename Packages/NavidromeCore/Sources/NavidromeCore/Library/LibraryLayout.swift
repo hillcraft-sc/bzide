@@ -152,7 +152,7 @@ public struct LibraryLayout: Codable, Equatable, Sendable {
 }
 
 /// The Library screen's layout, saved to `UserDefaults` on every change.
-/// Device-wide, like appearance: it stays across sign-outs.
+/// Each account has its own (see `AccountSettings`); it stays across sign-outs.
 @MainActor
 @Observable
 public final class LibraryLayoutModel {
@@ -165,9 +165,16 @@ public final class LibraryLayoutModel {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        layout = defaults.data(forKey: Self.key)
-            .flatMap { try? JSONDecoder().decode(LibraryLayout.self, from: $0) }
-            ?? LibraryLayout()
+        layout = Self.load(defaults)
+    }
+
+    /// Reads it again, after another account's settings were put in place.
+    public func reload() {
+        layout = Self.load(defaults)
+    }
+
+    private static func load(_ defaults: UserDefaults) -> LibraryLayout {
+        defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(LibraryLayout.self, from: $0) } ?? LibraryLayout()
     }
 
     public func reset() {

@@ -2,7 +2,7 @@ import Foundation
 import Observation
 
 /// The user's appearance settings, saved to `UserDefaults` on every change.
-/// Device-wide, like streaming quality: they stay across sign-outs.
+/// Each account has its own (see `AccountSettings`); they stay across sign-outs.
 @MainActor
 @Observable
 public final class AppearanceModel {
@@ -15,9 +15,16 @@ public final class AppearanceModel {
 
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        settings = defaults.data(forKey: Self.key)
-            .flatMap { try? JSONDecoder().decode(AppearanceSettings.self, from: $0) }
-            ?? AppearanceSettings()
+        settings = Self.load(defaults)
+    }
+
+    /// Reads them again, after another account's settings were put in place.
+    public func reload() {
+        settings = Self.load(defaults)
+    }
+
+    private static func load(_ defaults: UserDefaults) -> AppearanceSettings {
+        defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(AppearanceSettings.self, from: $0) } ?? AppearanceSettings()
     }
 
     /// The Catppuccin colors in use, or `nil` for the system themes.

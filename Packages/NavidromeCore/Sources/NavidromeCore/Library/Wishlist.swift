@@ -59,15 +59,16 @@ public enum FoundSongRemoval: Int, CaseIterable, Sendable {
 /// Songs heard on the radio to remember, shown to users as "Tagged Radio
 /// Songs" (Wishlist is its name in code and in the saved file): added from Now Playing while a
 /// station plays a song that isn't in the library. Kept on this iPhone only,
-/// in a file, whichever account is signed in (it's about music heard, not a
-/// server's library), and never sent anywhere. Newest first.
+/// in a file, and never sent anywhere; each account has its own list, set
+/// aside with its settings when another signs in (see `AccountSettings`).
+/// Newest first.
 ///
 /// Opening the list checks the user's server for each song (as Now Playing's
 /// "In Your Library" does); one found there is marked, with the library's
 /// copy to play. It stays until the user removes it, or, with Remove Found
 /// Songs on (off by default), until `removeFoundAfter` has passed since it
-/// was found. The settings are kept in UserDefaults, on this iPhone like the
-/// list.
+/// was found. The settings are kept in UserDefaults, with the account's
+/// other settings.
 @MainActor
 @Observable
 public final class Wishlist {

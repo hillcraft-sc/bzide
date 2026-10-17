@@ -4,23 +4,27 @@ import Foundation
 /// Keeps one account's data from leaking into another's.
 ///
 /// Downloads, the saved queue, unsent scrobbles, play history, cached cover
-/// art, the profile (its settings and pictures), the radio stations saved
+/// art (and Gravatar pictures), the radio stations saved
 /// on this iPhone and what's remembered about saved stations all belong to the server
 /// and user they came from. Signing out leaves them in place, so signing back
 /// in to the same account keeps everything. Signing in to a different server
-/// or user deletes them first.
+/// or user deletes them first. Settings are different: each account keeps its
+/// own, set aside and brought back by `AccountSettings`, and so does the
+/// profile (its picture choice, email and saved pictures).
 ///
 /// The owning account is remembered as a fingerprint (a hash of server address
 /// and username), so neither is stored outside the Keychain.
 public struct AccountScope {
     private let defaults: UserDefaults
     private let dataLocations: [URL]
+    private let settings: AccountSettings?
 
     static let fingerprintKey = "accountFingerprint"
 
-    public init(defaults: UserDefaults = .standard, dataLocations: [URL]) {
+    public init(defaults: UserDefaults = .standard, dataLocations: [URL], settings: AccountSettings? = nil) {
         self.defaults = defaults
         self.dataLocations = dataLocations
+        self.settings = settings
     }
 
     /// Every file and folder holding account data, in their standard places.
@@ -34,8 +38,6 @@ public struct AccountScope {
             support.appending(path: PlayHistory.fileName),
             support.appending(path: DownloadManager.directoryName),
             caches.appending(path: CoverArtStore.directoryName),
-            support.appending(path: ProfileModel.fileName),
-            support.appending(path: ProfileModel.picturesDirectoryName),
             caches.appending(path: ProfileModel.cacheDirectoryName),
             support.appending(path: PhoneStationStore.fileName),
             support.appending(path: StationDetailsStore.fileName),
@@ -44,9 +46,10 @@ public struct AccountScope {
         ]
     }
 
-    /// Call before any account data is loaded. Deletes the data on the device if
-    /// it belongs to a different account, then records this one as the owner.
-    /// Returns whether anything was deleted.
+    /// Call before any account data or settings are loaded. If the data on the
+    /// device belongs to a different account, swaps the settings to this
+    /// account's and deletes the data; then records this one as the owner.
+    /// Returns whether it switched.
     ///
     /// With no owner recorded (data from before this check existed), the data is
     /// assumed to be this account's and kept.
@@ -55,6 +58,7 @@ public struct AccountScope {
         let fingerprint = Self.fingerprint(of: credentials)
         defer { defaults.set(fingerprint, forKey: Self.fingerprintKey) }
         guard let owner = defaults.string(forKey: Self.fingerprintKey), owner != fingerprint else { return false }
+        settings?.switchAccount(from: owner, to: fingerprint)
         for location in dataLocations {
             try? FileManager.default.removeItem(at: location)
         }

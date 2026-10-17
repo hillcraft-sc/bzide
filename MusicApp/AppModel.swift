@@ -143,9 +143,13 @@ final class AppModel {
     /// one account; signing in to another removes them first.
     private func removeOtherAccountsData(for credentials: ServerCredentials) {
         do {
-            let scope = AccountScope(dataLocations: try AccountScope.standardDataLocations())
+            let scope = AccountScope(dataLocations: try AccountScope.standardDataLocations(), settings: try AccountSettings.standard())
             if scope.prepare(for: credentials) {
-                Self.logger.notice("Signed in to a different account; removed the previous account's data")
+                Self.logger.notice("Signed in to a different account; switched settings and removed the previous account's data")
+                // These stay loaded between sign-ins; read this account's.
+                system.settings.reload()
+                appearance.reload()
+                libraryLayout.reload()
                 // Recreated with its backup exclusion, which went with the old folder.
                 _ = try DownloadManager.applicationSupportDirectory()
             }
