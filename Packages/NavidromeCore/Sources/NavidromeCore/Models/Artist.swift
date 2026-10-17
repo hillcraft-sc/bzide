@@ -1,3 +1,5 @@
+import Foundation
+
 /// An artist (Subsonic `ArtistID3`). `albums` is only filled by `getArtist`.
 public struct Artist: Sendable, Equatable, Identifiable, Decodable {
     public var id: String
@@ -5,6 +7,8 @@ public struct Artist: Sendable, Equatable, Identifiable, Decodable {
     public var albumCount: Int?
     public var coverArtID: String?
     public var isStarred: Bool
+    /// When it was favorited, if the server said.
+    public var starredAt: Date?
     /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
     public var userRating: Int?
     public var albums: [Album]
@@ -37,6 +41,7 @@ public struct Artist: Sendable, Equatable, Identifiable, Decodable {
             userRating: c.rating(.userRating),
             albums: c.lossyArray(Album.self, forKey: .album)
         )
+        starredAt = c.lenientDate(.starred)
     }
 }
 

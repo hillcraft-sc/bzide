@@ -11,6 +11,8 @@ public struct SearchResult: Sendable, Equatable, Decodable {
         self.songs = songs
     }
 
+    public var isEmpty: Bool { artists.isEmpty && albums.isEmpty && songs.isEmpty }
+
     private enum ServerKeys: String, CodingKey { case artist, album, song }
 
     public init(from decoder: any Decoder) throws {

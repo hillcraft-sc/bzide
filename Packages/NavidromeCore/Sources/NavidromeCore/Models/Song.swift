@@ -20,6 +20,8 @@ public struct Song: Sendable, Equatable, Identifiable, Codable {
     public var suffix: String?
     public var contentType: String?
     public var isStarred: Bool
+    /// When it was favorited, if the server said.
+    public var starredAt: Date?
     /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
     public var userRating: Int?
     /// For volume normalization, when the server has it (OpenSubsonic).
@@ -89,7 +91,9 @@ extension Song {
         try c.encodeIfPresent(suffix, forKey: .suffix)
         try c.encodeIfPresent(contentType, forKey: .contentType)
         // The server signals "starred" by the key being present, so write it only when true.
-        if isStarred { try c.encode(true, forKey: .starred) }
+        if isStarred {
+            if let starredAt { try c.encode(MediaDates.string(starredAt), forKey: .starred) } else { try c.encode(true, forKey: .starred) }
+        }
         try c.encodeIfPresent(userRating, forKey: .userRating)
         try c.encodeIfPresent(replayGain, forKey: .replayGain)
         try details.encode(to: encoder)
@@ -119,6 +123,7 @@ extension Song {
             replayGain: ((try? c.decodeIfPresent(ReplayGain.self, forKey: .replayGain)) ?? nil).flatMap { $0.hasGain ? $0 : nil }
         )
         liveStreamURL = c.lenientString(.liveStreamUrl).flatMap(RadioStation.webURL)
+        starredAt = c.lenientDate(.starred)
         details = (try? SongDetails(from: decoder)) ?? SongDetails()
     }
 }

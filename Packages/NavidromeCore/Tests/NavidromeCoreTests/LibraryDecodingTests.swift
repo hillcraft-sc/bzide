@@ -7,7 +7,9 @@ struct LibraryDecodingTests {
         let sections = try await TestServer.client(FakeTransport(fixture: "getArtists")).artists()
         #expect(sections.map(\.name) == ["A", "#"])
         #expect(sections[0].artists.map(\.id) == ["ar-1", "ar-2"])
-        #expect(sections[0].artists[0] == Artist(id: "ar-1", name: "Aurora Lines", albumCount: 2, coverArtID: "ar-ar-1", isStarred: true, userRating: 4))
+        var aurora = Artist(id: "ar-1", name: "Aurora Lines", albumCount: 2, coverArtID: "ar-ar-1", isStarred: true, userRating: 4)
+        aurora.starredAt = MediaDates.date("2026-01-02T03:04:05Z")
+        #expect(sections[0].artists[0] == aurora)
         #expect(sections[0].artists[1].isStarred == false)
         // Out of range: treated as unrated, not an error.
         #expect(sections[0].artists[1].userRating == nil)

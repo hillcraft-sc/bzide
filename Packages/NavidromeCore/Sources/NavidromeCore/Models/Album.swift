@@ -1,3 +1,5 @@
+import Foundation
+
 /// An album (Subsonic `AlbumID3`). `songs` is only filled by `getAlbum`.
 public struct Album: Sendable, Equatable, Identifiable, Decodable {
     public var id: String
@@ -11,6 +13,8 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
     public var year: Int?
     public var genre: String?
     public var isStarred: Bool
+    /// When it was favorited, if the server said.
+    public var starredAt: Date?
     /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
     public var userRating: Int?
     public var songs: [Song]
@@ -57,6 +61,7 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
             userRating: c.rating(.userRating),
             songs: c.lossyArray(Song.self, forKey: .song)
         )
+        starredAt = c.lenientDate(.starred)
         details = AlbumDetails(from: decoder)
     }
 }

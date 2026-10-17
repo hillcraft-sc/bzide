@@ -98,6 +98,10 @@ struct LibraryLayoutTests {
         #expect(favorites.albums.map(\.id) == ["al-1"])
         #expect(favorites.songs.map(\.id) == ["so-1", "so-3"])
         #expect(favorites.songs.allSatisfy { $0.isStarred })
+        // When each was favorited, for Recently Favorited.
+        #expect(favorites.songs.map(\.starredAt) == [MediaDates.date("2026-01-04T10:00:00Z"), MediaDates.date("2026-01-05T10:00:00Z")])
+        #expect(favorites.albums.first?.starredAt == MediaDates.date("2026-01-03T10:00:00Z"))
+        #expect(favorites.artists.first?.starredAt == MediaDates.date("2026-01-02T10:00:00Z"))
         let url = try #require(await transport.requests.first?.url)
         #expect(url.path.hasSuffix("getStarred2"))
     }

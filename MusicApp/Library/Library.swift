@@ -407,6 +407,9 @@ final class Library {
         )
     }
 
+    func isSongDownloaded(_ id: String) -> Bool { downloads.localFile(forSongID: id) != nil }
+    func isAlbumDownloaded(_ id: String) -> Bool { downloads.collection(id: DownloadCollection.id(.album, serverID: id)) != nil }
+
     func searchModel() -> SearchModel {
         SearchModel(
             scheduler: TaskScheduler(),
