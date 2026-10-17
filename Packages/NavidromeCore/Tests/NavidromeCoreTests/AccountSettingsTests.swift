@@ -114,4 +114,31 @@ struct AccountSettingsTests {
         scope.prepare(for: account("ann"))
         #expect(FileManager.default.fileExists(atPath: pictures.appending(path: "photo.jpg").path(percentEncoded: false)))
     }
+
+    @Test func restoringDefaultsClearsSettingsButKeepsWhatTheUserMade() throws {
+        let settings = AccountSettings(defaults: defaults, domain: suite, directory: root.appending(path: AccountSettings.directoryName), files: [tagged])
+        scope.prepare(for: account("ann"))
+        defaults.set("mocha", forKey: "theme")
+        defaults.set(Data("{}".utf8), forKey: LyricsTiming.key)
+        defaults.set(365, forKey: PlayHistory.retentionKey)
+        try writeTagged("ann's songs")
+        settings.restoreDefaults()
+        #expect(defaults.object(forKey: "theme") == nil)
+        #expect(defaults.data(forKey: LyricsTiming.key) != nil)
+        #expect(defaults.integer(forKey: PlayHistory.retentionKey) == 365)
+        #expect(taggedText == "ann's songs")
+        #expect(defaults.string(forKey: AccountScope.fingerprintKey) == AccountScope.fingerprint(of: account("ann")))
+    }
+
+    @MainActor
+    @Test func theTaggedSongsSettingsReload() {
+        let list = Wishlist(fileURL: nil, defaults: defaults, search: { _ async throws(SubsonicError) in [] })
+        list.removesFound = true
+        list.removeFoundAfter = .month
+        defaults.removeObject(forKey: Wishlist.removesFoundKey)
+        defaults.removeObject(forKey: Wishlist.removeFoundAfterKey)
+        list.reloadSettings()
+        #expect(!list.removesFound)
+        #expect(list.removeFoundAfter == .week)
+    }
 }

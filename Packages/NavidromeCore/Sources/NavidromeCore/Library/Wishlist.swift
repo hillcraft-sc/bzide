@@ -117,6 +117,12 @@ public final class Wishlist {
             ?? []
     }
 
+    /// Reads its settings again, after they were restored to the defaults.
+    public func reloadSettings() {
+        removesFound = defaults.bool(forKey: Self.removesFoundKey)
+        removeFoundAfter = defaults.object(forKey: Self.removeFoundAfterKey).flatMap { $0 as? Int }.flatMap(FoundSongRemoval.init) ?? .week
+    }
+
     /// Whether the song is on the list already (the same title and artist,
     /// as Now Playing's matching goes).
     public func contains(_ song: OnAirSong) -> Bool {

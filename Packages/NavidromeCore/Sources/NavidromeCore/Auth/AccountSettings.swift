@@ -47,6 +47,21 @@ public struct AccountSettings {
         )
     }
 
+    /// Settings kept by Restore Default Settings: things the user made, not
+    /// chose (lyrics timing fixes), and how long history is kept, which would
+    /// otherwise delete older plays.
+    static let keptByRestore: Set<String> = [LyricsTiming.key, PlayHistory.retentionKey, PlayHistory.combineKey]
+
+    /// Restore Default Settings: clears the signed-in account's settings, so
+    /// everything reads its default (outside services off). Keeps its files
+    /// (Tagged Radio Songs, the profile) and `keptByRestore`. Models already
+    /// loaded need reloading after.
+    public func restoreDefaults() {
+        for key in accountSettings.keys where !Self.keptByRestore.contains(key) {
+            defaults.removeObject(forKey: key)
+        }
+    }
+
     /// Sets aside `old`'s settings and files and brings back `new`'s (or the defaults).
     func switchAccount(from old: String, to new: String) {
         stash(old)

@@ -159,6 +159,24 @@ final class AppModel {
         }
     }
 
+    // MARK: - Restore Default Settings
+
+    /// Puts the signed-in account's settings back to how Bzide starts (see
+    /// `AccountSettings.restoreDefaults`), and has the screens already loaded
+    /// read them again. Data, Tagged Radio Songs and the profile stay.
+    func restoreDefaultSettings() {
+        do {
+            try AccountSettings.standard().restoreDefaults()
+        } catch {
+            Self.logger.error("Couldn't restore the default settings: \(String(describing: error), privacy: .public)")
+            return
+        }
+        system.settings.reload()
+        appearance.reload()
+        libraryLayout.reload()
+        library?.wishlist.reloadSettings()
+    }
+
     // MARK: - Sign out
 
     /// Removes the login and stops playback. The account's data stays on the

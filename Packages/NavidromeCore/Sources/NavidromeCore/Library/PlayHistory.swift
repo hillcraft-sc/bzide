@@ -157,8 +157,8 @@ public final class PlayHistory: PlayRecording {
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private let calendar: Calendar
 
-    static let retentionKey = "historyRetention"
-    static let combineKey = "historyCombinesRepeats"
+    nonisolated static let retentionKey = "historyRetention"
+    nonisolated static let combineKey = "historyCombinesRepeats"
     nonisolated static let fileName = "PlayHistory.json"
     private static let logger = Logger(subsystem: "MusicApp", category: "PlayHistory")
 

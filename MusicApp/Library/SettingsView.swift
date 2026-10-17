@@ -11,6 +11,7 @@ struct SettingsView: View {
     @Bindable var profile: ProfileModel
     let account: AccountSummary?
     let signOut: () -> Void
+    let restoreDefaults: () -> Void
     /// The bare player screen kept for exercising playback.
     let debugPlayer: () -> DebugPlayerView
     /// Radio Browser's genres, for Spin the Dial's Genres.
@@ -26,6 +27,7 @@ struct SettingsView: View {
     @State private var isConfirmingRemoveAll = false
     @State private var isConfirmingSignOut = false
     @State private var isConfirmingClearHistory = false
+    @State private var isConfirmingRestoreDefaults = false
     @State private var photoItem: PhotosPickerItem?
     /// Why the last picked picture couldn't be used.
     @State private var pickError: String?
@@ -178,6 +180,12 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Button("Restore Default Settings", role: .destructive) { isConfirmingRestoreDefaults = true }
+            } footer: {
+                Text("Puts every setting back to how Bzide starts, with the online services off, and resets the Library layout, filters and visualizer. Your downloads, history (and how long it's kept), tagged radio songs, profile picture and lyrics timing fixes stay.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 NavigationLink {
                     debugPlayer()
                 } label: {
@@ -196,6 +204,11 @@ struct SettingsView: View {
             Button("Sign Out", role: .destructive) { signOut() }
         } message: {
             Text("Playback stops. Your downloads and history stay unless you sign in to a different account.")
+        }
+        .confirmationDialog("Restore default settings?", isPresented: $isConfirmingRestoreDefaults, titleVisibility: .visible) {
+            Button("Restore Defaults", role: .destructive) { restoreDefaults() }
+        } message: {
+            Text("Every setting goes back to how Bzide starts. Downloads, history, tagged radio songs and your profile picture stay.")
         }
         .confirmationDialog("Clear all play history?", isPresented: $isConfirmingClearHistory, titleVisibility: .visible) {
             Button("Clear History", role: .destructive) { history.clear() }

@@ -73,7 +73,7 @@ struct LibraryView: View {
                 NavigationLink {
                     SettingsView(
                         settings: library.settings, downloads: library.downloads, history: library.history, wishlist: library.wishlist,
-                        appearance: model.appearance, profile: library.profile, account: model.account, signOut: model.signOut,
+                        appearance: model.appearance, profile: library.profile, account: model.account, signOut: model.signOut, restoreDefaults: model.restoreDefaultSettings,
                         debugPlayer: { DebugPlayerView(model: model, engine: library.engine) },
                         stationSearch: { library.stationSearchModel() },
                         refreshLibrary: { try await library.refreshLibrary() }

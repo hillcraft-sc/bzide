@@ -18,7 +18,7 @@ public final class LyricsTiming {
     public private(set) var offsets: [String: TimeInterval]
     @ObservationIgnored private var order: [String]
     @ObservationIgnored private let defaults: UserDefaults
-    static let key = "lyricsTiming"
+    nonisolated static let key = "lyricsTiming"
 
     private struct Saved: Codable {
         var offsets: [String: TimeInterval]
