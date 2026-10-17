@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Bindable var settings: StreamingSettingsModel
     let downloads: DownloadManager
     @Bindable var history: PlayHistory
+    let wishlist: Wishlist
     @Bindable var appearance: AppearanceModel
     @Bindable var profile: ProfileModel
     let account: AccountSummary?
@@ -137,6 +138,7 @@ struct SettingsView: View {
                 Text(StationSearchView.optInExplanation + "\n\nLook Up Songs Online: for the song a station is playing, Song Info and its album cover come from MusicBrainz (musicbrainz.org) and the Cover Art Archive, which get only its artist and title.")
             }
             .themedRows(grouped: true)
+            TaggedSongsSection(wishlist: wishlist)
             Section {
                 Picker("Mode", selection: $settings.settings.spinTheDial.mode) {
                     ForEach(DialSettings.Mode.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -575,5 +577,27 @@ private struct LiveWeatherPlaceField: View {
             settings.settings.liveWeatherPlace = match
             noMatch = match == nil
         }
+    }
+}
+
+/// Settings > Tagged Radio Songs: whether songs found in the library leave
+/// the list, and when.
+private struct TaggedSongsSection: View {
+    @Bindable var wishlist: Wishlist
+
+    var body: some View {
+        Section {
+            Toggle("Remove Songs in Library", isOn: $wishlist.removesFound)
+            if wishlist.removesFound {
+                Picker("Remove", selection: $wishlist.removeFoundAfter) {
+                    ForEach(FoundSongRemoval.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+            }
+        } header: {
+            Text("Tagged Radio Songs")
+        } footer: {
+            Text("Songs you tag stay until you remove them. With this on, a song that turns up in your library is removed from the list, counted from the day Bzide finds it there. Bzide checks your server when the app starts and when you open the list.")
+        }
+        .themedRows(grouped: true)
     }
 }

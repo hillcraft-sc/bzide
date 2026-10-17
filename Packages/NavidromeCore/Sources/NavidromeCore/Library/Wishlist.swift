@@ -14,10 +14,13 @@ public struct WishlistEntry: Codable, Equatable, Identifiable, Sendable {
     public var year: Int?
     public var coverURL: URL?
     public var musicBrainzURL: URL?
+    /// When it was first found in the library (cleared if it's gone again),
+    /// which Remove Found Songs counts from.
+    public var foundAt: Date?
 
     public init(
         id: UUID = UUID(), artist: String, title: String, station: String? = nil, heardAt: Date,
-        album: String? = nil, year: Int? = nil, coverURL: URL? = nil, musicBrainzURL: URL? = nil
+        album: String? = nil, year: Int? = nil, coverURL: URL? = nil, musicBrainzURL: URL? = nil, foundAt: Date? = nil
     ) {
         self.id = id
         self.artist = artist
@@ -28,12 +31,29 @@ public struct WishlistEntry: Codable, Equatable, Identifiable, Sendable {
         self.year = year
         self.coverURL = coverURL
         self.musicBrainzURL = musicBrainzURL
+        self.foundAt = foundAt
     }
 
     var song: OnAirSong { OnAirSong(artist: artist, title: title) }
 
     /// "Paul McCartney - Band on the Run", for copying.
     public var text: String { "\(artist) - \(title)" }
+}
+
+/// When songs on the list that turn up in the library are removed, counted
+/// from the day they're found.
+public enum FoundSongRemoval: Int, CaseIterable, Sendable {
+    case immediately = 0
+    case week = 7
+    case month = 30
+
+    public var title: String {
+        switch self {
+        case .immediately: "Immediately"
+        case .week: "After 7 Days"
+        case .month: "After 30 Days"
+        }
+    }
 }
 
 /// Songs heard on the radio to remember, shown to users as "Tagged Radio
@@ -44,7 +64,10 @@ public struct WishlistEntry: Codable, Equatable, Identifiable, Sendable {
 ///
 /// Opening the list checks the user's server for each song (as Now Playing's
 /// "In Your Library" does); one found there is marked, with the library's
-/// copy to play, and stays until the user removes it.
+/// copy to play. It stays until the user removes it, or, with Remove Found
+/// Songs on (off by default), until `removeFoundAfter` has passed since it
+/// was found. The settings are kept in UserDefaults, on this iPhone like the
+/// list.
 @MainActor
 @Observable
 public final class Wishlist {
@@ -53,13 +76,38 @@ public final class Wishlist {
     public private(set) var entries: [WishlistEntry]
     /// Entries found in the library since, with the library's song.
     public private(set) var owned: [UUID: Song] = [:]
+    /// Remove songs once they're in the library.
+    public var removesFound: Bool {
+        didSet {
+            defaults.set(removesFound, forKey: Self.removesFoundKey)
+            removeExpired()
+        }
+    }
+    public var removeFoundAfter: FoundSongRemoval {
+        didSet {
+            defaults.set(removeFoundAfter.rawValue, forKey: Self.removeFoundAfterKey)
+            removeExpired()
+        }
+    }
+
+    static let removesFoundKey = "wishlistRemovesFound"
+    static let removeFoundAfterKey = "wishlistRemoveFoundAfter"
 
     @ObservationIgnored private let fileURL: URL?
+    @ObservationIgnored private let defaults: UserDefaults
+    /// One check at a time (launch and opening the list can overlap).
+    @ObservationIgnored private var isChecking = false
     @ObservationIgnored private let search: OnAirMatchModel.Search
     @ObservationIgnored private let now: @Sendable () -> Date
 
-    public init(fileURL: URL?, search: @escaping OnAirMatchModel.Search, now: @escaping @Sendable () -> Date = { .now }) {
+    public init(
+        fileURL: URL?, defaults: UserDefaults = .standard,
+        search: @escaping OnAirMatchModel.Search, now: @escaping @Sendable () -> Date = { .now }
+    ) {
         self.fileURL = fileURL
+        self.defaults = defaults
+        removesFound = defaults.bool(forKey: Self.removesFoundKey)
+        removeFoundAfter = defaults.object(forKey: Self.removeFoundAfterKey).flatMap { $0 as? Int }.flatMap(FoundSongRemoval.init) ?? .week
         self.search = search
         self.now = now
         entries = fileURL
@@ -91,20 +139,49 @@ public final class Wishlist {
         save()
     }
 
-    /// Looks each song up on the user's server and marks those found. A
-    /// search that fails leaves that song as it was.
+    /// Looks each song up on the user's server and marks those found (noting
+    /// the day it was first found), then removes found songs that are due. A
+    /// search that fails leaves that song as it was; one that no longer finds
+    /// it starts its count again next time it's found.
     public func checkLibrary() async {
-        for entry in entries {
-            guard owned[entry.id] == nil else { continue }
-            let song = entry.song
-            for query in ["\(song.artist) \(song.title)", song.title, song.artist] {
-                guard let results = try? await search(query) else { break }
-                if let found = results.first(where: song.matches) {
-                    owned[entry.id] = found
-                    break
-                }
+        guard !isChecking else { return }
+        isChecking = true
+        defer { isChecking = false }
+        var changed = false
+        for entry in entries where owned[entry.id] == nil {
+            guard let result = await find(entry.song) else { continue }
+            // Removed while searching.
+            guard let index = entries.firstIndex(where: { $0.id == entry.id }) else { continue }
+            owned[entry.id] = result
+            let foundAt = result == nil ? nil : entries[index].foundAt ?? now()
+            if entries[index].foundAt != foundAt {
+                entries[index].foundAt = foundAt
+                changed = true
             }
         }
+        if changed { save() }
+        removeExpired()
+    }
+
+    /// The library's copy (`.some(nil)` if it isn't there), or `nil` if a search failed.
+    private func find(_ song: OnAirSong) async -> Song?? {
+        for query in ["\(song.artist) \(song.title)", song.title, song.artist] {
+            guard let results = try? await search(query) else { return nil }
+            if let found = results.first(where: song.matches) { return .some(found) }
+        }
+        return .some(nil)
+    }
+
+    /// With Remove Found Songs on, removes songs found at least
+    /// `removeFoundAfter` days ago.
+    private func removeExpired() {
+        guard removesFound else { return }
+        let cutoff = now().addingTimeInterval(-Double(removeFoundAfter.rawValue) * 86_400)
+        let expired = Set(entries.filter { $0.foundAt.map { $0 <= cutoff } ?? false }.map(\.id))
+        guard !expired.isEmpty else { return }
+        entries.removeAll { expired.contains($0.id) }
+        for id in expired { owned[id] = nil }
+        save()
     }
 
     private func save() {

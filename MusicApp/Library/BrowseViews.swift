@@ -72,7 +72,7 @@ struct LibraryView: View {
             ToolbarItem {
                 NavigationLink {
                     SettingsView(
-                        settings: library.settings, downloads: library.downloads, history: library.history,
+                        settings: library.settings, downloads: library.downloads, history: library.history, wishlist: library.wishlist,
                         appearance: model.appearance, profile: library.profile, account: model.account, signOut: model.signOut,
                         debugPlayer: { DebugPlayerView(model: model, engine: library.engine) },
                         stationSearch: { library.stationSearchModel() },

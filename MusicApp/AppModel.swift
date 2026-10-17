@@ -127,6 +127,9 @@ final class AppModel {
         self.client = client
         if let library {
             Task { await library.profile.refresh() }
+            // Tagged radio songs now in the library get marked (and removed
+            // when due) even if the list isn't opened.
+            Task { await library.wishlist.checkLibrary() }
             system.nowPlaying.onFavorite = { favorite in
                 Task { await library.setCurrentSongFavorite(favorite) }
             }

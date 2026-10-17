@@ -11,16 +11,35 @@ struct WishlistTests {
         func setFailing(_ value: Bool) { failing = value }
     }
 
+    /// A clock the tests move forward.
+    private final class Clock: @unchecked Sendable {
+        var now = WishlistTests.heard
+        func advance(days: Double) { now = now.addingTimeInterval(days * 86_400) }
+    }
+
+    private let defaults = UserDefaults(suiteName: "WishlistTests-\(UUID().uuidString)")!
+    private let clock = Clock()
     private let file = URL.temporaryDirectory.appending(path: "WishlistTests-\(UUID().uuidString)/Wishlist.json")
     nonisolated private static let heard = Date(timeIntervalSince1970: 1_800_000_000)
     private static let karma = OnAirSong(artist: "Radiohead", title: "Karma Police")
 
     private func wishlist(_ searches: Searches = Searches(), results: [String: [Song]] = [:]) -> Wishlist {
-        Wishlist(fileURL: file, search: { query async throws(SubsonicError) in
+        let clock = clock
+        return Wishlist(fileURL: file, defaults: defaults, search: { query async throws(SubsonicError) in
             await searches.add(query)
             if await searches.failing { throw .network(.notConnectedToInternet) }
             return results[query] ?? []
-        }, now: { Self.heard })
+        }, now: { clock.now })
+    }
+
+    private static let mine = Song(id: "so-1", title: "Karma Police", albumID: "al-1", artist: "Radiohead")
+
+    /// Karma Police, tagged and found in the library.
+    private func foundKarma(_ searches: Searches = Searches()) async -> Wishlist {
+        let list = wishlist(searches, results: ["Radiohead Karma Police": [Self.mine]])
+        list.add(Self.karma, station: nil, details: nil)
+        await list.checkLibrary()
+        return list
     }
 
     @Test func aSongIsAddedOnceNewestFirst() {
@@ -92,5 +111,75 @@ struct WishlistTests {
         await list.checkLibrary()
         #expect(list.owned.isEmpty)
         #expect(await searches.queries == ["Radiohead Karma Police"])
+    }
+
+    @Test func theDayASongIsFoundIsKept() async {
+        let list = await foundKarma()
+        #expect(list.entries.first?.foundAt == Self.heard)
+        clock.advance(days: 3)
+        await wishlist(results: ["Radiohead Karma Police": [Self.mine]]).checkLibrary()
+        // Saved, and not moved by a later check.
+        #expect(wishlist().entries.first?.foundAt == Self.heard)
+    }
+
+    @Test func aSongGoneFromTheLibraryStartsItsCountAgain() async {
+        _ = await foundKarma()
+        let list = wishlist()
+        await list.checkLibrary()
+        #expect(list.entries.first?.foundAt == nil)
+        #expect(list.owned.isEmpty)
+    }
+
+    @Test func foundSongsStayWithRemovalOff() async {
+        let list = await foundKarma()
+        clock.advance(days: 60)
+        await list.checkLibrary()
+        #expect(list.entries.count == 1)
+    }
+
+    @Test func immediatelyRemovesASongOnceFound() async {
+        let setup = wishlist()
+        setup.removesFound = true
+        setup.removeFoundAfter = .immediately
+        let list = await foundKarma()
+        #expect(list.entries.isEmpty)
+        #expect(list.owned.isEmpty)
+        #expect(wishlist().entries.isEmpty)
+    }
+
+    @Test func aSongIsRemovedSevenDaysAfterItsFound() async {
+        let setup = wishlist()
+        setup.removesFound = true
+        setup.removeFoundAfter = .week
+        let list = await foundKarma()
+        list.add(OnAirSong(artist: "Blur", title: "Song 2"), station: nil, details: nil)
+        clock.advance(days: 6.9)
+        await list.checkLibrary()
+        #expect(list.entries.count == 2)
+        clock.advance(days: 0.1)
+        await list.checkLibrary()
+        // Only the found song goes.
+        #expect(list.entries.map(\.title) == ["Song 2"])
+    }
+
+    @Test func turningRemovalOnRemovesSongsAlreadyDue() async {
+        let list = await foundKarma()
+        clock.advance(days: 10)
+        list.removeFoundAfter = .month
+        list.removesFound = true
+        #expect(list.entries.count == 1)
+        list.removeFoundAfter = .week
+        #expect(list.entries.isEmpty)
+    }
+
+    @Test func theSettingsAreKeptAndOffByDefault() {
+        let list = wishlist()
+        #expect(!list.removesFound)
+        #expect(list.removeFoundAfter == .week)
+        list.removesFound = true
+        list.removeFoundAfter = .month
+        let restored = wishlist()
+        #expect(restored.removesFound)
+        #expect(restored.removeFoundAfter == .month)
     }
 }
