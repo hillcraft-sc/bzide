@@ -375,7 +375,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Skip quickly with next several times in a row. Each skip lands on the right track and the queue view agrees. (2026-10-11, M2 checklist)
 - [x] Play a few tracks into an album, pause mid-track, force-quit the app (swipe it away), relaunch. The same track is shown, paused at roughly the same position. Press play: it resumes there. (2026-10-11, M2 checklist)
 - [x] Same, but force-quit while playing. Relaunch: same track, paused, position within about 10 seconds of where it was. (2026-10-11, M2 checklist)
-- [ ] Let the last track of a queue finish. The queue empties, the mini player shows Not Playing, and the lock screen and Control Center no longer show the app's track.
+- [x] Let the last track of a queue finish. The queue empties, the mini player shows Not Playing, and the lock screen and Control Center no longer show the app's track. (2026-10-17)
 
 ### Audio session
 - [x] Play, then receive a phone call. Music pauses. Decline or end the call: music resumes. (2026-10-11, M2 checklist)
@@ -396,7 +396,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Drag the lock screen progress bar. Playback jumps there. (2026-10-11, M2 checklist)
 - [x] On the last track, next is disabled. (2026-10-11, M2 checklist)
 - [x] Control Center shows the same info and controls. (2026-10-11, M2 checklist)
-- [ ] Wired or Bluetooth headphone buttons play, pause and skip.
+- [x] Wired or Bluetooth headphone buttons play, pause and skip. (2026-10-17)
 - [x] Skip quickly through several tracks. Artwork always matches the track shown. (2026-10-11, M2 checklist)
 - [x] Force-quit the app and relaunch, then press play. Control Center and the lock screen show the restored track. (Before pressing play they show nothing; that's iOS behavior.) (2026-10-11, M2 checklist)
 
@@ -647,12 +647,12 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Clear the queue (or fresh sign-in with nothing played): no Continue. Sign out: the menu offers nothing of Bzide's.
 
 ### Play history
-- [ ] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear.
-- [ ] Search History by track, artist and album name. Switch the period between Today, Last 7 Days and a custom range.
-- [ ] Play the same song twice in a day: History shows it once with "2 plays" at the later time. Turn on Show Every Play in the filter menu: both plays are listed. The choice is kept after relaunch.
-- [ ] Tap a play: just that song plays.
-- [ ] Settings > Keep History For: shorten it and check older plays disappear. Clear History empties the list.
-- [ ] Force-quit and relaunch: the history is still there.
+- [x] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear. (2026-10-17)
+- [x] Search History by track, artist and album name. Switch the period between Today, Last 7 Days and a custom range. (2026-10-17)
+- [x] Play the same song twice in a day: History shows it once with "2 plays" at the later time. Turn on Show Every Play in the filter menu: both plays are listed. The choice is kept after relaunch. (2026-10-17)
+- [x] Tap a play: just that song plays. (2026-10-17)
+- [x] Settings > Keep History For: shorten it and check older plays disappear. Clear History empties the list. (2026-10-17)
+- [x] Force-quit and relaunch: the history is still there. (2026-10-17)
 
 ### CarPlay (simulator)
 - [ ] Open the CarPlay window. The four tabs appear with artwork; each list loads.
