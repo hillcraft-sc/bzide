@@ -8,12 +8,12 @@ The number after each check is its line in `BEHAVIOR.md`.
 
 - [x] Settings shows the server and user. Sign Out (confirm): playback stops, the sign-in screen appears, and the lock screen no longer shows the app. (line 357)
 - [x] Sign back in to the same account: downloads, history and the queue (paused where it was) are all still there. (line 358)
-- [ ] Sign in to a different user or server (if available): downloads, history and the queue are gone, and Storage Used is zero. Sign back in to the first account: its downloads are gone too (they were removed when the account changed). (line 359)
+- [x] Sign in to a different user or server (if available): downloads, history and the queue are gone, and Storage Used is zero. Sign back in to the first account: its downloads are gone too (they were removed when the account changed). (line 359)
 - [x] Sign out and in again several times in one session: playback, lock screen controls and downloads keep working each time. (line 364)
 
 ## Basics (1)
 
-- [ ] Let the last track of a queue finish. The queue empties, the mini player shows Not Playing, and the lock screen and Control Center no longer show the app's track. (line 373)
+- [x] Let the last track of a queue finish. The queue empties, the mini player shows Not Playing, and the lock screen and Control Center no longer show the app's track. (line 373)
 
 ## Audio session (1)
 
@@ -21,7 +21,7 @@ The number after each check is its line in `BEHAVIOR.md`.
 
 ## Lock screen and Control Center (1)
 
-- [ ] Wired or Bluetooth headphone buttons play, pause and skip. (line 394)
+- [x] Wired or Bluetooth headphone buttons play, pause and skip. (line 394)
 
 ## Library (30)
 
@@ -140,12 +140,12 @@ The number after each check is its line in `BEHAVIOR.md`.
 
 ## Play history (6)
 
-- [ ] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear. (line 645)
-- [ ] Search History by track, artist and album name. Switch the period between Today, Last 7 Days and a custom range. (line 646)
-- [ ] Play the same song twice in a day: History shows it once with "2 plays" at the later time. Turn on Show Every Play in the filter menu: both plays are listed. The choice is kept after relaunch. (line 647)
-- [ ] Tap a play: just that song plays. (line 648)
-- [ ] Settings > Keep History For: shorten it and check older plays disappear. Clear History empties the list. (line 649)
-- [ ] Force-quit and relaunch: the history is still there. (line 650)
+- [x] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear. (line 645)
+- [x] Search History by track, artist and album name. Switch the period between Today, Last 7 Days and a custom range. (line 646)
+- [x] Play the same song twice in a day: History shows it once with "2 plays" at the later time. Turn on Show Every Play in the filter menu: both plays are listed. The choice is kept after relaunch. (line 647)
+- [x] Tap a play: just that song plays. (line 648)
+- [x] Settings > Keep History For: shorten it and check older plays disappear. Clear History empties the list. (line 649)
+- [x] Force-quit and relaunch: the history is still there. (line 650)
 
 ## CarPlay (simulator) (5)
 
