@@ -6,10 +6,10 @@ The number after each check is its line in `BEHAVIOR.md`.
 
 ## Account (4)
 
-- [ ] Settings shows the server and user. Sign Out (confirm): playback stops, the sign-in screen appears, and the lock screen no longer shows the app. (line 357)
-- [ ] Sign back in to the same account: downloads, history and the queue (paused where it was) are all still there. (line 358)
+- [x] Settings shows the server and user. Sign Out (confirm): playback stops, the sign-in screen appears, and the lock screen no longer shows the app. (line 357)
+- [x] Sign back in to the same account: downloads, history and the queue (paused where it was) are all still there. (line 358)
 - [ ] Sign in to a different user or server (if available): downloads, history and the queue are gone, and Storage Used is zero. Sign back in to the first account: its downloads are gone too (they were removed when the account changed). (line 359)
-- [ ] Sign out and in again several times in one session: playback, lock screen controls and downloads keep working each time. (line 364)
+- [x] Sign out and in again several times in one session: playback, lock screen controls and downloads keep working each time. (line 364)
 
 ## Basics (1)
 
