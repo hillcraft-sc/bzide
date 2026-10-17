@@ -128,15 +128,15 @@ The number after each check is its line in `BEHAVIOR.md`.
 
 ## Lock Screen and Control Center control (3)
 
-- [ ] Lock Screen > Customize > Lock Screen > tap the flashlight (or camera) > remove it, add Bzide > Favorite Song. Play a song, lock the phone, press the heart: the song is a favorite (Now Playing's heart filled, and in Navidrome). Press again: still a favorite. (line 634)
-- [ ] Add Favorite Song to Control Center: pressing it hearts the playing song too. (line 635)
-- [ ] Play a radio station and press it: nothing changes, no error. (line 636)
+- [x] Lock Screen > Customize > Lock Screen > tap the flashlight (or camera) > remove it, add Bzide > Favorite Song. Play a song, lock the phone, press the heart: the song is a favorite (Now Playing's heart filled, and in Navidrome). Press again: still a favorite. (line 634)
+- [x] Add Favorite Song to Control Center: pressing it hearts the playing song too. (line 635)
+- [x] Play a radio station and press it: nothing changes, no error. (line 636)
 
 ## Home Screen quick actions (3)
 
-- [ ] With something queued, go to the Home Screen and long-press the icon: Continue (naming the song, or the station), Random Mix, Mix My Cuts, Search. Each works: Continue resumes, the mixes start, Search opens Search with the keyboard up. (line 640)
-- [ ] Force quit, then use each from the icon: the app opens and does it. (line 641)
-- [ ] Clear the queue (or fresh sign-in with nothing played): no Continue. Sign out: the menu offers nothing of Bzide's. (line 642)
+- [x] With something queued, go to the Home Screen and long-press the icon: Continue (naming the song, or the station), Random Mix, Mix My Cuts, Search. Each works: Continue resumes, the mixes start, Search opens Search with the keyboard up. (line 640)
+- [x] Force quit, then use each from the icon: the app opens and does it. (line 641)
+- [x] Clear the queue (or fresh sign-in with nothing played): no Continue. Sign out: the menu offers nothing of Bzide's. (line 642)
 
 ## Play history (6)
 
