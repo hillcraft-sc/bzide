@@ -364,45 +364,45 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Sign out and in again several times in one session: playback, lock screen controls and downloads keep working each time.
 
 ### Basics
-- [ ] Play an album, lock the phone, and leave it for several tracks. Playback continues track to track with the screen off.
-- [ ] Play, switch to another app (Safari, Messages). Playback continues.
-- [ ] Play an album that is meant to be gapless (a live album or continuous mix). Track changes have no audible gap or click. Note the file format if there is one.
-- [ ] Skip quickly with next several times in a row. Each skip lands on the right track and the queue view agrees.
-- [ ] Play a few tracks into an album, pause mid-track, force-quit the app (swipe it away), relaunch. The same track is shown, paused at roughly the same position. Press play: it resumes there.
-- [ ] Same, but force-quit while playing. Relaunch: same track, paused, position within about 10 seconds of where it was.
+- [x] Play an album, lock the phone, and leave it for several tracks. Playback continues track to track with the screen off. (2026-10-11, M2 checklist)
+- [x] Play, switch to another app (Safari, Messages). Playback continues. (2026-10-11, M2 checklist)
+- [x] Play an album that is meant to be gapless (a live album or continuous mix). Track changes have no audible gap or click. Note the file format if there is one. (2026-10-11, M2 checklist)
+- [x] Skip quickly with next several times in a row. Each skip lands on the right track and the queue view agrees. (2026-10-11, M2 checklist)
+- [x] Play a few tracks into an album, pause mid-track, force-quit the app (swipe it away), relaunch. The same track is shown, paused at roughly the same position. Press play: it resumes there. (2026-10-11, M2 checklist)
+- [x] Same, but force-quit while playing. Relaunch: same track, paused, position within about 10 seconds of where it was. (2026-10-11, M2 checklist)
 - [ ] Let the last track of a queue finish. The queue empties, the mini player shows Not Playing, and the lock screen and Control Center no longer show the app's track.
 
 ### Audio session
-- [ ] Play, then receive a phone call. Music pauses. Decline or end the call: music resumes.
-- [ ] Play, then trigger Siri and dismiss it. On iOS 27 the system sends no interruption for Siri, so music keeps playing (possibly quieter while Siri talks). Check only that playback is still going normally afterwards.
-- [ ] Play, then start a video in another app. Music stops. Close the video: music does not resume on its own unless iOS offers resumption.
-- [ ] Pause, then receive and end a call. Music stays paused.
-- [ ] Play, receive a call, press play then pause during the call, end the call. Music stays paused.
+- [x] Play, then receive a phone call. Music pauses. Decline or end the call: music resumes. (2026-10-11, M2 checklist)
+- [x] Play, then trigger Siri and dismiss it. On iOS 27 the system sends no interruption for Siri, so music keeps playing (possibly quieter while Siri talks). Check only that playback is still going normally afterwards. (2026-10-11, M2 checklist)
+- [x] Play, then start a video in another app. Music stops. Close the video: music does not resume on its own unless iOS offers resumption. (2026-10-11, M2 checklist)
+- [x] Pause, then receive and end a call. Music stays paused. (2026-10-11, M2 checklist)
+- [x] Play, receive a call, press play then pause during the call, end the call. Music stays paused. (2026-10-11, M2 checklist)
 - [ ] Play through wired or USB headphones, unplug them. Music pauses and does not play through the speaker. Plug back in: still paused.
-- [ ] Play through Bluetooth headphones, turn them off. Music pauses, no speaker output. Turn them back on: still paused.
-- [ ] Play, switch output to AirPlay or a Bluetooth speaker from Control Center. Music continues on the new device.
+- [x] Play through Bluetooth headphones, turn them off. Music pauses, no speaker output. Turn them back on: still paused. (2026-10-11, M2 checklist)
+- [x] Play, switch output to AirPlay or a Bluetooth speaker from Control Center. Music continues on the new device. (2026-10-11, M2 checklist)
 - [x] Play in a car over CarPlay (system Now Playing): the car shows the track and its controls work. Turn the car off: playback pauses. Turn it on: it resumes at the same point when the car sends play. (2026-10-11)
-- [ ] Play, then Settings > Developer > Reset Media Services (iOS 27 lists each service separately; try each, especially Reset Audio Services). Music resumes by itself within a few seconds, at about the same point, and the lock screen shows the track with working controls. Repeat while paused: it stays paused, and play resumes at the same point.
+- [x] Play, then Settings > Developer > Reset Media Services (iOS 27 lists each service separately; try each, especially Reset Audio Services). Music resumes by itself within a few seconds, at about the same point, and the lock screen shows the track with working controls. Repeat while paused: it stays paused, and play resumes at the same point. (2026-10-11, M2 checklist)
 
 ### Lock screen and Control Center
-- [ ] Play, lock the phone. Lock screen shows title, artist, album, artwork and a moving progress bar.
-- [ ] Pause and play from the lock screen. The app follows, and the progress bar stops and starts at the right time.
-- [ ] Next and previous from the lock screen follow the same rules as in the app (previous restarts after 3 seconds).
-- [ ] Drag the lock screen progress bar. Playback jumps there.
-- [ ] On the last track, next is disabled.
-- [ ] Control Center shows the same info and controls.
+- [x] Play, lock the phone. Lock screen shows title, artist, album, artwork and a moving progress bar. (2026-10-11, M2 checklist)
+- [x] Pause and play from the lock screen. The app follows, and the progress bar stops and starts at the right time. (2026-10-11, M2 checklist)
+- [x] Next and previous from the lock screen follow the same rules as in the app (previous restarts after 3 seconds). (2026-10-11, M2 checklist)
+- [x] Drag the lock screen progress bar. Playback jumps there. (2026-10-11, M2 checklist)
+- [x] On the last track, next is disabled. (2026-10-11, M2 checklist)
+- [x] Control Center shows the same info and controls. (2026-10-11, M2 checklist)
 - [ ] Wired or Bluetooth headphone buttons play, pause and skip.
-- [ ] Skip quickly through several tracks. Artwork always matches the track shown.
-- [ ] Force-quit the app and relaunch, then press play. Control Center and the lock screen show the restored track. (Before pressing play they show nothing; that's iOS behavior.)
+- [x] Skip quickly through several tracks. Artwork always matches the track shown. (2026-10-11, M2 checklist)
+- [x] Force-quit the app and relaunch, then press play. Control Center and the lock screen show the restored track. (Before pressing play they show nothing; that's iOS behavior.) (2026-10-11, M2 checklist)
 
 ### Network recovery
 - [x] Play on Wi-Fi, walk out of Wi-Fi range (or turn Wi-Fi off) so the phone switches to cellular. Playback continues, or resumes within a few seconds at the same point.
-- [ ] Play, turn on Airplane Mode for 5 seconds, turn it off. Playback resumes at the same point without pressing anything.
-- [ ] Play, turn on Airplane Mode for 30 seconds or more, until the app shows failed. Turn it off. Playback resumes by itself.
-- [ ] Pause, turn on Airplane Mode, turn it off. The app stays paused.
-- [ ] Play, turn on Airplane Mode, then press pause while it shows reconnecting. Turn Airplane Mode off. The app stays paused.
-- [ ] Play near the end of a track on a weak connection. The next track still starts without a gap, or with only a short one.
-- [ ] Lock the phone during all of the above. Recovery works the same with the screen off.
+- [x] Play, turn on Airplane Mode for 5 seconds, turn it off. Playback resumes at the same point without pressing anything. (2026-10-11, M2 checklist)
+- [x] Play, turn on Airplane Mode for 30 seconds or more, until the app shows failed. Turn it off. Playback resumes by itself. (2026-10-11, M2 checklist)
+- [x] Pause, turn on Airplane Mode, turn it off. The app stays paused. (2026-10-11, M2 checklist)
+- [x] Play, turn on Airplane Mode, then press pause while it shows reconnecting. Turn Airplane Mode off. The app stays paused. (2026-10-11, M2 checklist)
+- [x] Play near the end of a track on a weak connection. The next track still starts without a gap, or with only a short one. (2026-10-11, M2 checklist)
+- [x] Lock the phone during all of the above. Recovery works the same with the screen off. (2026-10-11, M2 checklist)
 
 ### Library
 - [ ] On a fresh layout (Edit Library > Reset), Library shows no carousels. Edit Library marks Recently Added, Recently Played and Spin It Back with the carousel icon. Switch on Recently Played and Spin It Back: they appear and fill in straight away. Recently Played shows albums played this week (including from Navidrome's web player), newest first. Spin It Back shows albums you've rated or favorited but not played in a while, at most two per artist, never Meh; it's the same all day and different tomorrow.
@@ -657,8 +657,8 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Play from the phone while CarPlay is open: CarPlay's Now Playing follows.
 
 ### Scrobbling
-- [ ] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it.
-- [ ] Play a track, skip to near the end, let it finish. It is not scrobbled.
-- [ ] While a track plays, Navidrome shows it as now playing. Let it flow into the next track: now playing updates.
-- [ ] Turn on Airplane Mode, play two tracks past halfway, turn Airplane Mode off and play a third. All three appear in order.
-- [ ] Turn on Airplane Mode, play a track past halfway, force-quit the app, turn Airplane Mode off, relaunch. The track appears.
+- [x] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it. (2026-10-11, M2 checklist)
+- [x] Play a track, skip to near the end, let it finish. It is not scrobbled. (2026-10-11, M2 checklist)
+- [x] While a track plays, Navidrome shows it as now playing. Let it flow into the next track: now playing updates. (2026-10-11, M2 checklist)
+- [x] Turn on Airplane Mode, play two tracks past halfway, turn Airplane Mode off and play a third. All three appear in order. (2026-10-11, M2 checklist)
+- [x] Turn on Airplane Mode, play a track past halfway, force-quit the app, turn Airplane Mode off, relaunch. The track appears. (2026-10-11, M2 checklist)
