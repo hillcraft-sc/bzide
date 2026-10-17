@@ -354,14 +354,14 @@ How the app behaves, written so the web and Android clients can be ported from t
 Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.md`.
 
 ### Account
-- [ ] Settings shows the server and user. Sign Out (confirm): playback stops, the sign-in screen appears, and the lock screen no longer shows the app.
-- [ ] Sign back in to the same account: downloads, history and the queue (paused where it was) are all still there.
-- [ ] Sign in to a different user or server (if available): downloads, history and the queue are gone, and Storage Used is zero. Sign back in to the first account: its downloads are gone too (they were removed when the account changed).
+- [x] Settings shows the server and user. Sign Out (confirm): playback stops, the sign-in screen appears, and the lock screen no longer shows the app. (2026-10-17)
+- [x] Sign back in to the same account: downloads, history and the queue (paused where it was) are all still there. (2026-10-17)
+- [x] Sign in to a different user or server (if available): downloads, history and the queue are gone, and Storage Used is zero. Sign back in to the first account: its downloads are gone too (they were removed when the account changed). (2026-10-17)
 - [x] Settings > Profile > Picture: Contact Card > Choose Contact Card…, pick yourself (contacts without a photo are grayed out): Library's gear becomes your photo, and Settings shows it beside your name. No permission prompt appears. (2026-10-13)
 - [x] Picture: Photo > Choose Photo…, pick one: it replaces the contact photo, cropped to a circle. Switch back to Contact Card: your contact photo returns without picking again. None: the gear returns at once. (2026-10-13)
 - [x] Picture: Gravatar, with an email that has a Gravatar (typed, or your Navidrome account's): Profile says it was found and shows it, and it appears on the toolbar and beside your name. Type an address with no Gravatar: "No Gravatar for this email" and the gear returns. (2026-10-13)
 - [x] With a picture showing (any choice), force quit and relaunch in Airplane Mode: the picture still shows. (2026-10-13)
-- [ ] Sign out and in again several times in one session: playback, lock screen controls and downloads keep working each time.
+- [x] Sign out and in again several times in one session: playback, lock screen controls and downloads keep working each time. (2026-10-17)
 
 ### Basics
 - [x] Play an album, lock the phone, and leave it for several tracks. Playback continues track to track with the screen off. (2026-10-11, M2 checklist)
