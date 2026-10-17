@@ -77,11 +77,12 @@ struct LiveWeatherView: View {
     /// Light along the horizon that plays along with the instruments: soft
     /// columns, one per slice of the spectrum (bass on the left, treble on the
     /// right), rising with each, tinted by the sky (rose at dusk, green and
-    /// violet at night, a faint warmth by day), behind any cloud. Each kick
+    /// violet at night, gold by day), behind any cloud. Each kick
     /// also brightens the whole horizon.
     private func drawAurora(_ sky: LiveSky, levels: [Float], light: SkyLight, in context: inout GraphicsContext, layout: WeatherLayout) {
         let skyHeight = layout.horizon - layout.skyTop
-        let presence = (0.35 + 0.65 * (1 - light.daylight)) * max(1 - sky.cloudCover * 0.7, 0.15)
+        // By day it has a bright sky to show against, so it stays strong.
+        let presence = (0.75 + 0.25 * (1 - light.daylight)) * max(1 - sky.cloudCover * 0.7, 0.15)
         // The kick: a glow rising off the horizon.
         if sky.flash > 0.02 {
             let top = layout.horizon - skyHeight * 0.45
@@ -93,18 +94,25 @@ struct LiveWeatherView: View {
         let columns = Self.auroraColumns
         guard levels.count >= columns else { return }
         let width = layout.size.width / CGFloat(columns)
-        context.drawLayer { layer in
-            layer.addFilter(.blur(radius: width * 0.6))
+        // Added light, so the columns show brighter than any sky behind them
+        // (a gold or rose column on a gold or rose sky otherwise disappears),
+        // and only a little blur, so each stays a column rather than a haze.
+        var lit = context
+        lit.blendMode = .plusLighter
+        lit.drawLayer { layer in
+            layer.addFilter(.blur(radius: width * 0.3))
             for column in 0..<columns {
-                // Each column the loudest band in its slice.
+                // Each column the loudest band in its slice; quiet ones lifted
+                // so they still show.
                 let start = column * levels.count / columns
                 let end = max((column + 1) * levels.count / columns, start + 1)
-                let level = Double(levels[start..<end].max() ?? 0)
-                guard level > 0.02 else { continue }
-                let height = skyHeight * (0.08 + 0.55 * level)
-                let rect = CGRect(x: CGFloat(column) * width - width * 0.2, y: layout.horizon - height, width: width * 1.4, height: height)
+                let raw = Double(levels[start..<end].max() ?? 0)
+                guard raw > 0.02 else { continue }
+                let level = raw.squareRoot()
+                let height = skyHeight * (0.08 + 0.6 * level)
+                let rect = CGRect(x: CGFloat(column) * width + width * 0.1, y: layout.horizon - height, width: width * 0.8, height: height)
                 layer.fill(Path(rect), with: .linearGradient(
-                    Gradient(colors: [light.auroraHigh.opacity(0), light.auroraHigh.opacity(0.5 * level * presence), light.auroraLow.opacity(0.8 * level * presence)]),
+                    Gradient(colors: [light.auroraHigh.opacity(0), light.auroraHigh.opacity(0.45 * level * presence), light.auroraLow.opacity(0.75 * level * presence)]),
                     startPoint: CGPoint(x: 0, y: rect.minY), endPoint: CGPoint(x: 0, y: rect.maxY)
                 ))
             }
@@ -308,12 +316,22 @@ struct LiveWeatherView: View {
         let radius = layout.sunRadius
         let clear = 1 - min(frame.sky.cloudCover * 1.2, 1)
         let color = light.sunColor
-        // Glow: wide and warm near the horizon.
-        let glowRadius = radius * (3 + 2 * light.goldenness + 1.2 * frame.sky.flash)
+        // Glow: wide and warm near the horizon, wider and brighter by day so
+        // it shows against a light sky; each beat swells it.
+        let glowRadius = radius * (3 + 2 * light.goldenness + 1.5 * light.daylight + 1.5 * frame.sky.flash)
+        let glow = min((0.5 + 0.35 * light.daylight + 0.35 * frame.sky.flash) * clear, 1)
         context.fill(
             Path(ellipseIn: CGRect(x: center.x - glowRadius, y: center.y - glowRadius, width: glowRadius * 2, height: glowRadius * 2)),
-            with: .radialGradient(Gradient(colors: [color.opacity((0.5 + 0.3 * frame.sky.flash) * clear), .clear]), center: center, startRadius: radius, endRadius: glowRadius)
+            with: .radialGradient(Gradient(colors: [color.opacity(glow), .clear]), center: center, startRadius: radius, endRadius: glowRadius)
         )
+        // By day, a bright corona close around the disc.
+        if light.daylight > 0 {
+            let corona = radius * (1.9 + 0.4 * frame.sky.flash)
+            context.fill(
+                Path(ellipseIn: CGRect(x: center.x - corona, y: center.y - corona, width: corona * 2, height: corona * 2)),
+                with: .radialGradient(Gradient(colors: [Color.white.opacity(0.75 * light.daylight * clear), .clear]), center: center, startRadius: radius, endRadius: corona)
+            )
+        }
         // Rays, by day: a radial spectrum, each ray a slice of it (bass at
         // the bottom, around to treble), stretching with its instruments.
         if light.daylight > 0.3, clear > 0.2, levels.count >= Self.rayCount {
@@ -329,13 +347,17 @@ struct LiveWeatherView: View {
                 var path = Path()
                 path.move(to: inner)
                 path.addLine(to: outer)
-                context.stroke(path, with: .color(color.opacity((0.3 + 0.5 * Double(level)) * clear * light.daylight)), style: StrokeStyle(lineWidth: 2 + 3 * level, lineCap: .round))
+                context.stroke(path, with: .color(color.opacity(min((0.45 + 0.55 * Double(level)) * clear * light.daylight, 1))), style: StrokeStyle(lineWidth: 2.5 + 3.5 * level, lineCap: .round))
             }
         }
         // Behind thick cloud it's gone, not a gray disc.
         guard clear > 0.02 else { return }
         let disc = Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2))
-        context.fill(disc, with: .color(color.opacity(min(clear * 1.5, 1))))
+        // A white-hot center into the sun's color at the edge.
+        context.fill(disc, with: .radialGradient(
+            Gradient(colors: [Color.white.mix(with: color, by: 1 - light.daylight), color].map { $0.opacity(min(clear * 1.5, 1)) }),
+            center: center, startRadius: 0, endRadius: radius
+        ))
     }
 
     private func sunCenter(_ sun: SkyClock.Sun, layout: WeatherLayout) -> CGPoint {
@@ -521,10 +543,10 @@ struct SkyLight {
             .mix(with: Color(white: 0.15), by: (1 - daylight) * 0.7)
             .mix(with: Color(white: 0.22), by: gloom * 0.75)
         birdColor = Color(white: 0.12).mix(with: .black, by: 0.5)
-        // Night: green into violet. Dusk and dawn: rose into amber. Day: warm white.
+        // Night: green into violet. Dusk and dawn: rose into amber. Day: gold.
         let night = (Color(red: 0.3, green: 1, blue: 0.65), Color(red: 0.55, green: 0.4, blue: 1))
         let twilight = (Color(red: 1, green: 0.55, blue: 0.45), Color(red: 1, green: 0.75, blue: 0.4))
-        let day = (Color(red: 1, green: 0.95, blue: 0.8), Color(red: 1, green: 1, blue: 0.9))
+        let day = (Color(red: 1, green: 0.72, blue: 0.3), Color(red: 1, green: 0.86, blue: 0.5))
         let darkness = 1 - daylight
         let dusk = max(0, 1 - abs(altitude + 4) / 8)
         auroraLow = day.0.mix(with: twilight.0, by: min(dusk + darkness * 0.5, 1)).mix(with: night.0, by: max(darkness - dusk, 0))
@@ -551,8 +573,8 @@ struct SkyLight {
         Key(altitude: -4, top: rgb(0x1A2758), horizon: rgb(0xB65A5E), sun: rgb(0xFF7A3C), farHill: rgb(0x2A2238), nearHill: rgb(0x120F1C)),
         Key(altitude: 0, top: rgb(0x34528F), horizon: rgb(0xF0935A), sun: rgb(0xFF9B48), farHill: rgb(0x46413F), nearHill: rgb(0x1E2219)),
         Key(altitude: 6, top: rgb(0x4580C2), horizon: rgb(0xFFD09A), sun: rgb(0xFFD27A), farHill: rgb(0x5A6B3E), nearHill: rgb(0x2B3B20)),
-        Key(altitude: 20, top: rgb(0x2F6EBE), horizon: rgb(0x9CCBEF), sun: rgb(0xFFF1C2), farHill: rgb(0x4F7D45), nearHill: rgb(0x2C4A28)),
-        Key(altitude: 60, top: rgb(0x1E5DB3), horizon: rgb(0x8EC3EF), sun: rgb(0xFFFBE8), farHill: rgb(0x4F8248), nearHill: rgb(0x2D4D29)),
+        Key(altitude: 20, top: rgb(0x2F6EBE), horizon: rgb(0x9CCBEF), sun: rgb(0xFFDF7A), farHill: rgb(0x4F7D45), nearHill: rgb(0x2C4A28)),
+        Key(altitude: 60, top: rgb(0x1E5DB3), horizon: rgb(0x8EC3EF), sun: rgb(0xFFE88F), farHill: rgb(0x4F8248), nearHill: rgb(0x2D4D29)),
     ]
 }
 
