@@ -636,15 +636,15 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 
 ### Lock Screen and Control Center control
 
-- [ ] Lock Screen > Customize > Lock Screen > tap the flashlight (or camera) > remove it, add Bzide > Favorite Song. Play a song, lock the phone, press the heart: the song is a favorite (Now Playing's heart filled, and in Navidrome). Press again: still a favorite.
-- [ ] Add Favorite Song to Control Center: pressing it hearts the playing song too.
-- [ ] Play a radio station and press it: nothing changes, no error.
+- [x] Lock Screen > Customize > Lock Screen > tap the flashlight (or camera) > remove it, add Bzide > Favorite Song. Play a song, lock the phone, press the heart: the song is a favorite (Now Playing's heart filled, and in Navidrome). Press again: still a favorite. (2026-10-17)
+- [x] Add Favorite Song to Control Center: pressing it hearts the playing song too. (2026-10-17)
+- [x] Play a radio station and press it: nothing changes, no error. (2026-10-17)
 
 ### Home Screen quick actions
 
-- [ ] With something queued, go to the Home Screen and long-press the icon: Continue (naming the song, or the station), Random Mix, Mix My Cuts, Search. Each works: Continue resumes, the mixes start, Search opens Search with the keyboard up.
-- [ ] Force quit, then use each from the icon: the app opens and does it.
-- [ ] Clear the queue (or fresh sign-in with nothing played): no Continue. Sign out: the menu offers nothing of Bzide's.
+- [x] With something queued, go to the Home Screen and long-press the icon: Continue (naming the song, or the station), Random Mix, Mix My Cuts, Search. Each works: Continue resumes, the mixes start, Search opens Search with the keyboard up. (2026-10-17)
+- [x] Force quit, then use each from the icon: the app opens and does it. (2026-10-17)
+- [x] Clear the queue (or fresh sign-in with nothing played): no Continue. Sign out: the menu offers nothing of Bzide's. (2026-10-17)
 
 ### Play history
 - [x] Let a song play past halfway: it appears in Library > History under Today, with the time it started. Skip another song early: it doesn't appear. (2026-10-17)

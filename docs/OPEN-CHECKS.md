@@ -1,6 +1,6 @@
 # Open device checks
 
-A snapshot of the 86 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-17. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
+A snapshot of the 80 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-17. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
 
 The number after each check is its line in `BEHAVIOR.md`.
 
@@ -114,18 +114,6 @@ The number after each check is its line in `BEHAVIOR.md`.
 - [ ] Play a song, lock the phone, "Favorite this song in Bzide": Siri confirms; the heart is filled in Now Playing and Navidrome. Say it again: still a favorite (not undone). "Unfavorite this song in Bzide": cleared. On a radio station: Siri says it can't be a favorite. (line 633)
 - [ ] Play a song and say just "Favorite this song" (or "I like this song"), without "in Bzide": Siri favorites it in Bzide instead of saying the app doesn't support liking. (line 634)
 - [ ] Settings > Action Button > Shortcut > Bzide > Favorite Current Song (or a Shortcut): pressing it hearts the playing song. (line 635)
-
-## Lock Screen and Control Center control (3)
-
-- [ ] Lock Screen > Customize > Lock Screen > tap the flashlight (or camera) > remove it, add Bzide > Favorite Song. Play a song, lock the phone, press the heart: the song is a favorite (Now Playing's heart filled, and in Navidrome). Press again: still a favorite. (line 639)
-- [ ] Add Favorite Song to Control Center: pressing it hearts the playing song too. (line 640)
-- [ ] Play a radio station and press it: nothing changes, no error. (line 641)
-
-## Home Screen quick actions (3)
-
-- [ ] With something queued, go to the Home Screen and long-press the icon: Continue (naming the song, or the station), Random Mix, Mix My Cuts, Search. Each works: Continue resumes, the mixes start, Search opens Search with the keyboard up. (line 645)
-- [ ] Force quit, then use each from the icon: the app opens and does it. (line 646)
-- [ ] Clear the queue (or fresh sign-in with nothing played): no Continue. Sign out: the menu offers nothing of Bzide's. (line 647)
 
 ## CarPlay (simulator) (5)
 
