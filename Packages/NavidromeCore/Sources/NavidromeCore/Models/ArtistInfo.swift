@@ -5,16 +5,22 @@ import Foundation
 public struct ArtistInfo: Sendable, Equatable, Decodable {
     /// Plain text, ready to show; `nil` when the server has none.
     public var biography: String?
+    /// The artist's MusicBrainz id, if the server has it.
+    public var musicBrainzID: String?
 
-    public init(biography: String? = nil) {
+    public init(biography: String? = nil, musicBrainzID: String? = nil) {
         self.biography = biography
+        self.musicBrainzID = musicBrainzID
     }
 
-    private enum ServerKeys: String, CodingKey { case biography }
+    private enum ServerKeys: String, CodingKey { case biography, musicBrainzId }
 
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: ServerKeys.self)
-        self.init(biography: c.lenientString(.biography).flatMap(Self.plainText))
+        self.init(
+            biography: c.lenientString(.biography).flatMap(Self.plainText),
+            musicBrainzID: c.lenientString(.musicBrainzId).flatMap { $0.isEmpty ? nil : $0 }
+        )
     }
 
     /// Last.fm biographies are HTML and end with a "Read more on Last.fm" link,

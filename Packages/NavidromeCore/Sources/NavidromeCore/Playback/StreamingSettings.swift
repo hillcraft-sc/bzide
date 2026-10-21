@@ -37,6 +37,10 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     /// Off by default: looking up the song a station is playing on
     /// MusicBrainz (Song Info and the album cover), which sends its artist and title there.
     public var lookUpSongsOnline: Bool
+    /// Off by default: an artist's page adds a Wikipedia biography and the
+    /// releases the user doesn't have, from MusicBrainz, which sends the
+    /// artist's name or MusicBrainz id there.
+    public var lookUpArtistsOnline: Bool
     /// Off by default: Weather (Live) asks MET Norway for the weather where
     /// the user is, which sends rounded coordinates there.
     public var liveWeather: Bool
@@ -64,7 +68,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     public init(
         wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
         downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original,
-        findLyricsOnline: Bool = false, findStationsOnline: Bool = false, lookUpSongsOnline: Bool = false,
+        findLyricsOnline: Bool = false, findStationsOnline: Bool = false, lookUpSongsOnline: Bool = false, lookUpArtistsOnline: Bool = false,
         liveWeather: Bool = false, liveWeatherUsesLocation: Bool = true, liveWeatherCity: String = "", liveWeatherPlace: LiveWeatherPlace? = nil, spinTheDial: DialSettings = DialSettings(), volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
         includeMehInMixes: Bool = false, myCutsIncludeFavorites: Bool = true
     ) {
@@ -75,6 +79,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         self.findLyricsOnline = findLyricsOnline
         self.findStationsOnline = findStationsOnline
         self.lookUpSongsOnline = lookUpSongsOnline
+        self.lookUpArtistsOnline = lookUpArtistsOnline
         self.liveWeather = liveWeather
         self.liveWeatherUsesLocation = liveWeatherUsesLocation
         self.liveWeatherCity = liveWeatherCity
@@ -87,7 +92,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, findStationsOnline, lookUpSongsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, findStationsOnline, lookUpSongsOnline, lookUpArtistsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -102,6 +107,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         findLyricsOnline = try c.decodeIfPresent(Bool.self, forKey: .findLyricsOnline) ?? defaults.findLyricsOnline
         findStationsOnline = (try? c.decodeIfPresent(Bool.self, forKey: .findStationsOnline)) ?? defaults.findStationsOnline
         lookUpSongsOnline = (try? c.decodeIfPresent(Bool.self, forKey: .lookUpSongsOnline)) ?? defaults.lookUpSongsOnline
+        lookUpArtistsOnline = (try? c.decodeIfPresent(Bool.self, forKey: .lookUpArtistsOnline)) ?? defaults.lookUpArtistsOnline
         liveWeather = (try? c.decodeIfPresent(Bool.self, forKey: .liveWeather)) ?? defaults.liveWeather
         liveWeatherUsesLocation = (try? c.decodeIfPresent(Bool.self, forKey: .liveWeatherUsesLocation)) ?? defaults.liveWeatherUsesLocation
         liveWeatherCity = (try? c.decodeIfPresent(String.self, forKey: .liveWeatherCity)) ?? defaults.liveWeatherCity

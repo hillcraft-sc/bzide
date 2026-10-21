@@ -132,18 +132,25 @@ struct ArtistView: View {
     @State private var model: LoadModel<Artist>
     /// Loaded separately: a slow or failed lookup never holds up the albums.
     @State private var info: LoadModel<ArtistInfo>
+    /// Look Up Artists Online's extras, after the rest.
+    @State private var online: OnlineArtistModel
 
     init(library: Library, id: String) {
         self.library = library
         _model = State(initialValue: library.artistModel(id: id))
         _info = State(initialValue: library.artistInfoModel(id: id))
+        _online = State(initialValue: library.onlineArtistModel())
     }
 
     var body: some View {
         LoadStateView(state: model.state, retry: model.load) { artist in
             List {
                 Section {
-                    ArtistHeader(library: library, artist: artist, biography: info.value?.biography)
+                    ArtistHeader(
+                        library: library, artist: artist,
+                        biography: online.biography.map { Biography.Content(text: $0.text, credit: $0) }
+                            ?? info.value?.biography.map { Biography.Content(text: $0) }
+                    )
                         .siriEntity(artistID: artist.id)
                         .frame(maxWidth: .infinity)
                         .listRowSeparator(.hidden)
@@ -160,8 +167,13 @@ struct ArtistView: View {
                     if artist.albums.isEmpty {
                         Text("No Albums").foregroundStyle(.secondary)
                     }
+                } header: {
+                    if online.discography != .off { Text("In Your Library") }
                 }
                 .themedRows()
+                NotOwnedSections(library: library, state: online.discography) {
+                    Task { await online.load(artist, info: info.value, enabled: library.settings.settings.lookUpArtistsOnline) }
+                }
             }
             .listStyle(.plain)
             .themedList()
@@ -183,6 +195,9 @@ struct ArtistView: View {
         async let albums: Void = model.load()
         async let biography: Void = info.load()
         _ = await (albums, biography)
+        if let artist = model.value {
+            await online.load(artist, info: info.value, enabled: library.settings.settings.lookUpArtistsOnline)
+        }
     }
 }
 
@@ -191,7 +206,7 @@ struct ArtistView: View {
 private struct ArtistHeader: View {
     let library: Library
     let artist: Artist
-    let biography: String?
+    let biography: Biography.Content?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -200,7 +215,7 @@ private struct ArtistHeader: View {
                 .font(.title2.bold())
                 .multilineTextAlignment(.center)
             if let biography {
-                Biography(text: biography)
+                Biography(content: biography)
                     .padding(.top, 4)
             }
         }
@@ -209,7 +224,14 @@ private struct ArtistHeader: View {
 }
 
 private struct Biography: View {
-    let text: String
+    struct Content {
+        var text: String
+        /// Set when it's from outside the server, which is credited.
+        var credit: ArtistBiography?
+    }
+
+    let content: Content
+    private var text: String { content.text }
 
     @State private var isExpanded = false
     @State private var shortHeight: CGFloat = 0
@@ -231,15 +253,126 @@ private struct Biography: View {
                         .hidden()
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { fullHeight = $0 }
                 }
-            if isTruncated {
-                Button(isExpanded ? "Less" : "More") {
-                    withAnimation { isExpanded.toggle() }
+            HStack {
+                if isTruncated {
+                    Button(isExpanded ? "Less" : "More") {
+                        withAnimation { isExpanded.toggle() }
+                    }
+                    .font(.subheadline.bold())
+                    .buttonStyle(.borderless)
                 }
-                .font(.subheadline.bold())
-                .buttonStyle(.borderless)
+                Spacer()
+                if let credit = content.credit {
+                    CreditLink(credit: credit)
+                }
             }
         }
         .font(.subheadline)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// "From Wikipedia", linking to the article. Its text is CC BY-SA, which
+/// asks for the credit and the link.
+private struct CreditLink: View {
+    let credit: ArtistBiography
+
+    var body: some View {
+        if let url = credit.pageURL {
+            Link(destination: url) {
+                Label("From \(credit.source)", systemImage: "arrow.up.right")
+                    .labelStyle(.titleAndIcon)
+            }
+            .font(.caption)
+            .buttonStyle(.borderless)
+        } else {
+            Text("From \(credit.source)").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// The artist's releases the user doesn't have, by kind, from Look Up
+/// Artists Online. Each opens its MusicBrainz page. The sections start
+/// collapsed, so the page leads with what the user owns.
+private struct NotOwnedSections: View {
+    let library: Library
+    let state: OnlineArtistModel.State
+    let retry: () -> Void
+
+    @State private var expanded: Set<DiscographyRelease.Kind> = []
+
+    var body: some View {
+        switch state {
+        case .off:
+            EmptyView()
+        case .loading:
+            Section("Not Owned") {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Looking up other releases…").foregroundStyle(.secondary)
+                }
+            }
+            .themedRows()
+        case .failed:
+            Section("Not Owned") {
+                Text("Couldn't reach MusicBrainz.").foregroundStyle(.secondary)
+                Button("Try Again", action: retry)
+            }
+            .themedRows()
+        case .loaded(let sections):
+            ForEach(sections) { section in
+                let isExpanded = expanded.contains(section.kind)
+                Section {
+                    if isExpanded {
+                        ForEach(section.releases) { release in
+                            NotOwnedRow(library: library, release: release)
+                        }
+                    }
+                } header: {
+                    Button {
+                        withAnimation {
+                            if isExpanded { expanded.remove(section.kind) } else { expanded.insert(section.kind) }
+                        }
+                    } label: {
+                        HStack {
+                            Text("Not Owned: \(section.kind.title)")
+                            Text(String(section.releases.count)).foregroundStyle(.secondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                                .foregroundStyle(.secondary)
+                        }
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+                }
+                .themedRows()
+            }
+        }
+    }
+}
+
+private struct NotOwnedRow: View {
+    let library: Library
+    let release: DiscographyRelease
+
+    var body: some View {
+        let row = HStack(spacing: 12) {
+            ArtworkView(library: library, coverArtID: release.coverURL.map(StationLogo.coverArtID), side: 48)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(release.title).lineLimit(1)
+                if let year = release.year {
+                    Text(String(year)).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+        }
+        if let url = release.pageURL {
+            Link(destination: url) { row.contentShape(.rect) }
+                .foregroundStyle(.primary)
+        } else {
+            row
+        }
     }
 }

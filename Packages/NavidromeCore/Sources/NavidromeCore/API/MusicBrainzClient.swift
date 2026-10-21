@@ -36,11 +36,13 @@ public struct OnAirDetails: Equatable, Sendable {
 /// Looks songs up on MusicBrainz (musicbrainz.org), the free, open music
 /// database, and their covers on the Cover Art Archive, for a song a radio
 /// station announces. Only used while the user has Look Up Songs Online on;
-/// only the artist and title are sent.
+/// only the artist and title are sent. It also finds artists for Look Up
+/// Artists Online (see `MusicBrainzClient+Artists.swift`).
 ///
 /// MusicBrainz's rules, followed here: every request names the app and a
 /// contact (`contact`, from Info.plist; with none, nothing is asked), and at
-/// most one request a second (`minimumGap`, kept by this actor).
+/// most one request a second (`minimumGap`, kept by this actor, so the app
+/// shares one).
 ///
 /// A song is searched among official studio albums first (so a live bootleg
 /// doesn't win), taking the earliest; with none, the best match on any
@@ -61,7 +63,7 @@ public actor MusicBrainzClient {
     static let busyRetries = 2
 
     private let transport: any HTTPTransport
-    private let contact: String
+    let contact: String
     private let now: @Sendable () -> Date
     private let sleep: @Sendable (TimeInterval) async throws -> Void
     private var lastRequest: Date?
@@ -198,7 +200,7 @@ public actor MusicBrainzClient {
 
     /// `paced`: MusicBrainz itself, kept to one request a second and asked
     /// again when busy. The Cover Art Archive isn't limited that way.
-    private func get(_ url: URL, paced: Bool) async throws -> Data {
+    func get(_ url: URL, paced: Bool) async throws -> Data {
         var attempt = 0
         while true {
             do {

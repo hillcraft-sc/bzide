@@ -112,6 +112,14 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Look Up Artists Online", isOn: $settings.settings.lookUpArtistsOnline)
+            } header: {
+                Text("Artists")
+            } footer: {
+                Text("An artist's page adds their biography from Wikipedia and lists the releases you don't have, from MusicBrainz (musicbrainz.org), with covers from the Cover Art Archive. They get only the artist's name or MusicBrainz ID. Answers are kept on this iPhone for two weeks.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 Toggle("Find Lyrics Online", isOn: $settings.settings.findLyricsOnline)
             } header: {
                 Text("Lyrics")

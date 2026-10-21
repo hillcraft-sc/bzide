@@ -56,9 +56,28 @@ final class Library {
         try await client.search(query, artistCount: 0, albumCount: 0, songCount: 20).songs
     }
     /// MusicBrainz's details for the song a station is playing (Song Info and
-    /// the cover), while Look Up Songs Online is on. MusicBrainz is on the
-    /// open internet: no shared cache or cookies.
+    /// the cover), while Look Up Songs Online is on.
     private(set) lazy var onAirInfo: OnAirInfoModel = makeOnAirInfo()
+    /// One for the app, so radio songs and artist pages share MusicBrainz's
+    /// one-request-a-second limit. MusicBrainz is on the open internet: no
+    /// shared cache or cookies.
+    private let musicBrainz = MusicBrainzClient(
+        contact: Library.musicBrainzContact,
+        transport: URLSessionTransport(session: URLSession(configuration: .ephemeral))
+    )
+    /// Look Up Artists Online's biographies and releases, kept on disk for a while.
+    private lazy var artistLookup: OnlineArtistLookup = {
+        let caches = try? FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let wikipedia = WikipediaClient(
+            contact: Library.musicBrainzContact,
+            language: Locale.current.language.languageCode?.identifier ?? "en",
+            transport: URLSessionTransport(session: URLSession(configuration: .ephemeral))
+        )
+        return OnlineArtistLookup(musicBrainz: musicBrainz, wikipedia: wikipedia, directory: caches?.appending(path: OnlineArtistLookup.directoryName))
+    }()
+    private static var musicBrainzContact: String {
+        Bundle.main.object(forInfoDictionaryKey: "MusicBrainzContact") as? String ?? ""
+    }
     /// Songs heard on the radio to remember (Tagged Radio Songs). On this
     /// iPhone; each account has its own (see `AccountSettings`).
     private(set) lazy var wishlist: Wishlist = {
@@ -226,6 +245,12 @@ final class Library {
         LoadModel { [client] () async throws(SubsonicError) in try await client.artistInfo(id: id) }
     }
 
+    /// The artist page's Wikipedia biography and releases not owned, while
+    /// Look Up Artists Online is on.
+    func onlineArtistModel() -> OnlineArtistModel {
+        OnlineArtistModel(lookup: artistLookup)
+    }
+
     /// The newest albums, for the row at the top of Library.
     func recentlyAddedModel() -> LoadModel<[Album]> {
         LoadModel { [client] () async throws(SubsonicError) in try await client.albumList(.newest, size: 15) }
@@ -286,10 +311,7 @@ final class Library {
     }
 
     private func makeOnAirInfo() -> OnAirInfoModel {
-        let musicBrainz = MusicBrainzClient(
-            contact: Bundle.main.object(forInfoDictionaryKey: "MusicBrainzContact") as? String ?? "",
-            transport: URLSessionTransport(session: URLSession(configuration: .ephemeral))
-        )
+        let musicBrainz = musicBrainz
         return OnAirInfoModel { song in try await musicBrainz.details(for: song) }
     }
 

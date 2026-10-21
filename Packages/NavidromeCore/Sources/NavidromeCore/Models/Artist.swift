@@ -11,6 +11,8 @@ public struct Artist: Sendable, Equatable, Identifiable, Decodable {
     public var starredAt: Date?
     /// The server's 1–5 stars; `nil` when unrated. See `Rating`.
     public var userRating: Int?
+    /// The artist's MusicBrainz id (OpenSubsonic), if the server has it.
+    public var musicBrainzID: String?
     public var albums: [Album]
 
     public init(
@@ -27,7 +29,7 @@ public struct Artist: Sendable, Equatable, Identifiable, Decodable {
     }
 
     private enum ServerKeys: String, CodingKey {
-        case id, name, albumCount, coverArt, starred, userRating, album
+        case id, name, albumCount, coverArt, starred, userRating, album, musicBrainzId
     }
 
     public init(from decoder: any Decoder) throws {
@@ -42,6 +44,7 @@ public struct Artist: Sendable, Equatable, Identifiable, Decodable {
             albums: c.lossyArray(Album.self, forKey: .album)
         )
         starredAt = c.lenientDate(.starred)
+        musicBrainzID = c.lenientString(.musicBrainzId).flatMap { $0.isEmpty ? nil : $0 }
     }
 }
 
