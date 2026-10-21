@@ -26,8 +26,9 @@ public final class RadioStationsModel {
         public var create: @Sendable (RadioStationDraft.Valid) async throws(SubsonicError) -> Void
         public var update: @Sendable (String, RadioStationDraft.Valid) async throws(SubsonicError) -> Void
         public var delete: @Sendable (String) async throws(SubsonicError) -> Void
-        /// Radio Browser's details for a stream address, or `nil` if it isn't listed.
-        public var details: @Sendable (URL) async throws -> StationDetails?
+        /// Radio Browser's details for a stream address (else the station's
+        /// name), or `nil` if it isn't listed.
+        public var details: @Sendable (URL, String) async throws -> StationDetails?
 
         public init(
             stations: @escaping @Sendable () async throws(SubsonicError) -> [RadioStation],
@@ -35,7 +36,7 @@ public final class RadioStationsModel {
             create: @escaping @Sendable (RadioStationDraft.Valid) async throws(SubsonicError) -> Void,
             update: @escaping @Sendable (String, RadioStationDraft.Valid) async throws(SubsonicError) -> Void,
             delete: @escaping @Sendable (String) async throws(SubsonicError) -> Void,
-            details: @escaping @Sendable (URL) async throws -> StationDetails? = { _ in nil }
+            details: @escaping @Sendable (URL, String) async throws -> StationDetails? = { _, _ in nil }
         ) {
             self.details = details
             self.stations = stations
@@ -185,7 +186,7 @@ public final class RadioStationsModel {
         for station in stations + phoneStations where known.needsLookUp(station.streamURL) {
             guard asked.insert(station.streamURL).inserted else { continue }
             do {
-                let found = try await sources.details(station.streamURL)
+                let found = try await sources.details(station.streamURL, station.name)
                 known.set(found, for: station.streamURL)
                 if found != nil { refreshDetails() }
             } catch {

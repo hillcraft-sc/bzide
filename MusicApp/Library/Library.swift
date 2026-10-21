@@ -306,7 +306,7 @@ final class Library {
             create: { [client] station async throws(SubsonicError) in try await client.createRadioStation(station) },
             update: { [client] id, station async throws(SubsonicError) in try await client.updateRadioStation(id: id, station) },
             delete: { [client] id async throws(SubsonicError) in try await client.deleteRadioStation(id: id) },
-            details: { [radioBrowser] stream in try await radioBrowser.details(forStream: stream) }
+            details: { [radioBrowser] stream, name in try await radioBrowser.details(forStream: stream, named: name) }
         ), phone: PhoneStationStore(fileURL: support?.appending(path: PhoneStationStore.fileName)), details: stationDetails)
     }
 
@@ -353,7 +353,7 @@ final class Library {
 
     func stationInfoModel() -> StationInfoModel {
         StationInfoModel(sources: .init(
-            listing: { [radioBrowser] stream in try await radioBrowser.listing(forStream: stream) },
+            listing: { [radioBrowser] stream, name in try await radioBrowser.listing(forStream: stream, named: name) },
             headers: { stream in try await StreamHeaderReader.headers(stream) }
         ))
     }

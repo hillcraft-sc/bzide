@@ -74,7 +74,13 @@ public final class StationDetailsStore: @unchecked Sendable {
         var notListed: Set<String> = []
         var logoOnly: [String: URL] = [:]
         var firstSeen: [String: Date] = [:]
+        /// `lookUpVersion` when `notListed` was last filled.
+        var notListedVersion: Int?
     }
+
+    /// Lookups since this version also search by name, so stations found
+    /// "not listed" before it are asked about once more.
+    static let lookUpVersion = 2
 
     private let fileURL: URL?
     private let lock = NSLock()
@@ -82,10 +88,14 @@ public final class StationDetailsStore: @unchecked Sendable {
 
     public init(fileURL: URL?) {
         self.fileURL = fileURL
-        if let data = fileURL.flatMap({ try? Data(contentsOf: $0) }), let saved = try? JSONDecoder().decode(Saved.self, from: data) {
+        if let data = fileURL.flatMap({ try? Data(contentsOf: $0) }), var saved = try? JSONDecoder().decode(Saved.self, from: data) {
+            if saved.notListedVersion != Self.lookUpVersion {
+                saved.notListed = []
+                saved.notListedVersion = Self.lookUpVersion
+            }
             self.saved = saved
         } else {
-            saved = Saved()
+            saved = Saved(notListedVersion: Self.lookUpVersion)
             carryOverOldLogos()
         }
     }

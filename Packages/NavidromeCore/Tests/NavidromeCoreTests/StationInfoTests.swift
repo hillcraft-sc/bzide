@@ -133,7 +133,7 @@ struct StationInfoModelTests {
 
     private func model(_ asked: Asked) -> StationInfoModel {
         StationInfoModel(sources: .init(
-            listing: { _ in await asked.listing(); return RadioBrowserStation(id: "u-1", name: "Waves", streamURL: URL(string: "https://x.example.com")!) },
+            listing: { _, _ in await asked.listing(); return RadioBrowserStation(id: "u-1", name: "Waves", streamURL: URL(string: "https://x.example.com")!) },
             headers: { url in await asked.header(url); return ["icy-genre": "Rock"] }
         ))
     }

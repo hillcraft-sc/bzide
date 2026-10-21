@@ -89,7 +89,7 @@ struct StationLogoTests {
         let found = #"[{"stationuuid":"u-1","name":"A","url":"https://stream.example.com/waves","favicon":"","countrycode":"GB","bitrate":192,"codec":"AAC","tags":"news"},{"stationuuid":"u-2","name":"B","url":"https://stream.example.com/waves","favicon":"http://example.com/logo.png","countrycode":"","bitrate":0,"tags":""}]"#
         let transport = FakeTransport(.json(servers), .json(found))
         let client = RadioBrowserClient(transport: transport, directory: URL(string: "https://all.api.example.test")!, shuffle: { $0 })
-        let details = try await client.details(forStream: URL(string: "http://radio.example.org:8000/;")!)
+        let details = try await client.details(forStream: URL(string: "http://radio.example.org:8000/;")!, named: "A")
         // The listing with a usable logo (over https), filled in from the other.
         #expect(details?.logoURL?.absoluteString == "https://example.com/logo.png")
         #expect(details?.countryCode == "GB")
@@ -122,7 +122,7 @@ struct StationDetailsLookupTests {
             stations: { stations },
             isAdmin: { false },
             create: { _ in }, update: { _, _ in }, delete: { _ in },
-            details: { stream in
+            details: { stream, _ in
                 await asked.add(stream)
                 return try answer(stream)
             }
@@ -184,5 +184,74 @@ struct StationDetailsLookupTests {
         #expect(radio.stations.first?.firstSeen == monday)
         try await radio.add(RadioStationDraft(name: "Aria", streamURL: "https://aria.example.org/live"))
         #expect(radio.phoneStations.first?.firstSeen == monday)
+    }
+}
+
+/// Issue #5: a station Radio Browser lists under an older address.
+struct StationNameLookupTests {
+    private static let servers = #"[{"name":"one.api.example.test"}]"#
+    private static let stream = URL(string: "https://new.example.com/rock102")!
+
+    private func client(_ transport: FakeTransport) -> RadioBrowserClient {
+        RadioBrowserClient(transport: transport, directory: URL(string: "https://all.api.example.test")!, shuffle: { $0 })
+    }
+
+    private func listing(_ id: String, _ name: String, site: String? = "https://rock102.example.com", country: String? = "US") -> RadioBrowserStation {
+        RadioBrowserStation(
+            id: id, name: name, streamURL: URL(string: "https://old.example.com/\(id)")!,
+            homePageURL: site.flatMap(URL.init(string:)), countryCode: country
+        )
+    }
+
+    @Test func notListedByAddressIsFoundByExactName() async throws {
+        let byName = #"[{"stationuuid":"u-1","name":"Rock 102 WAQY","url":"https://old.example.com/a","homepage":"https://www.rock102.example.com/","favicon":"https://rock102.example.com/logo.png","countrycode":"US","tags":"rock"},{"stationuuid":"u-2","name":"Rock 102 WAQY Tribute","url":"https://other.example.com/b","homepage":"https://tribute.example.com","countrycode":"GB"}]"#
+        let transport = FakeTransport(.json(Self.servers), .json("[]"), .json(byName))
+        let details = try await client(transport).details(forStream: Self.stream, named: "rock 102  waqy")
+        #expect(details?.logoURL?.absoluteString == "https://rock102.example.com/logo.png")
+        #expect(details?.countryCode == "US")
+        let search = try #require(await transport.requests.last?.url)
+        #expect(search.path() == "/json/stations/search")
+        #expect(search.queryParameters["name"] == "rock 102  waqy")
+        // A dead old address still has the station's details.
+        #expect(search.queryParameters["hidebroken"] == "false")
+    }
+
+    @Test func listedByAddressIsNotSearchedByName() async throws {
+        let byAddress = #"[{"stationuuid":"u-1","name":"Something Else","url":"https://new.example.com/rock102","countrycode":"US"}]"#
+        let transport = FakeTransport(.json(Self.servers), .json(byAddress))
+        let found = try await client(transport).listing(forStream: Self.stream, named: "Rock 102 WAQY")
+        #expect(found?.id == "u-1")
+        #expect(await transport.requests.count == 2)
+    }
+
+    @Test func onlyOneStationListedMoreThanOnceCounts() {
+        let name = "Rock 102"
+        // The same station twice (www or not): both.
+        let twice = [listing("a", "Rock 102"), listing("b", "ROCK 102", site: "https://www.rock102.example.com", country: nil)]
+        #expect(RadioBrowserClient.sameStation(named: name, in: twice).map(\.id) == ["a", "b"])
+        // Two stations with one name: neither.
+        let two = [listing("a", "Rock 102"), listing("b", "Rock 102", site: "https://rock102.other.example")]
+        #expect(RadioBrowserClient.sameStation(named: name, in: two).isEmpty)
+        let twoCountries = [listing("a", "Rock 102"), listing("b", "Rock 102", country: "CA")]
+        #expect(RadioBrowserClient.sameStation(named: name, in: twoCountries).isEmpty)
+        // Nothing to tell them apart: neither.
+        let unknown = [listing("a", "Rock 102", site: nil, country: nil), listing("b", "Rock 102", site: nil, country: nil)]
+        #expect(RadioBrowserClient.sameStation(named: name, in: unknown).isEmpty)
+        // One, even with nothing else known; names must match exactly.
+        #expect(RadioBrowserClient.sameStation(named: name, in: [listing("a", "Rock 102", site: nil, country: nil)]).count == 1)
+        #expect(RadioBrowserClient.sameStation(named: name, in: [listing("a", "Rock 102.5")]).isEmpty)
+        #expect(RadioBrowserClient.sameStation(named: "Déjà Vu FM", in: [listing("a", "deja vu fm")]).count == 1)
+    }
+
+    @Test func stationsNotListedBeforeAreAskedAgainOnce() throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: "StationDetails-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: file) }
+        // Saved by an earlier version, which looked up by address only.
+        try Data(#"{"details":{},"notListed":["https://new.example.com/rock102"],"logoOnly":{},"firstSeen":{}}"#.utf8).write(to: file)
+        let store = StationDetailsStore(fileURL: file)
+        #expect(store.needsLookUp(Self.stream))
+        store.set(nil, for: Self.stream)
+        // Not again after that.
+        #expect(!StationDetailsStore(fileURL: file).needsLookUp(Self.stream))
     }
 }

@@ -209,11 +209,12 @@ public enum StationInfo {
 @Observable
 public final class StationInfoModel {
     public struct Sources: Sendable {
-        public var listing: @Sendable (URL) async throws -> RadioBrowserStation?
+        /// A stream and the station's name.
+        public var listing: @Sendable (URL, String) async throws -> RadioBrowserStation?
         public var headers: @Sendable (URL) async throws -> [String: String]?
 
         public init(
-            listing: @escaping @Sendable (URL) async throws -> RadioBrowserStation?,
+            listing: @escaping @Sendable (URL, String) async throws -> RadioBrowserStation?,
             headers: @escaping @Sendable (URL) async throws -> [String: String]?
         ) {
             self.listing = listing
@@ -238,7 +239,7 @@ public final class StationInfoModel {
         defer { isLoading = false }
         let sources = sources
         let stream = playing ?? subject.stream
-        async let listing: RadioBrowserStation? = lookUpOnline ? (try? await sources.listing(subject.stream)) ?? nil : nil
+        async let listing: RadioBrowserStation? = lookUpOnline ? (try? await sources.listing(subject.stream, subject.name)) ?? nil : nil
         async let headers: [String: String]? = stream.scheme?.lowercased() == "https" ? (try? await sources.headers(stream)) ?? nil : nil
         let (found, heard) = await (listing, headers)
         self.listing = found

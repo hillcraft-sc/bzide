@@ -124,9 +124,12 @@ public struct RadioBrowserClient: Sendable {
     }
 
     /// A page of stations matching `query`, leaving out ones Radio Browser
-    /// found broken. As Radio Browser returns them: the same stream may be
-    /// listed twice (see `unique`), and a full page means there may be more.
-    public func stations(_ query: Query, offset: Int = 0, limit: Int = RadioBrowserClient.pageSize) async throws -> [RadioBrowserStation] {
+    /// found broken unless `includingBroken`. As Radio Browser returns them:
+    /// the same stream may be listed twice (see `unique`), and a full page
+    /// means there may be more.
+    public func stations(
+        _ query: Query, offset: Int = 0, limit: Int = RadioBrowserClient.pageSize, includingBroken: Bool = false
+    ) async throws -> [RadioBrowserStation] {
         var items = [URLQueryItem]()
         let name = query.name.trimmingCharacters(in: .whitespacesAndNewlines)
         if !name.isEmpty { items.append(.init(name: "name", value: name)) }
@@ -142,7 +145,7 @@ public struct RadioBrowserClient: Sendable {
             .init(name: "order", value: query.order.rawValue),
             // Most played and top rated: highest first.
             .init(name: "reverse", value: query.order == .name || query.order == .random ? "false" : "true"),
-            .init(name: "hidebroken", value: "true"),
+            .init(name: "hidebroken", value: includingBroken ? "false" : "true"),
             .init(name: "offset", value: String(offset)),
             .init(name: "limit", value: String(limit)),
         ]
@@ -186,10 +189,11 @@ public struct RadioBrowserClient: Sendable {
     }
 
     /// What Radio Browser has for a stream, by its address (either the
-    /// address as entered there or the resolved stream): its best listing,
+    /// address as entered there or the resolved stream), else by the
+    /// station's name (see `listings(forStream:named:)`): its best listing,
     /// the one with a usable logo if any, or `nil` if it isn't listed.
-    public func details(forStream stream: URL) async throws -> StationDetails? {
-        let found = try await listings(forStream: stream)
+    public func details(forStream stream: URL, named name: String) async throws -> StationDetails? {
+        let found = try await listings(forStream: stream, named: name)
         guard let best = Self.best(found) else { return nil }
         var details = StationDetails(best)
         // Fill in what the best listing lacks from the others.
@@ -201,12 +205,43 @@ public struct RadioBrowserClient: Sendable {
 
     /// Radio Browser's listing for a stream, for Station Info: the one with a
     /// usable logo if several, or `nil` if it isn't listed.
-    public func listing(forStream stream: URL) async throws -> RadioBrowserStation? {
-        Self.best(try await listings(forStream: stream))
+    public func listing(forStream stream: URL, named name: String) async throws -> RadioBrowserStation? {
+        Self.best(try await listings(forStream: stream, named: name))
     }
 
-    private func listings(forStream stream: URL) async throws -> [RadioBrowserStation] {
-        try await get("json/stations/byurl", [URLQueryItem(name: "url", value: stream.absoluteString)], as: LossyList<RadioBrowserStation>.self).items
+    /// Listings with this stream address. With none (Radio Browser may only
+    /// have an older address), listings with exactly this name instead, but
+    /// only if they're clearly one station (see `sameStation`), so a loose
+    /// match never shows another station's details.
+    private func listings(forStream stream: URL, named name: String) async throws -> [RadioBrowserStation] {
+        let byAddress = try await get("json/stations/byurl", [URLQueryItem(name: "url", value: stream.absoluteString)], as: LossyList<RadioBrowserStation>.self).items
+        guard byAddress.isEmpty, !Self.nameKey(name).isEmpty else { return byAddress }
+        // A listing of an old, dead address still has the station's details.
+        let byName = try await stations(Query(name: name), limit: Self.nameMatchLimit, includingBroken: true)
+        return Self.sameStation(named: name, in: byName)
+    }
+
+    /// Enough to see every listing of a name, even a common one.
+    static let nameMatchLimit = 50
+
+    /// The listings named exactly `name` (ignoring case, accents and extra
+    /// spaces), if they agree on the station's website and country (one
+    /// station listed more than once); none if they don't (two stations
+    /// with one name, say "Kiss FM" in two cities).
+    static func sameStation(named name: String, in found: [RadioBrowserStation]) -> [RadioBrowserStation] {
+        let wanted = nameKey(name)
+        let named = found.filter { nameKey($0.name) == wanted }
+        let sites = Set(named.compactMap { $0.homePageURL?.host()?.lowercased().replacing(#/^www\./#, with: "") })
+        let countries = Set(named.compactMap { $0.countryCode?.uppercased() }.filter { !$0.isEmpty })
+        guard sites.count <= 1, countries.count <= 1 else { return [] }
+        // Several with neither a website nor a country: nothing says they're one station.
+        if named.count > 1, sites.isEmpty, countries.isEmpty { return [] }
+        return named
+    }
+
+    static func nameKey(_ name: String) -> String {
+        name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+            .split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 
     private static func best(_ found: [RadioBrowserStation]) -> RadioBrowserStation? {
