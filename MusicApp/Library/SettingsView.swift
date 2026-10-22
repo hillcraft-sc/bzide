@@ -129,7 +129,7 @@ struct SettingsView: View {
             } header: {
                 Text("Lyrics")
             } footer: {
-                Text("When your server has no lyrics for a song, or only unsynced ones, look them up on LRCLIB (lrclib.net), a free lyrics database. This sends the song's title, artist, album and length there." + (settings.settings.findLyricsOnline ? "\n\nWrong Lyrics Button: when LRCLIB's lyrics are for another version of the song, a button on the lyrics screen tries its next match, or stops using LRCLIB for that song. Your choice is remembered for the song." : ""))
+                Text("When your server has no lyrics for a song, or only unsynced ones, look them up on LRCLIB (lrclib.net), a free lyrics database. This sends the song's title, artist, album and length there." + (settings.settings.findLyricsOnline ? "\n\nWrong Lyrics Button: when LRCLIB's lyrics are for another version of the song, a button on the lyrics screen tries its next match, or stops using LRCLIB for that song. Your choice is remembered for the song." : "") + "\n\nTip: if your server runs Navidrome 0.63 or later, its admin can install the Navidrome Lyrics Plugin (nd-lyrics, github.com/J0R6IT0/navidrome-lyrics-plugin). The server then finds lyrics online itself, for every app, and Bzide shows them as your server's, with Find Lyrics Online left off.")
             }
             .themedRows(grouped: true)
             Section {
