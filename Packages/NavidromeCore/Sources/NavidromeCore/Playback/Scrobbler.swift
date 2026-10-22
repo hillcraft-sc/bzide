@@ -38,23 +38,29 @@ public protocol ScrobbleStore: Sendable {
 /// Delivers scrobbles. Each is saved before it is sent and removed only once the
 /// server accepts it, so being offline or quitting the app never loses one. They
 /// are sent oldest first, at the next submission and at launch.
+///
+/// With Send Plays to Server off (`isEnabled`), neither "now playing" nor new
+/// plays are sent or saved; plays saved while it was on are still delivered.
 @MainActor
 public final class Scrobbler: ScrobbleSubmitting {
     public private(set) var pending: [PendingScrobble]
 
     private let sender: any ScrobbleSending
     private let store: any ScrobbleStore
+    private let isEnabled: @MainActor () -> Bool
     /// The send in progress, if any. Cleared by the task itself when it ends.
     private var flushTask: Task<Void, Never>?
     private static let logger = Logger(subsystem: "MusicApp", category: "Scrobbler")
 
-    public init(sender: any ScrobbleSending, store: any ScrobbleStore) {
+    public init(sender: any ScrobbleSending, store: any ScrobbleStore, isEnabled: @escaping @MainActor () -> Bool = { true }) {
         self.sender = sender
         self.store = store
+        self.isEnabled = isEnabled
         pending = store.load()
     }
 
     public func nowPlaying(songID: String) {
+        guard isEnabled() else { return }
         let sender = sender
         Task {
             // Best effort: a missed "now playing" doesn't matter, so no retry.
@@ -63,6 +69,7 @@ public final class Scrobbler: ScrobbleSubmitting {
     }
 
     public func submit(_ scrobble: PendingScrobble) {
+        guard isEnabled() else { return }
         pending.append(scrobble)
         store.save(pending)
         Task { await flush() }

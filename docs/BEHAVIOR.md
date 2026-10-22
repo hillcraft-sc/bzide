@@ -164,7 +164,8 @@ How the app behaves, written so the web and Android clients can be ported from t
 - "Now playing" is sent once per play, when it first plays (including when one track flows straight into the next). It is best effort and never retried.
 - Scrobbles are saved to `Application Support/PendingScrobbles.json` before sending and removed only once the server accepts them. They are sent oldest first, never in parallel, stopping at the first failure. Pending ones are retried at the next scrobble and at launch.
 - Known limit: if the server records a scrobble but the reply is lost, it will be sent again and may count twice.
-- **Last.fm and ListenBrainz** aren't contacted by Bzide. Plays go to the user's server only; Navidrome forwards them to the services each user links in its web interface (Personal settings), so it works the same from every client and no service credentials are on the phone. Settings > Scrobbling says so (information only; Gitea #18).
+- **Last.fm and ListenBrainz** aren't contacted by Bzide. Plays go to the user's server only; Navidrome forwards them to the services each user links in its web interface (Personal settings), so it works the same from every client and no service credentials are on the phone. Settings > Scrobbling says so (Gitea #18).
+- **Send Plays to Server** (Settings > Scrobbling, on by default): off, nothing about listening is sent to the server from this iPhone: no "now playing" and no plays, and plays made while it's off are never sent later (they aren't saved). Plays saved while it was on are still delivered. The server's play counts and lists built on them (Recently Played, Most Played, Spin It Back) stop updating from this phone; History on the phone isn't affected.
 
 ## Queue
 
@@ -715,6 +716,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] A station that won't play (e.g. a dead address): an alert explains, with OK. (2026-10-22)
 
 ### Scrobbling
+- [x] Settings > Scrobbling > Send Plays to Server off: play a song past halfway; it doesn't appear in Navidrome's play history or as now playing, and isn't sent later. Turn it back on: the next play is recorded. (2026-10-22)
 - [x] Play a track past halfway (or 4 minutes). It appears once in Navidrome's play history, at the time you started it. (2026-10-11, M2 checklist)
 - [x] Play a track, skip to near the end, let it finish. It is not scrobbled. (2026-10-11, M2 checklist)
 - [x] While a track plays, Navidrome shows it as now playing. Let it flow into the next track: now playing updates. (2026-10-11, M2 checklist)

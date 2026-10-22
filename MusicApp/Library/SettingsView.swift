@@ -193,13 +193,13 @@ struct SettingsView: View {
                 Text("History is kept on this iPhone only. A song is added once it has played for half its length or 4 minutes.")
             }
             .themedRows(grouped: true)
-            // Information only: scrobbling is set up on the server (Gitea #18).
+            // Scrobbling is set up on the server (Gitea #18).
             Section {
-                LabeledContent("Plays Are Sent To", value: "Your Server")
+                Toggle("Send Plays to Server", isOn: $settings.settings.sendPlaysToServer)
             } header: {
                 Text("Scrobbling")
             } footer: {
-                Text("Bzide tells your server what's playing and records each play once it has played for half its length or 4 minutes (plays made offline are sent later). Bzide never contacts Last.fm or ListenBrainz itself: to scrobble there, link your accounts in your server's web interface (in Navidrome, your user's Personal settings), and the server passes your plays on, from every app you use.")
+                Text("Bzide tells your server what's playing and records each play once it has played for half its length or 4 minutes (plays made offline are sent later). Bzide never contacts Last.fm or ListenBrainz itself: to scrobble there, link your accounts in your server's web interface (in Navidrome, your user's Personal settings), and the server passes your plays on, from every app you use.\n\nOff, nothing about your listening is sent to the server from this iPhone: no plays, no \u{201C}now playing\u{201D}. The server's play counts, Recently Played, Most Played and Spin It Back stop updating from here; History on this iPhone still works.")
             }
             .themedRows(grouped: true)
             Section {

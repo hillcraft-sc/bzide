@@ -125,7 +125,10 @@ final class AppModel {
     private func start(with credentials: ServerCredentials) {
         removeOtherAccountsData(for: credentials)
         let client = SubsonicClient(credentials: credentials)
-        let scrobbler = Scrobbler(sender: client, store: FileScrobbleStore.applicationSupport() ?? InMemoryScrobbleStore())
+        let scrobbler = Scrobbler(
+            sender: client, store: FileScrobbleStore.applicationSupport() ?? InMemoryScrobbleStore(),
+            isEnabled: { [settings = system.settings] in settings.settings.sendPlaysToServer }
+        )
         let queueStore: any QueueStore
         do {
             queueStore = try FileQueueStore.applicationSupport()

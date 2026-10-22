@@ -207,3 +207,47 @@ struct ScrobblerTests {
         #expect(store.load() == pending)
     }
 }
+
+/// Settings > Scrobbling > Send Plays to Server (Gitea #18).
+@MainActor
+struct SendPlaysToServerTests {
+    private let played = Date(timeIntervalSince1970: 1_700_000_000)
+
+    private final class Switch {
+        var on: Bool
+        init(_ on: Bool) { self.on = on }
+    }
+
+    @Test func offSendsAndSavesNothing() async {
+        let sender = FakeScrobbleSender()
+        let store = InMemoryScrobbleStore()
+        let send = Switch(false)
+        let scrobbler = Scrobbler(sender: sender, store: store, isEnabled: { send.on })
+        scrobbler.nowPlaying(songID: "so-1")
+        scrobbler.submit(PendingScrobble(songID: "so-1", playedAt: played))
+        await scrobbler.flush()
+        for _ in 0..<10 { await Task.yield() }
+        #expect(sender.calls.isEmpty)
+        #expect(store.load().isEmpty)
+
+        // Back on: the next play is sent.
+        send.on = true
+        scrobbler.submit(PendingScrobble(songID: "so-2", playedAt: played))
+        await scrobbler.flush()
+        #expect(sender.calls.map(\.songID) == ["so-2"])
+    }
+
+    @Test func playsSavedWhileOnAreStillDelivered() async {
+        let store = InMemoryScrobbleStore([PendingScrobble(songID: "so-9", playedAt: played)])
+        let sender = FakeScrobbleSender()
+        let scrobbler = Scrobbler(sender: sender, store: store, isEnabled: { false })
+        await scrobbler.flush()
+        #expect(sender.calls.map(\.songID) == ["so-9"])
+    }
+
+    @Test func onByDefaultAndForOlderSettings() throws {
+        #expect(StreamingSettings().sendPlaysToServer)
+        let old = try JSONDecoder().decode(StreamingSettings.self, from: Data(#"{"findLyricsOnline":true}"#.utf8))
+        #expect(old.sendPlaysToServer)
+    }
+}
