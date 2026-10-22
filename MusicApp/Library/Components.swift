@@ -237,15 +237,26 @@ struct SongActions: View {
         MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
         SongInfoButton(library: library, song: song)
         Section {
-            if showsGoToAlbum, let albumID = song.albumID {
-                NavigationLink(value: LibraryRoute.album(id: albumID)) {
-                    Label("Go to Album", systemImage: "square.stack")
-                }
+            SongGoToLinks(song: song, showsGoToAlbum: showsGoToAlbum)
+        }
+    }
+}
+
+/// Go to Album and Go to Artist, when the server gave their ids. In menus
+/// on song rows and in Now Playing, which open them in their own navigation.
+struct SongGoToLinks: View {
+    let song: Song
+    var showsGoToAlbum = true
+
+    var body: some View {
+        if showsGoToAlbum, let albumID = song.albumID {
+            NavigationLink(value: LibraryRoute.album(id: albumID)) {
+                Label("Go to Album", systemImage: "square.stack")
             }
-            if let artistID = song.artistID {
-                NavigationLink(value: LibraryRoute.artist(id: artistID)) {
-                    Label("Go to Artist", systemImage: "music.microphone")
-                }
+        }
+        if let artistID = song.artistID {
+            NavigationLink(value: LibraryRoute.artist(id: artistID)) {
+                Label("Go to Artist", systemImage: "music.microphone")
             }
         }
     }

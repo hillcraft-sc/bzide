@@ -94,6 +94,12 @@ struct NowPlayingView: View {
             if let song = engine.queue.current?.song {
                 SpinOffButton(library: library, song: song)
                 SongInfoButton(library: library, song: song)
+                if let albumID = song.albumID {
+                    AlbumInfoButton(library: library, albumID: albumID)
+                }
+                Section {
+                    SongGoToLinks(song: song)
+                }
             }
             Button("Save Queue as Playlist…", systemImage: "text.badge.plus") {
                 library.addToPlaylist.open(savableQueue, title: "Save Queue")
@@ -158,7 +164,7 @@ struct NowPlayingView: View {
                 }
                 .themedRows()
                 Section {
-                    QueueList(engine: engine)
+                    QueueList(engine: engine, library: library)
                 } header: {
                     HStack {
                         if let spinOff = engine.spinOff {

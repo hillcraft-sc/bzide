@@ -3,9 +3,12 @@ import SwiftUI
 
 /// The current song, then what plays next. Upcoming songs can be swiped away
 /// or dragged into a new order; the current one stays put, so editing the
-/// queue never changes what's playing.
+/// queue never changes what's playing. A long-press offers Song Info and the
+/// way to the song's album and artist.
 struct QueueList: View {
     let engine: PlaybackEngine
+    /// For the long-press menu; the debug player has none.
+    var library: Library?
 
     var body: some View {
         if let current = engine.queue.current {
@@ -41,6 +44,15 @@ struct QueueList: View {
             }
         }
         .foregroundStyle(.primary)
+        // A station has nothing to go to or look up.
+        .contextMenu {
+            if let library, !entry.song.isLive {
+                SongInfoButton(library: library, song: entry.song)
+                Section {
+                    SongGoToLinks(song: entry.song)
+                }
+            }
+        }
         .siriEntity(songID: entry.song.isLive ? nil : entry.song.id)
     }
 }

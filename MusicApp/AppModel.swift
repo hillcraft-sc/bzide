@@ -160,9 +160,6 @@ final class AppModel {
             // Tagged radio songs now in the library get marked (and removed
             // when due) even if the list isn't opened.
             Task { await library.wishlist.checkLibrary() }
-            system.nowPlaying.onFavorite = { favorite in
-                Task { await library.setCurrentSongFavorite(favorite) }
-            }
         }
         self.scrobbler = scrobbler
         // Send anything left over from a previous run.
@@ -217,7 +214,6 @@ final class AppModel {
         system.player.setItems([], startPosition: 0)
         // The lock screen would otherwise keep controls for an engine that's gone.
         system.nowPlaying.update(nil)
-        system.nowPlaying.onFavorite = nil
         WidgetBridge.clear()
         if let scrobbler {
             Task { await scrobbler.flush() }
