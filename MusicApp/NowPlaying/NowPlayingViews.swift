@@ -89,6 +89,98 @@ struct NowPlayingView: View {
         engine.queue.entries.map(\.song).filter { !$0.isLive }
     }
 
+    /// The space Now Playing has, for its layout and the cover's size.
+    @State private var size: CGSize = .zero
+
+    /// Two columns when wider than tall and wide enough for both.
+    private var isWide: Bool { size.width > size.height && size.width >= 700 }
+
+    private var leadingWidth: CGFloat { max(size.width * 0.45, 320) }
+
+    /// About 72% of its column (280 points on a typical iPhone), never so big
+    /// the controls fall out of view beside the queue.
+    private var artworkSide: CGFloat {
+        guard size != .zero else { return 280 }
+        let column = isWide ? leadingWidth : size.width
+        let limit = isWide ? min(420, size.height * 0.5) : 420
+        return max(min(column * 0.72, limit), 140)
+    }
+
+    @ViewBuilder
+    private func nowPlayingSection(_ artwork: String?) -> some View {
+        Section {
+            ArtworkView(library: library, coverArtID: artwork, side: artworkSide)
+                // A fresh view for a new cover, so it never keeps the old one.
+                .id(artwork)
+                .frame(maxWidth: .infinity)
+                .listRowSeparator(.hidden)
+            TransportControls(engine: engine)
+            // The song a station is playing: in the library, or not (once
+            // the search has said so), to add to the Wishlist.
+            if engine.isLive, let match = library.onAir.match {
+                InYourLibraryBadge(library: library, song: match)
+                    .listRowSeparator(.hidden)
+            } else if engine.isLive, let onAir = library.onAir.onAir, !library.onAir.isSearching {
+                WishlistButton(library: library, song: onAir, station: engine.queue.current?.song.title)
+                    .listRowSeparator(.hidden)
+            }
+            if let song = engine.queue.current?.song {
+                HStack(spacing: 32) {
+                    // A station isn't on the server, so it can't be favorited or
+                    // rated, and has no lyrics or levels for the visualizer.
+                    if !song.isLive {
+                        MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
+                    }
+                    AirPlayButton()
+                        .frame(width: 32, height: 32)
+                    if !song.isLive {
+                        Button("Lyrics", systemImage: "quote.bubble") { isLyricsOpen = true }
+                        Button("Visualizer", systemImage: "waveform") { isVisualizerOpen = true }
+                    }
+                }
+                .labelStyle(.iconOnly)
+                .font(.title3)
+                // Borderless, like the transport controls. With the default style a
+                // button in a list row is drawn in the text color instead of the
+                // accent, and takes taps anywhere in the row.
+                .buttonStyle(.borderless)
+                .frame(maxWidth: .infinity)
+                .listRowSeparator(.hidden)
+                // A station Spin the Dial found, not saved yet.
+                if let status = saveState(song), let savedStations {
+                    SaveStationButton(library: library, song: song, stations: savedStations, status: status) {
+                        savedSongID = song.id
+                    }
+                    .listRowSeparator(.hidden)
+                }
+            }
+        }
+        .themedRows()
+    }
+
+    @ViewBuilder
+    private var queueSection: some View {
+        Section {
+            QueueList(engine: engine, library: library)
+        } header: {
+            HStack {
+                if let spinOff = engine.spinOff {
+                    Label(spinOff.heading, systemImage: spinOff == .rated ? "flame" : "opticaldisc")
+                        .lineLimit(1)
+                } else {
+                    Text("Queue")
+                }
+                Spacer()
+                if engine.queue.hasNext {
+                    Button("Clear Up Next") { engine.clearUpNext() }
+                        .font(.subheadline)
+                        .textCase(nil)
+                }
+            }
+        }
+        .themedRows()
+    }
+
     private var moreMenu: some View {
         Menu("More", systemImage: "ellipsis") {
             if let song = engine.queue.current?.song {
@@ -114,77 +206,31 @@ struct NowPlayingView: View {
         // up) wouldn't redraw them.
         let artwork = engine.currentCoverArtID
         NavigationStack {
-            List {
-                Section {
-                    ArtworkView(library: library, coverArtID: artwork, side: 280)
-                        // A fresh view for a new cover, so it never keeps the old one.
-                        .id(artwork)
-                        .frame(maxWidth: .infinity)
-                        .listRowSeparator(.hidden)
-                    TransportControls(engine: engine)
-                    // The song a station is playing: in the library, or not (once
-                    // the search has said so), to add to the Wishlist.
-                    if engine.isLive, let match = library.onAir.match {
-                        InYourLibraryBadge(library: library, song: match)
-                            .listRowSeparator(.hidden)
-                    } else if engine.isLive, let onAir = library.onAir.onAir, !library.onAir.isSearching {
-                        WishlistButton(library: library, song: onAir, station: engine.queue.current?.song.title)
-                            .listRowSeparator(.hidden)
+            Group {
+                if isWide {
+                    // Wider than tall with room to spare (the inner display of
+                    // iPhone Duo, landscape, iPad): what's playing on one side,
+                    // the queue on the other.
+                    HStack(spacing: 0) {
+                        List { nowPlayingSection(artwork) }
+                            .listStyle(.plain)
+                            .themedList()
+                            .frame(width: leadingWidth)
+                        Divider()
+                        List { queueSection }
+                            .listStyle(.plain)
+                            .themedList()
                     }
-                    if let song = engine.queue.current?.song {
-                        HStack(spacing: 32) {
-                            // A station isn't on the server, so it can't be favorited or
-                            // rated, and has no lyrics or levels for the visualizer.
-                            if !song.isLive {
-                                MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
-                            }
-                            AirPlayButton()
-                                .frame(width: 32, height: 32)
-                            if !song.isLive {
-                                Button("Lyrics", systemImage: "quote.bubble") { isLyricsOpen = true }
-                                Button("Visualizer", systemImage: "waveform") { isVisualizerOpen = true }
-                            }
-                        }
-                        .labelStyle(.iconOnly)
-                        .font(.title3)
-                        // Borderless, like the transport controls. With the default style a
-                        // button in a list row is drawn in the text color instead of the
-                        // accent, and takes taps anywhere in the row.
-                        .buttonStyle(.borderless)
-                        .frame(maxWidth: .infinity)
-                        .listRowSeparator(.hidden)
-                        // A station Spin the Dial found, not saved yet.
-                        if let status = saveState(song), let savedStations {
-                            SaveStationButton(library: library, song: song, stations: savedStations, status: status) {
-                                savedSongID = song.id
-                            }
-                            .listRowSeparator(.hidden)
-                        }
+                } else {
+                    List {
+                        nowPlayingSection(artwork)
+                        queueSection
                     }
+                    .listStyle(.plain)
+                    .themedList()
                 }
-                .themedRows()
-                Section {
-                    QueueList(engine: engine, library: library)
-                } header: {
-                    HStack {
-                        if let spinOff = engine.spinOff {
-                            Label(spinOff.heading, systemImage: spinOff == .rated ? "flame" : "opticaldisc")
-                                .lineLimit(1)
-                        } else {
-                            Text("Queue")
-                        }
-                        Spacer()
-                        if engine.queue.hasNext {
-                            Button("Clear Up Next") { engine.clearUpNext() }
-                                .font(.subheadline)
-                                .textCase(nil)
-                        }
-                    }
-                }
-                .themedRows()
             }
-            .listStyle(.plain)
-            .themedList()
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "chevron.down") { dismiss() }

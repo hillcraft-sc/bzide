@@ -11,6 +11,9 @@ struct ArtworkView: View {
 
     @Environment(\.displayScale) private var displayScale
     @State private var image: UIImage?
+    /// The cover `image` is of, so a size change keeps it showing while a
+    /// sharper copy loads.
+    @State private var shownID: String?
 
     var body: some View {
         ZStack {
@@ -24,13 +27,18 @@ struct ArtworkView: View {
         .frame(width: side, height: side)
         .clipShape(.rect(cornerRadius: side > 100 ? 12 : 6))
         .accessibilityHidden(true)
-        .task(id: coverArtID) {
-            image = nil
+        // Again when the size changes (a cover sized to its space), at the new
+        // size; only a new cover clears the old one first.
+        .task(id: "\(coverArtID ?? "")|\(Int(side * displayScale))") {
+            if shownID != coverArtID {
+                image = nil
+                shownID = coverArtID
+            }
             guard let coverArtID else { return }
             let loaded = await library.artwork.image(for: coverArtID, pixels: Int(side * displayScale))
             // Shown something else meanwhile (a reused row, a skipped song): this
             // image is for the old one, so it must not overwrite the new.
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, let loaded else { return }
             image = loaded
         }
     }
