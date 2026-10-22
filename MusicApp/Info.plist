@@ -43,7 +43,11 @@
 	</dict>
 	<!-- Weather (Live): the weather where the user is, if they turn it on. -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Weather (Live) shows the weather where you are. Your approximate location is sent to MET Norway, rounded to about a kilometer.</string>
+	<string>Weather (Live) shows the weather where you are. Your approximate location, rounded to about a kilometer, is sent to Apple Weather or MET Norway.</string>
+	<!-- Export compliance, so uploads don't ask each time: Bzide only uses
+	     the encryption built into iOS (HTTPS, CryptoKit hashing), which is exempt. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<!-- MET Norway's terms ask every app to give a contact in its User-Agent. -->
 	<key>METNorwayContact</key>
 	<string>https://git.hillcraft-sc.com</string>
