@@ -3,7 +3,7 @@ import UIKit
 import WidgetKit
 
 /// Connects `WidgetFeed` to the app's artwork and to WidgetKit: the Now
-/// Playing widget and the Favorite Song control read what it writes.
+/// Playing and Shortcuts widgets and the Favorite Song control read what it writes.
 @MainActor
 enum WidgetBridge {
     /// Big enough for the medium widget's cover on any iPhone, small enough
@@ -41,6 +41,7 @@ enum WidgetBridge {
 
     private static func reload() {
         WidgetCenter.shared.reloadTimelines(ofKind: WidgetKinds.nowPlaying)
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetKinds.shortcuts)
         ControlCenter.shared.reloadControls(ofKind: WidgetKinds.favoriteControl)
     }
 

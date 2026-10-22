@@ -1,7 +1,7 @@
 import AppIntents
 import Foundation
 
-// The Now Playing widget's buttons. Shared by the app and the BzideControls
+// The widgets' buttons (Now Playing and Shortcuts). Shared by the app and the BzideControls
 // extension, like the favorite intents (see FavoriteIntentDefinitions.swift):
 // they're audio playback intents, so the system runs them in the app's
 // process, starting it in the background if need be; each target has its
@@ -15,7 +15,7 @@ struct TogglePlaybackIntent: AudioPlaybackIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        WidgetPlayback.perform(.togglePlayPause)
+        await WidgetPlayback.perform(.togglePlayPause)
         return .result()
     }
 }
@@ -27,7 +27,7 @@ struct NextTrackIntent: AudioPlaybackIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        WidgetPlayback.perform(.next)
+        await WidgetPlayback.perform(.next)
         return .result()
     }
 }
@@ -39,20 +39,57 @@ struct PreviousTrackIntent: AudioPlaybackIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        WidgetPlayback.perform(.previous)
+        await WidgetPlayback.perform(.previous)
+        return .result()
+    }
+}
+
+struct ContinuePlaybackIntent: AudioPlaybackIntent {
+    static let title: LocalizedStringResource = "Continue"
+    static let description = IntentDescription("Plays Bzide's queue from where it left off.")
+    static let isDiscoverable = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        await WidgetPlayback.perform(.resume)
+        return .result()
+    }
+}
+
+struct RandomMixIntent: AudioPlaybackIntent {
+    static let title: LocalizedStringResource = "Random Mix"
+    static let description = IntentDescription("Plays random songs from your library in Bzide.")
+    static let isDiscoverable = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        await WidgetPlayback.perform(.randomMix)
+        return .result()
+    }
+}
+
+struct MixMyCutsIntent: AudioPlaybackIntent {
+    static let title: LocalizedStringResource = "Mix My Cuts"
+    static let description = IntentDescription("Plays a mix of your rated and favorite songs in Bzide.")
+    static let isDiscoverable = false
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        await WidgetPlayback.perform(.myCuts)
         return .result()
     }
 }
 
 /// What a widget button asks for.
 enum WidgetCommand {
-    case togglePlayPause, next, previous
+    case togglePlayPause, next, previous, resume, randomMix, myCuts
 }
 
 /// The widgets' and controls' kinds, which the app needs to reload them.
 enum WidgetKinds {
     static let nowPlaying = "com.erichebert.musicapp.widget.nowPlaying"
     static let favoriteControl = "com.erichebert.musicapp.control.favoriteSong"
+    static let shortcuts = "com.erichebert.musicapp.widget.shortcuts"
 }
 
 /// Where tapping a widget goes (the app registers the `bzide` scheme).

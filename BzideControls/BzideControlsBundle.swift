@@ -8,6 +8,7 @@ import WidgetKit
 struct BzideControlsBundle: WidgetBundle {
     var body: some Widget {
         NowPlayingWidget()
+        ShortcutsWidget()
         FavoriteSongControl()
     }
 }
