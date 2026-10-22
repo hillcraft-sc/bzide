@@ -31,6 +31,10 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     /// Off by default: when the server has no lyrics for a song, look them up
     /// on LRCLIB. That sends the song's title, artist, album and length there.
     public var findLyricsOnline: Bool
+    /// Off by default: the lyrics screen's "Wrong lyrics?" button, for
+    /// choosing another of LRCLIB's matches. Off, choices already made are
+    /// ignored (and kept).
+    public var wrongLyricsButton: Bool
     /// Off by default: searching Radio Browser for stations, which sends the
     /// search there and counts plays of stations found there.
     public var findStationsOnline: Bool
@@ -71,7 +75,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     public init(
         wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
         downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original,
-        findLyricsOnline: Bool = false, findStationsOnline: Bool = false, lookUpSongsOnline: Bool = false, lookUpArtistsOnline: Bool = false,
+        findLyricsOnline: Bool = false, wrongLyricsButton: Bool = false, findStationsOnline: Bool = false, lookUpSongsOnline: Bool = false, lookUpArtistsOnline: Bool = false,
         liveWeather: Bool = false, liveWeatherUsesLocation: Bool = true, liveWeatherCity: String = "", liveWeatherPlace: LiveWeatherPlace? = nil, liveWeatherSource: LiveWeatherProvider = .apple, spinTheDial: DialSettings = DialSettings(), volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
         includeMehInMixes: Bool = false, myCutsIncludeFavorites: Bool = true
     ) {
@@ -80,6 +84,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         self.downloadOverCellular = downloadOverCellular
         self.downloadQuality = downloadQuality
         self.findLyricsOnline = findLyricsOnline
+        self.wrongLyricsButton = wrongLyricsButton
         self.findStationsOnline = findStationsOnline
         self.lookUpSongsOnline = lookUpSongsOnline
         self.lookUpArtistsOnline = lookUpArtistsOnline
@@ -96,7 +101,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, findStationsOnline, lookUpSongsOnline, lookUpArtistsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, liveWeatherSource, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, wrongLyricsButton, findStationsOnline, lookUpSongsOnline, lookUpArtistsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, liveWeatherSource, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -109,6 +114,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         downloadOverCellular = try c.decodeIfPresent(Bool.self, forKey: .downloadOverCellular) ?? defaults.downloadOverCellular
         downloadQuality = try c.decodeIfPresent(StreamQuality.self, forKey: .downloadQuality) ?? defaults.downloadQuality
         findLyricsOnline = try c.decodeIfPresent(Bool.self, forKey: .findLyricsOnline) ?? defaults.findLyricsOnline
+        wrongLyricsButton = (try? c.decodeIfPresent(Bool.self, forKey: .wrongLyricsButton)) ?? defaults.wrongLyricsButton
         findStationsOnline = (try? c.decodeIfPresent(Bool.self, forKey: .findStationsOnline)) ?? defaults.findStationsOnline
         lookUpSongsOnline = (try? c.decodeIfPresent(Bool.self, forKey: .lookUpSongsOnline)) ?? defaults.lookUpSongsOnline
         lookUpArtistsOnline = (try? c.decodeIfPresent(Bool.self, forKey: .lookUpArtistsOnline)) ?? defaults.lookUpArtistsOnline

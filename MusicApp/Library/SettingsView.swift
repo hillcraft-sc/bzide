@@ -121,10 +121,13 @@ struct SettingsView: View {
             .themedRows(grouped: true)
             Section {
                 Toggle("Find Lyrics Online", isOn: $settings.settings.findLyricsOnline)
+                if settings.settings.findLyricsOnline {
+                    Toggle("Wrong Lyrics Button", isOn: $settings.settings.wrongLyricsButton)
+                }
             } header: {
                 Text("Lyrics")
             } footer: {
-                Text("When your server has no lyrics for a song, or only unsynced ones, look them up on LRCLIB (lrclib.net), a free lyrics database. This sends the song's title, artist, album and length there.")
+                Text("When your server has no lyrics for a song, or only unsynced ones, look them up on LRCLIB (lrclib.net), a free lyrics database. This sends the song's title, artist, album and length there." + (settings.settings.findLyricsOnline ? "\n\nWrong Lyrics Button: when LRCLIB's lyrics are for another version of the song, a button on the lyrics screen tries its next match, or stops using LRCLIB for that song. Your choice is remembered for the song." : ""))
             }
             .themedRows(grouped: true)
             Section {

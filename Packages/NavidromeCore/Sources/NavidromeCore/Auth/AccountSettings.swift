@@ -59,7 +59,7 @@ public struct AccountSettings {
     /// Settings kept by Restore Default Settings: things the user made, not
     /// chose (lyrics timing fixes), and how long history is kept, which would
     /// otherwise delete older plays.
-    static let keptByRestore: Set<String> = [LyricsTiming.key, PlayHistory.retentionKey, PlayHistory.combineKey]
+    static let keptByRestore: Set<String> = [LyricsTiming.key, LyricsChoices.key, PlayHistory.retentionKey, PlayHistory.combineKey]
 
     /// Restore Default Settings: clears the signed-in account's settings, so
     /// everything reads its default (outside services off). Keeps its files

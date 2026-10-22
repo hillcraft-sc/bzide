@@ -12,15 +12,22 @@ struct LyricsView: View {
     let library: Library
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.themeAccent) private var accent
     @State private var clock = LyricsClock()
     @State private var cover: UIImage?
     /// Until when hand scrolling has stopped the view following the song.
     @State private var followingPausedUntil: Date = .distantPast
+    /// "Wrong lyrics?" found no other match on LRCLIB.
+    @State private var isShowingNoMore = false
+    /// "Wrong lyrics?" couldn't reach LRCLIB.
+    @State private var isShowingLookupFailed = false
 
     private var engine: PlaybackEngine { library.engine }
     private var model: LyricsModel { library.lyrics }
     private var song: Song? { engine.queue.current?.song }
     private var onlineAllowed: Bool { library.settings.settings.findLyricsOnline }
+    /// Settings > Lyrics > Wrong Lyrics Button.
+    private var usesChoices: Bool { onlineAllowed && library.settings.settings.wrongLyricsButton }
 
     /// How long hand scrolling stops the view following the song.
     private static let followingPause: TimeInterval = 3
@@ -35,8 +42,22 @@ struct LyricsView: View {
             .preferredColorScheme(.dark)
             // It covers Now Playing: the app's messages show here.
             .appMessages(library)
-        .task(id: "\(song?.id ?? "")|\(onlineAllowed)") {
-            await model.load(song, onlineAllowed: onlineAllowed)
+            .alert("No Other Lyrics", isPresented: $isShowingNoMore) {
+                Button("Don't Use LRCLIB for This Song") { Task { await model.turnDownOnline() } }
+                if song.flatMap(model.choice(for:)) != nil {
+                    Button("Back to the Best Match") { Task { await model.useBestMatch() } }
+                }
+                Button("Keep These", role: .cancel) {}
+            } message: {
+                Text("LRCLIB has no other version of this song's lyrics.")
+            }
+            .alert("Couldn't Reach LRCLIB", isPresented: $isShowingLookupFailed) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Check your connection and try again.")
+            }
+        .task(id: "\(song?.id ?? "")|\(onlineAllowed)|\(usesChoices)") {
+            await model.load(song, onlineAllowed: onlineAllowed, usesChoices: usesChoices)
         }
         .task(id: song?.coverArtID) {
             cover = nil
@@ -79,6 +100,9 @@ struct LyricsView: View {
                 .frame(width: 36, height: 36)
                 .background(.white.opacity(0.15), in: .circle)
             Spacer()
+            if let song, showsLRCLIBMenu(for: song) {
+                lrclibMenu(song)
+            }
             if case .loaded(let lyrics) = model.state, lyrics.isSynced, let songID = song?.id {
                 timingMenu(songID)
             }
@@ -86,6 +110,64 @@ struct LyricsView: View {
         .tint(.white)
         .padding(.horizontal, 20)
         .padding(.top, 8)
+    }
+
+    /// For lyrics from LRCLIB, or a song whose LRCLIB lyrics the user changed.
+    private func showsLRCLIBMenu(for song: Song) -> Bool {
+        guard usesChoices else { return false }
+        if case .loaded(let lyrics) = model.state, lyrics.source == .lrclib { return true }
+        return model.choice(for: song) != nil
+    }
+
+    /// "Wrong lyrics?": LRCLIB's next match, or none from LRCLIB; and back
+    /// to its best match after a change. Remembered for the song.
+    private func lrclibMenu(_ song: Song) -> some View {
+        let isFromLRCLIB = if case .loaded(let lyrics) = model.state { lyrics.source == .lrclib } else { false }
+        let choice = model.choice(for: song)
+        // Another match than LRCLIB's best is showing: in the accent, so it's
+        // clear the lyrics were changed.
+        let isChangedVersion = if case .lrclib(let id) = choice, case .loaded(let lyrics) = model.state {
+            lyrics.lrclibID == id
+        } else {
+            false
+        }
+        return Menu {
+            if isFromLRCLIB {
+                Section("Lyrics for another version of the song?") {
+                    Button("Try LRCLIB's Next Match", systemImage: "arrow.trianglehead.2.clockwise") { tryAnother() }
+                    Button("Don't Use LRCLIB for This Song", systemImage: "nosign") { Task { await model.turnDownOnline() } }
+                }
+            }
+            if choice != nil {
+                Button("Back to LRCLIB's Best Match", systemImage: "arrow.counterclockwise") { Task { await model.useBestMatch() } }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                if model.isTryingAnother {
+                    ProgressView().controlSize(.small).tint(.white)
+                } else {
+                    Image(systemName: "text.badge.xmark")
+                }
+                Text(isFromLRCLIB ? "Wrong lyrics?" : "LRCLIB off").font(.footnote.weight(.semibold))
+            }
+            .foregroundStyle(isChangedVersion ? accent ?? .accentColor : .white)
+            .padding(.horizontal, 10)
+            .frame(height: 36)
+            .background(.white.opacity(0.15), in: .capsule)
+        }
+        .disabled(model.isTryingAnother)
+        .accessibilityLabel("Wrong Lyrics")
+        .accessibilityValue(isChangedVersion ? "Showing another match" : "")
+    }
+
+    private func tryAnother() {
+        Task {
+            switch await model.tryAnother() {
+            case .shown: break
+            case .noMore: isShowingNoMore = true
+            case .failed: isShowingLookupFailed = true
+            }
+        }
     }
 
     /// Seconds earlier to show this song's lyrics (negative: later).

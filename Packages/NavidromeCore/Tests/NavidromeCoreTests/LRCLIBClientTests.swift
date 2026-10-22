@@ -48,7 +48,8 @@ struct LRCLIBClientTests {
     }
 
     @Test func aServerErrorThrows() async {
-        let transport = FakeTransport(.json("oops", status: 500))
+        // The exact lookup and the search both fail.
+        let transport = FakeTransport(.json("oops", status: 500), .json("oops", status: 500))
         await #expect(throws: (any Error).self) {
             try await LRCLIBClient(transport: transport).lyrics(title: "Song", artist: "Band", album: nil, duration: nil)
         }
@@ -59,5 +60,29 @@ struct LRCLIBClientTests {
         let result = try await LRCLIBClient(transport: transport).lyrics(title: "Interlude", artist: "Band", album: nil, duration: 200)
         #expect(result?.isInstrumental == true)
         #expect(result?.synced == nil)
+    }
+
+    // MARK: - Falling through to the search
+
+    private static let syncedSearch = #"[{"id":7,"trackName":"Morning Static","artistName":"The Placeholders","duration":200,"syncedLyrics":"[00:01.00] Synced from the search"}]"#
+    private static let plainExact = #"{"id":3,"trackName":"Morning Static","artistName":"The Placeholders","duration":200,"plainLyrics":"Plain from the exact match"}"#
+
+    @Test func aFailedExactLookupStillSearches() async throws {
+        let transport = FakeTransport(.json("busy", status: 503), .json(Self.syncedSearch))
+        let result = try await LRCLIBClient(transport: transport).lyrics(title: "Morning Static", artist: "The Placeholders", album: nil, duration: 200)
+        #expect(result?.synced == "[00:01.00] Synced from the search")
+    }
+
+    @Test func aPlainExactMatchGivesWayToSyncedFromTheSearch() async throws {
+        let transport = FakeTransport(.json(Self.plainExact), .json(Self.syncedSearch))
+        let result = try await LRCLIBClient(transport: transport).lyrics(title: "Morning Static", artist: "The Placeholders", album: nil, duration: 200)
+        #expect(result?.id == 7)
+    }
+
+    @Test func aPlainExactMatchStandsWhenTheSearchHasNothingBetterOrFails() async throws {
+        let none = FakeTransport(.json(Self.plainExact), .json("[]"))
+        #expect(try await LRCLIBClient(transport: none).lyrics(title: "Morning Static", artist: "The Placeholders", album: nil, duration: 200)?.id == 3)
+        let failing = FakeTransport(.json(Self.plainExact), .failure(.timedOut))
+        #expect(try await LRCLIBClient(transport: failing).lyrics(title: "Morning Static", artist: "The Placeholders", album: nil, duration: 200)?.id == 3)
     }
 }

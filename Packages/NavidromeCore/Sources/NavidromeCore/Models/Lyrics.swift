@@ -39,6 +39,8 @@ public struct Lyrics: Sendable, Equatable {
 
     public var lines: [Line]
     public var source: Source
+    /// LRCLIB's id for these lyrics, when they came from there.
+    public var lrclibID: Int?
 
     public var isSynced: Bool { lines.contains { $0.start != nil } }
 
