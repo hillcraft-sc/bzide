@@ -405,24 +405,27 @@ struct SettingsView: View {
                 Section {
                     ForEach([AppTheme.system, .light, .dark], id: \.self) { Text($0.title).tag($0) }
                 }
-                Section("Catppuccin") {
-                    ForEach([AppTheme.latte, .frappe, .macchiato, .mocha], id: \.self) { Text($0.title).tag($0) }
+                ForEach(ThemeFamily.allCases, id: \.self) { family in
+                    Section(family.title) {
+                        ForEach(family.themes, id: \.self) { Text($0.title).tag($0) }
+                    }
                 }
             }
-            if let palette = appearance.palette {
+            if let palette = appearance.palette, let family = appearance.settings.theme.family,
+               let current = appearance.settings.themeAccent {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
                         Text("Accent")
                         Spacer()
-                        Text(appearance.settings.accent.title).foregroundStyle(.secondary)
+                        Text(current.title).foregroundStyle(.secondary)
                     }
                     SwatchGrid(
-                        options: CatppuccinAccent.allCases,
-                        color: { Color(palette.accent($0)) },
+                        options: palette.accents,
+                        color: { Color($0.color) },
                         title: \.title,
-                        isSelected: { $0 == appearance.settings.accent },
+                        isSelected: { $0.id == current.id },
                         checkmark: Color(palette.base),
-                        choose: { appearance.settings.accent = $0 }
+                        choose: { appearance.settings.setAccent($0.id, for: family) }
                     )
                 }
                 .padding(.vertical, 4)
@@ -447,8 +450,8 @@ struct SettingsView: View {
         } header: {
             Text("Appearance")
         } footer: {
-            if appearance.palette != nil {
-                Text("Colors from Catppuccin (catppuccin.com).")
+            if let family = appearance.settings.theme.family {
+                Text("Colors from \(family.title) (\(family.source)).")
             }
         }
         .themedRows(grouped: true)

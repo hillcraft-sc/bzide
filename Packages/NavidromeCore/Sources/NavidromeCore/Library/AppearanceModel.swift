@@ -27,9 +27,9 @@ public final class AppearanceModel {
         defaults.data(forKey: key).flatMap { try? JSONDecoder().decode(AppearanceSettings.self, from: $0) } ?? AppearanceSettings()
     }
 
-    /// The Catppuccin colors in use, or `nil` for the system themes.
-    public var palette: CatppuccinPalette? {
-        settings.theme.flavor?.palette
+    /// The theme's colors, or `nil` for the system themes.
+    public var palette: ThemePalette? {
+        settings.theme.palette
     }
 
     private func save() {

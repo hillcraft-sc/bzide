@@ -22,7 +22,7 @@ struct AppearanceTests {
 
         let second = AppearanceModel(defaults: defaults)
         #expect(second.settings == AppearanceSettings(theme: .mocha, accent: .peach))
-        #expect(second.palette == .mocha)
+        #expect(second.palette == CatppuccinPalette.mocha.themePalette)
     }
 
     @Test func theSystemAccentDefaultsToBzideRedAndIsKept() {
@@ -86,5 +86,68 @@ struct AppearanceTests {
         #expect(color.red == 1)
         #expect(abs(color.green - 128.0 / 255) < 0.0001)
         #expect(color.blue == 0)
+    }
+}
+
+/// Gitea #13: more theme families.
+struct ThemeFamilyTests {
+    private let themed = AppTheme.allCases.filter { $0.family != nil }
+
+    @Test func everyThemeHasAPaletteAndForcesItsMode() {
+        for theme in themed {
+            let palette = theme.palette
+            #expect(palette != nil, "\(theme)")
+            #expect(theme.isDark == palette.map { !$0.isLight }, "\(theme)")
+            #expect((palette?.accents.count ?? 0) >= 7, "\(theme)")
+            // The default accent is one of its own.
+            #expect(palette.map { p in p.accents.contains { $0.id == p.defaultAccent } } ?? false, "\(theme)")
+        }
+        #expect(AppTheme.gruvboxLight.isDark == false)
+        #expect(AppTheme.tokyoDay.isDark == false)
+        #expect(AppTheme.nord.isDark == true)
+        #expect(AppTheme.system.palette == nil)
+    }
+
+    @Test func familiesListTheirThemesInOrder() {
+        #expect(ThemeFamily.catppuccin.themes == [.latte, .frappe, .macchiato, .mocha])
+        #expect(ThemeFamily.gruvbox.themes == [.gruvboxDark, .gruvboxLight])
+        #expect(ThemeFamily.tokyoNight.themes == [.tokyoNight, .tokyoStorm, .tokyoMoon, .tokyoDay])
+        #expect(Set(themed.compactMap(\.family)) == Set(ThemeFamily.allCases))
+    }
+
+    @Test func catppuccinIsUnchanged() {
+        let mocha = AppTheme.mocha.palette
+        #expect(mocha?.accents.count == 14)
+        #expect(mocha?.base == CatppuccinPalette.mocha.base)
+        #expect(mocha?.accent("mauve").color == CatppuccinPalette.mocha.accent(.mauve))
+        #expect(AppTheme.latte.palette?.isLight == true)
+    }
+
+    @Test func eachFamilyKeepsItsOwnAccent() {
+        var settings = AppearanceSettings(theme: .nord)
+        // Nothing chosen yet: the family's default.
+        #expect(settings.themeAccent?.id == "frost2")
+        settings.setAccent("green", for: .nord)
+        settings.setAccent("pink", for: .catppuccin)
+        settings.theme = .dracula
+        #expect(settings.themeAccent?.id == "purple")
+        settings.theme = .nord
+        #expect(settings.themeAccent?.id == "green")
+        settings.theme = .mocha
+        #expect(settings.themeAccent?.id == "pink")
+        #expect(settings.accent == .pink)
+        // An unknown id falls back to the default.
+        settings.theme = .gruvboxDark
+        settings.setAccent("nonsense", for: .gruvbox)
+        #expect(settings.themeAccent?.id == "orange")
+    }
+
+    @Test func olderSettingsStillLoad() throws {
+        let old = try JSONDecoder().decode(AppearanceSettings.self, from: Data(#"{"theme":"mocha","accent":"teal"}"#.utf8))
+        #expect(old.theme == .mocha)
+        #expect(old.themeAccent?.id == "teal")
+        #expect(old.familyAccents.isEmpty)
+        let saved = try JSONDecoder().decode(AppearanceSettings.self, from: JSONEncoder().encode(AppearanceSettings(theme: .tokyoMoon, familyAccents: ["tokyoNight": "cyan"])))
+        #expect(saved.themeAccent?.id == "cyan")
     }
 }

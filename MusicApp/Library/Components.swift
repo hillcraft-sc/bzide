@@ -50,7 +50,7 @@ struct LoadStateView<Value, Content: View>: View {
     let retry: () async -> Void
     @ViewBuilder let content: (Value) -> Content
 
-    @Environment(\.catppuccin) private var palette
+    @Environment(\.themePalette) private var palette
 
     var body: some View {
         switch state {

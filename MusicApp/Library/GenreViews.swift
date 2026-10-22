@@ -6,7 +6,7 @@ import SwiftUI
 struct GenreGrid: View {
     let library: Library
     @State private var model: LoadModel<[Genre]>
-    @Environment(\.catppuccin) private var palette
+    @Environment(\.themePalette) private var palette
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -49,7 +49,7 @@ struct GenreGrid: View {
 private struct GenreTile: View {
     let library: Library
     let genre: Genre
-    @Environment(\.catppuccin) private var palette
+    @Environment(\.themePalette) private var palette
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -78,24 +78,22 @@ private struct GenreTile: View {
     }
 }
 
-/// Tile colors: the Catppuccin accents in a Catppuccin theme, otherwise
-/// system colors. Each genre keeps its color from launch to launch.
+/// Tile colors: the theme's accents in a theme, otherwise system colors. Each genre keeps its color from launch to launch.
 private enum GenreColors {
     private static let system: [Color] = [.blue, .purple, .pink, .orange, .teal, .indigo, .red, .green, .cyan, .mint, .brown]
 
-    static func color(for name: String, palette: CatppuccinPalette?) -> Color {
+    static func color(for name: String, palette: ThemePalette?) -> Color {
         // A stable sum, not `hashValue`, which changes every launch.
         let index = name.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
         if let palette {
-            let accents = CatppuccinAccent.allCases
-            return Color(palette.accent(accents[index % accents.count]))
+            return Color(palette.accents[index % palette.accents.count].color)
         }
         return system[index % system.count]
     }
 
-    /// Catppuccin's dark flavors have pastel accents, which need dark text.
-    static func textColor(palette: CatppuccinPalette?) -> Color {
-        guard let palette, palette != .latte else { return .white }
+    /// Dark themes have pastel accents, which need dark text.
+    static func textColor(palette: ThemePalette?) -> Color {
+        guard let palette, !palette.isLight else { return .white }
         return Color(palette.crust)
     }
 }

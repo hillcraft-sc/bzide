@@ -149,13 +149,15 @@ struct SpinOffTests {
         let server = Server()
         server.similar = songs("similar", 5)
         let engine = makeEngine()
-        var keepSpinning = false
-        let spinOff = SpinOffModel(engine: engine, sources: server.sources, keepSpinning: { keepSpinning })
+        // A box, as the closure is sendable: the setting turned on below.
+        final class Setting: @unchecked Sendable { var keepSpinning = false }
+        let setting = Setting()
+        let spinOff = SpinOffModel(engine: engine, sources: server.sources, keepSpinning: { setting.keepSpinning })
         engine.play(songs: [seedSong])
         await settle()
         #expect(engine.queue.entries.count == 1)
         #expect(engine.spinOff == nil)
-        keepSpinning = true
+        setting.keepSpinning = true
         engine.play(songs: [seedSong])
         await settle { engine.queue.entries.count == 6 }
         #expect(engine.queue.entries.count == 6)

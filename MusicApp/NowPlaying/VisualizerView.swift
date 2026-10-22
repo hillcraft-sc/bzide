@@ -16,7 +16,7 @@ struct VisualizerView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.themeAccent) private var themeAccent
-    @Environment(\.catppuccin) private var palette
+    @Environment(\.themePalette) private var palette
     @State private var feed: SpectrumFeed
     @State private var isOnAirPlay = Self.isRoutedToAirPlay()
     /// What metering was before opening, put back on close (the debug switch may have it on).
@@ -103,17 +103,13 @@ struct VisualizerView: View {
         themeAccent ?? Color(uiColor: .tintColor)
     }
 
-    /// Custom is for Catppuccin's accents; in the other themes it shows as Multicolor.
+    /// Custom is for a theme's accents; in System, Light and Dark it shows as Multicolor.
     private var effectiveMode: VisualizerColorMode {
         colorMode == .custom && palette == nil ? .multicolor : colorMode
     }
 
-    private var customAccents: [CatppuccinAccent] {
-        VisualizerPalette.accents(from: customColorNames)
-    }
-
     private func colors(_ count: Int) -> [Color] {
-        VisualizerPalette.colors(count: count, mode: effectiveMode, accent: accent, catppuccin: palette, custom: customAccents)
+        VisualizerPalette.colors(count: count, mode: effectiveMode, accent: accent, palette: palette, customNames: customColorNames)
     }
 
     // MARK: - Drawing
@@ -553,25 +549,25 @@ enum VisualizerColorMode: String, CaseIterable {
     }
 }
 
-/// Picks which Catppuccin accents Custom uses, at least two, shown in the
-/// current flavor. They're always used in palette order.
+/// Picks which of the theme's accents Custom uses, at least two. They're
+/// always used in the theme's order.
 private struct CustomColorsSheet: View {
-    let palette: CatppuccinPalette
+    let palette: ThemePalette
     @Binding var names: String
     /// Called on Done, to switch the visualizer to Custom.
     let done: () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
-    private var chosen: [CatppuccinAccent] { VisualizerPalette.accents(from: names) }
+    private var chosen: [ThemeAccentColor] { VisualizerPalette.accents(from: names, in: palette) }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
                     SwatchGrid(
-                        options: CatppuccinAccent.allCases,
-                        color: { Color(palette.accent($0)) },
+                        options: palette.accents,
+                        color: { Color($0.color) },
                         title: \.title,
                         isSelected: { chosen.contains($0) },
                         checkmark: Color(palette.base),
@@ -598,8 +594,9 @@ private struct CustomColorsSheet: View {
         .presentationDetents([.medium])
     }
 
-    private func toggle(_ accent: CatppuccinAccent) {
-        var set = Set(chosen)
+    private func toggle(_ accent: ThemeAccentColor) {
+        // Starting from all of them when this theme had fewer than two chosen.
+        var set = Set(chosen.count >= 2 ? chosen : palette.accents)
         if set.contains(accent) {
             // Blending needs two colors; the last two stay.
             guard set.count > 2 else { return }
@@ -607,24 +604,26 @@ private struct CustomColorsSheet: View {
         } else {
             set.insert(accent)
         }
-        names = VisualizerPalette.names(of: set)
+        names = VisualizerPalette.names(of: set, in: palette)
     }
 }
 
 /// The colors a visualizer draws with, left to right.
 enum VisualizerPalette {
-    /// Accent: the accent throughout. Multicolor: in a Catppuccin theme, its 14
-    /// accents in palette order, blended across; otherwise a sweep of hues
-    /// starting from the accent (blue → purple → pink → orange for iOS blue).
-    /// Custom: the chosen Catppuccin accents, blended the same way.
+    /// Accent: the accent throughout. Multicolor: in a theme, its accents in
+    /// its order, blended across; otherwise a sweep of hues starting from the
+    /// accent (blue → purple → pink → orange for iOS blue). Custom: the chosen
+    /// accents, blended the same way (all of them if fewer than two of the
+    /// saved names are this theme's).
     static func colors(
-        count: Int, mode: VisualizerColorMode, accent: Color, catppuccin: CatppuccinPalette?, custom: [CatppuccinAccent] = []
+        count: Int, mode: VisualizerColorMode, accent: Color, palette: ThemePalette?, customNames: String = ""
     ) -> [Color] {
         guard count > 0 else { return [] }
         guard mode != .accent else { return Array(repeating: accent, count: count) }
-        if let catppuccin {
-            let chosen = mode == .custom && custom.count >= 2 ? custom : CatppuccinAccent.allCases
-            let accents = chosen.map { catppuccin.accent($0) }
+        if let palette {
+            let custom = accents(from: customNames, in: palette)
+            let chosen = mode == .custom && custom.count >= 2 ? custom : palette.accents
+            let accents = chosen.map(\.color)
             return (0..<count).map { index in
                 blend(accents, at: count == 1 ? 0 : Double(index) / Double(count - 1))
             }
@@ -638,17 +637,19 @@ enum VisualizerPalette {
         }
     }
 
-    /// A warm-to-cool mix to start Custom from.
-    static let defaultCustom = names(of: [.mauve, .pink, .peach, .teal, .blue])
+    /// A warm-to-cool mix of Catppuccin's to start Custom from (other themes
+    /// start from all their accents).
+    static let defaultCustom = "mauve,pink,peach,teal,blue"
 
-    /// Saved names to accents, in palette order; unknown names are ignored.
-    static func accents(from names: String) -> [CatppuccinAccent] {
-        let set = Set(names.split(separator: ",").compactMap { CatppuccinAccent(rawValue: String($0)) })
-        return CatppuccinAccent.allCases.filter(set.contains)
+    /// Saved accent ids to the theme's accents, in its order; ids it doesn't
+    /// have are ignored.
+    static func accents(from names: String, in palette: ThemePalette) -> [ThemeAccentColor] {
+        let set = Set(names.split(separator: ",").map(String.init))
+        return palette.accents.filter { set.contains($0.id) }
     }
 
-    static func names(of accents: Set<CatppuccinAccent>) -> String {
-        CatppuccinAccent.allCases.filter(accents.contains).map(\.rawValue).joined(separator: ",")
+    static func names(of accents: Set<ThemeAccentColor>, in palette: ThemePalette) -> String {
+        palette.accents.filter(accents.contains).map(\.id).joined(separator: ",")
     }
 
     /// The color `position` (0...1) of the way along `colors`, mixed between neighbors.

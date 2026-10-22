@@ -2,7 +2,7 @@ import NavidromeCore
 import SwiftUI
 
 // The chosen theme is applied once at the root (`appTheme`). It sets light or
-// dark mode and the accent: a Catppuccin accent, or for the System, Light and
+// dark mode and the accent: the theme's chosen accent, or for the System, Light and
 // Dark themes the chosen system accent (Bzide Red by default). Text keeps iOS's label colors:
 // setting a foreground style for the whole app would also override the tint
 // on buttons and icons, so they'd stop following the accent. Lists and forms
@@ -16,9 +16,10 @@ extension Color {
 }
 
 extension EnvironmentValues {
-    /// The Catppuccin colors in use, or `nil` for the system themes.
-    @Entry var catppuccin: CatppuccinPalette?
-    /// The accent in use (Catppuccin's or the system themes'). For UIKit views,
+    /// The theme's colors (Catppuccin, Gruvbox, Nord, Dracula, Tokyo Night),
+    /// or `nil` for the system themes.
+    @Entry var themePalette: ThemePalette?
+    /// The accent in use (the theme's or the system themes'). For UIKit views,
     /// which don't pick up SwiftUI's `tint`.
     @Entry var themeAccent: Color?
 }
@@ -28,13 +29,13 @@ extension View {
         modifier(AppTheme(appearance: appearance))
     }
 
-    /// A Catppuccin background behind a `List` or `Form`. `grouped` is for the
+    /// The theme's background behind a `List` or `Form`. `grouped` is for the
     /// inset-grouped style (forms), whose rows sit on a contrasting background.
     func themedList(grouped: Bool = false) -> some View {
         modifier(ThemedList(grouped: grouped))
     }
 
-    /// Catppuccin backgrounds for the rows inside a list's section or `ForEach`.
+    /// The theme's backgrounds for the rows inside a list's section or `ForEach`.
     func themedRows(grouped: Bool = false) -> some View {
         modifier(ThemedRows(grouped: grouped))
     }
@@ -48,11 +49,11 @@ private struct AppTheme: ViewModifier {
 
     func body(content: Content) -> some View {
         let palette = appearance.palette
-        let accent = palette.map { Color($0.accent(appearance.settings.accent)) } ?? appearance.settings.systemAccent.color
+        let accent = appearance.settings.themeAccent.map { Color($0.color) } ?? appearance.settings.systemAccent.color
         content
             .preferredColorScheme(appearance.settings.theme.isDark.map { $0 ? .dark : .light })
             .tint(accent)
-            .environment(\.catppuccin, palette)
+            .environment(\.themePalette, palette)
             .environment(\.themeAccent, accent)
     }
 }
@@ -85,7 +86,7 @@ extension SystemAccent {
 
 private struct ThemedList: ViewModifier {
     let grouped: Bool
-    @Environment(\.catppuccin) private var palette
+    @Environment(\.themePalette) private var palette
 
     func body(content: Content) -> some View {
         content
@@ -96,7 +97,7 @@ private struct ThemedList: ViewModifier {
 
 private struct ThemedRows: ViewModifier {
     let grouped: Bool
-    @Environment(\.catppuccin) private var palette
+    @Environment(\.themePalette) private var palette
 
     /// Always a color, never nil (the system default) for the system themes:
     /// a list caches its rows' backgrounds, and a row switching from none to
@@ -111,11 +112,9 @@ private struct ThemedRows: ViewModifier {
     }
 }
 
-private extension CatppuccinPalette {
-    /// Light Latte: rows a shade lighter than the background, like iOS's light
-    /// grouped style. Dark flavors: rows a shade lighter than `base`.
-    var isLight: Bool { self == .latte }
-
+private extension ThemePalette {
+    /// Light themes: rows a shade lighter than the background, like iOS's light
+    /// grouped style. Dark themes: rows a shade lighter than `base`.
     func listBackground(grouped: Bool) -> Color {
         Color(grouped && isLight ? crust : base)
     }
