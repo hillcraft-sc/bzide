@@ -36,7 +36,7 @@ struct ShortcutsWidgetView: View {
                 Tile(intent: RandomMixIntent(), title: "Random Mix", systemImage: "shuffle", isMedium: isMedium)
             }
             GridRow {
-                Tile(intent: MixMyCutsIntent(), title: "Mix My Cuts", systemImage: "star.fill", isMedium: isMedium)
+                Tile(intent: MixMyCutsIntent(), title: "Mix My Cuts", systemImage: "flame", isMedium: isMedium)
                 favorite
             }
         }
