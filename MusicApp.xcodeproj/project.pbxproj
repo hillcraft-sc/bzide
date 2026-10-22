@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		000000000000000200000010 /* NavidromeCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000200000020 /* NavidromeCore */; };
+		000000000000000200000011 /* NavidromeCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000200000021 /* NavidromeCore */; };
 		6C1EC7EA308187D60026ADB3 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C1EC7E9308187D60026ADB3 /* WidgetKit.framework */; };
 		6C1EC7EC308187D60026ADB3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C1EC7EB308187D60026ADB3 /* SwiftUI.framework */; };
 		6C1EC7F7308187D70026ADB3 /* BzideControlsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -62,6 +63,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Siri/FavoriteIntentDefinitions.swift,
+				Siri/PlaybackIntentDefinitions.swift,
 			);
 			target = 6C1EC7E6308187D60026ADB3 /* BzideControlsExtension */;
 		};
@@ -116,6 +118,7 @@
 			files = (
 				6C1EC7EC308187D60026ADB3 /* SwiftUI.framework in Frameworks */,
 				6C1EC7EA308187D60026ADB3 /* WidgetKit.framework in Frameworks */,
+				000000000000000200000011 /* NavidromeCore in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -214,6 +217,9 @@
 				6C1EC7ED308187D60026ADB3 /* BzideControls */,
 			);
 			name = BzideControlsExtension;
+			packageProductDependencies = (
+				000000000000000200000021 /* NavidromeCore */,
+			);
 			productName = BzideControlsExtension;
 			productReference = 6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -450,6 +456,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/MusicApp.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "Config/MusicApp-Simulator.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -492,6 +499,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/MusicApp.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]" = "Config/MusicApp-Simulator.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -575,6 +583,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/BzideControls.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6S92GA582Q;
@@ -591,6 +600,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.erichebert.musicapp.BzideControls;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -608,6 +618,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = Config/BzideControls.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6S92GA582Q;
@@ -624,6 +635,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.erichebert.musicapp.BzideControls;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -682,6 +694,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		000000000000000200000020 /* NavidromeCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = NavidromeCore;
+		};
+		000000000000000200000021 /* NavidromeCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = NavidromeCore;
 		};

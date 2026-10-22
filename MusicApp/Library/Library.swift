@@ -89,6 +89,8 @@ final class Library {
     /// Follows what a station is playing, for the on-air cover everywhere
     /// (the lock screen too) and Now Playing's badge and Song Info.
     private var onAirTracker: OnAirTracker?
+    /// Shares what's playing with the Now Playing widget and the Favorite Song control.
+    private var widgetFeed: WidgetFeed?
     /// Spin the Dial, shared by the Library button and Next on a dialed station.
     private(set) lazy var spinTheDial: SpinTheDialModel = makeSpinTheDial()
     /// Radio Browser is on the open internet: no shared cache or cookies.
@@ -204,6 +206,9 @@ final class Library {
         }
         onAirTracker = tracker
         tracker.start()
+        let feed = WidgetBridge.makeFeed(engine: engine, stars: stars, artwork: artwork)
+        widgetFeed = feed
+        feed.start()
     }
 
     /// The profile picture settings, saved with the account's other data.

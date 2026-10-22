@@ -54,6 +54,10 @@ struct RootView: View {
             model.pendingHomeScreenAction = nil
             run(action)
         }
+        // The Now Playing widget opens Now Playing (bzide://now-playing).
+        .onOpenURL { url in
+            if url == WidgetLinks.nowPlaying { isNowPlayingOpen = library.engine.queue.current != nil }
+        }
         .onAppear { HomeScreenActions.update(current: library.engine.queue.current?.song) }
         .onDisappear { HomeScreenActions.clear() }
         // Messages from anywhere in the app, shown here unless Now Playing is open.

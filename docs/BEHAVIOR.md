@@ -300,9 +300,15 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Favorite Current Song / Unfavorite Current Song**: hearts (or un-hearts) the song playing now on the server, as Now Playing's heart does. It sets rather than flips, so pressing it twice (from the Action button, a Shortcut or the lock screen control) can't undo it; already a favorite counts as done and isn't sent again. Siri says the result ("Added "Dawn" to your favorites."). Nothing playing: "Nothing is playing in Bzide."; a radio station: "A radio station can't be a favorite."; a failed request: the server's reason. Phrases work without setup ("Favorite this song in Bzide", "Favorite this in Bzide", "Add this song to my favorites in Bzide", "Unfavorite this song in Bzide", "Remove this song from my favorites in Bzide"); both also appear in Shortcuts and for the Action button. They run in the app's process (audio playback intents), where the queue and server connection are.
 - **The system's like command** (`MPRemoteCommandCenter.likeCommand`, titled "Favorite") does the same: Siri uses it for "favorite this song" or "like this song" said without "in Bzide", for whichever app is playing. A like favorites the playing song, an "unlike" unfavorites it; a failure shows the app's "Couldn't Change Favorite" alert. It's off while a station plays. Dislike isn't offered (Bzide has no dislike, and it isn't the same as unfavoriting).
 
+## Widgets
+
+- **What the app shares.** The widgets and controls (in the BzideControls extension) run in their own process and can't see the engine. The app writes what they show into the App Group's folder (`group.com.erichebert.musicapp`): `NowPlaying.json` (title, subtitle, playing or not, a station or not, whether there's a next, whether the song is a favorite, and which cover the artwork is of) and `NowPlayingArtwork.jpg` (the cover, at most 400 pixels on its longest side). Nothing else: no server address, credentials or listening history, so the extension never talks to the server. The title and subtitle are what Now Playing shows (for a station: the announced song and the station's name, else the station's name). "Playing" includes buffering and reconnecting, so the button shows pause while music is on its way.
+- **When it's written.** On launch (with the restored queue, paused), and whenever the song, its title, playing or paused, next, the favorite or the cover changes; each write asks WidgetKit to reload the Now Playing widget and the Favorite Song control, at most once a second (a run of changes reloads once more at the end). A new cover is saved before the snapshot names it, so a widget never shows the last song's cover with this one's title; until it's saved (or if it can't be had), a placeholder. Artwork left from before is dropped at launch and saved again. With nothing queued, both files are removed; signing out removes them too, so the widget never shows the last account's song. When the app is quitting, the snapshot is marked paused (the music stops with it).
+- **Now Playing widget** (Home Screen small and medium, Lock Screen rectangular): **small**: the cover, play/pause, the title (two lines) and subtitle; **medium**: the cover, the title and subtitle, and previous (not for a station), play/pause, next (dimmed when there's none) and the heart (filled when a favorite; not for a station), which favorites or unfavorites it; **Lock Screen**: the title and subtitle on a line each, and play/pause. Nothing queued: "Not Playing" and "Open Bzide to play something." The buttons do what the lock screen's do (previous restarts the song after its first seconds, as there), through audio playback intents the system runs in the app, starting it in the background if need be (the restored queue plays). Tapping elsewhere opens the app (`bzide://now-playing`), with Now Playing open when something's queued.
+
 ## Lock Screen and Control Center control
 
-- **Favorite Song** (in the BzideControls extension) can be put on the Lock Screen, in place of the flashlight or camera (Lock Screen > Customize), or in Control Center. Pressing it runs Favorite Current Song in the app: the playing song becomes a favorite, as with Siri. It always shows a plain heart: a control can't see what's playing or whether it's a favorite without an App Group, which the free developer account can't use. Pressing it again keeps the song a favorite. With nothing playing, or a radio station, nothing changes (the intent's message isn't shown by a control). If the system runs it outside the app (the app isn't running, so nothing's playing), it does nothing.
+- **Favorite Song** (in the BzideControls extension) can be put on the Lock Screen, in place of the flashlight or camera (Lock Screen > Customize), or in Control Center. Pressing it runs Favorite Current Song in the app: the playing song becomes a favorite, as with Siri. Its heart is filled when the playing song is a favorite already, from what the app shares (see Widgets); pressing it still always favorites, so pressing it again keeps the song a favorite. With nothing playing, or a radio station, nothing changes (the intent's message isn't shown by a control). If the system runs it outside the app (the app isn't running, so nothing's playing), it does nothing.
 
 ## Home Screen quick actions
 
@@ -646,11 +652,21 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Play a song and say just "Favorite this song" (or "I like this song"), without "in Bzide": Siri favorites it in Bzide instead of saying the app doesn't support liking.
 - [ ] Settings > Action Button > Shortcut > Bzide > Favorite Current Song (or a Shortcut): pressing it hearts the playing song.
 
+### Widgets
+
+- [x] Add the Now Playing widget, small and medium, to the Home Screen, and the rectangular one to the Lock Screen. Play an album: within a second or two each shows the song and its cover; skip: the next one, with its own cover (never the last song's). (2026-10-21)
+- [x] Press play/pause on each: the music pauses and plays, and the button follows. Medium: next and previous work like the lock screen's; the heart favorites the song (filled, and in Navidrome) and unfavorites it. (2026-10-21)
+- [x] Play a radio station: the station (or the song it announces), its logo or the song's cover; no previous and no heart. (2026-10-21)
+- [x] Tap the widget (not a button): Bzide opens with Now Playing. (2026-10-21)
+- [x] Pause and force quit Bzide, then press play on the widget: the queue plays from where it was, without opening the app. (2026-10-21)
+- [x] Sign out: the widget says Not Playing. (2026-10-21)
+
 ### Lock Screen and Control Center control
 
 - [x] Lock Screen > Customize > Lock Screen > tap the flashlight (or camera) > remove it, add Bzide > Favorite Song. Play a song, lock the phone, press the heart: the song is a favorite (Now Playing's heart filled, and in Navidrome). Press again: still a favorite. (2026-10-17)
 - [x] Add Favorite Song to Control Center: pressing it hearts the playing song too. (2026-10-17)
 - [x] Play a radio station and press it: nothing changes, no error. (2026-10-17)
+- [x] Play a favorite song: the control's heart is filled; a song that isn't: a plain heart. Press it: filled. (2026-10-21)
 
 ### Home Screen quick actions
 

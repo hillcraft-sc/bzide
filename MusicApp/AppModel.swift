@@ -218,6 +218,7 @@ final class AppModel {
         // The lock screen would otherwise keep controls for an engine that's gone.
         system.nowPlaying.update(nil)
         system.nowPlaying.onFavorite = nil
+        WidgetBridge.clear()
         if let scrobbler {
             Task { await scrobbler.flush() }
         }
