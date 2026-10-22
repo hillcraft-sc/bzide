@@ -312,27 +312,47 @@ struct VisualizerView: View {
     /// What Weather (Live) depends on; a change starts it again.
     private var liveWeatherSettings: String {
         guard let settings = model.library?.settings.settings else { return "" }
-        return "\(settings.liveWeather)|\(settings.liveWeatherUsesLocation)|\(settings.liveWeatherCity)"
+        return "\(settings.liveWeather)|\(settings.liveWeatherUsesLocation)|\(settings.liveWeatherCity)|\(settings.liveWeatherSource)"
     }
 
-    /// Weather (Live)'s credit (MET Norway's data is CC BY 4.0) or why there's
-    /// no weather, small under the menu.
+    /// Weather (Live)'s credit or why there's no weather, small under the
+    /// menu. Apple Weather's terms ask for its mark and a link to its legal
+    /// page (the mark opens it); MET Norway's data is CC BY 4.0.
     @ViewBuilder
     private var liveWeatherCaption: some View {
         if style == .liveWeather, unavailableMessage == nil, let source = model.library?.liveWeather {
-            let text: String? = switch source.status {
-            case .off: nil
-            case .locating: "Finding your location…"
-            case .noPlace: "No location: allow it, or set a city in Settings"
-            case .live: "Weather: MET Norway"
-            case .unavailable: "Weather unavailable"
-            }
-            if let text {
-                Text(text)
-                    .font(.caption2)
+            if source.status == .live, let apple = source.appleAttribution {
+                Link(destination: apple.legalPageURL) {
+                    AsyncImage(url: apple.markURL) { image in
+                        image.resizable().scaledToFit()
+                    } placeholder: {
+                        Text("Apple Weather").font(.caption2)
+                    }
+                    .frame(height: 12)
                     .foregroundStyle(.white.opacity(0.6))
-                    .padding(.top, 4)
+                }
+                .accessibilityLabel("Apple Weather, legal information")
+                .padding(.top, 4)
+            } else {
+                liveWeatherText(source.status)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func liveWeatherText(_ status: LiveWeatherSource.Status) -> some View {
+        let text: String? = switch status {
+        case .off: nil
+        case .locating: "Finding your location…"
+        case .noPlace: "No location: allow it, or set a city in Settings"
+        case .live: "Weather: MET Norway"
+        case .unavailable: "Weather unavailable"
+        }
+        if let text {
+            Text(text)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.6))
+                .padding(.top, 4)
         }
     }
 

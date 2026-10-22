@@ -1,8 +1,9 @@
 import Foundation
 
 /// The weather right now, for Weather (Live): what kind of sky, what's
-/// falling and how hard, thunder, fog and wind. Read from MET Norway's
-/// forecast (`METNorwayClient`), or forced in debug builds for testing.
+/// falling and how hard, thunder, fog and wind. Read from Apple's current
+/// weather (WeatherKit, in the app) or MET Norway's forecast
+/// (`METNorwayClient`), or forced in debug builds for testing.
 public struct LiveWeather: Equatable, Sendable {
     public enum Precipitation: String, Sendable, CaseIterable {
         case none, rain, sleet, snow
@@ -63,6 +64,58 @@ public struct LiveWeather: Equatable, Sendable {
             isThunder: code.contains("thunder"),
             isFog: code == "fog",
             windSpeed: windSpeed ?? 2
+        )
+    }
+}
+
+/// Where Weather (Live) gets the weather.
+public enum LiveWeatherProvider: String, Codable, CaseIterable, Sendable {
+    /// Apple's WeatherKit: observations and radar where Apple has them,
+    /// so it more often matches the sky outside. MET Norway when it fails.
+    case apple
+    /// MET Norway's hourly forecast.
+    case met
+
+    public var title: String {
+        switch self {
+        case .apple: "Apple Weather"
+        case .met: "MET Norway"
+        }
+    }
+}
+
+extension LiveWeather {
+    /// From Apple's current weather (WeatherKit): its condition (the case
+    /// name, e.g. "heavyRain", "scatteredThunderstorms", "wintryMix"), cloud
+    /// cover (0...1), how hard it's raining or snowing now (millimeters an
+    /// hour) and the wind (meters per second). The rate wins over the
+    /// condition: rain measured now is shown even under a "cloudy" condition,
+    /// and its strength sets the intensity (light under 2.5 mm/h, heavy from
+    /// 7.6, as the usual meteorological bands).
+    public init(appleCondition condition: String, cloudCover: Double, precipitationRate: Double?, windSpeed: Double) {
+        let code = condition.lowercased()
+        let rate = max(precipitationRate ?? 0, 0)
+        var precipitation: Precipitation =
+            code.contains("snow") || code.contains("flurries") || code == "blizzard" ? .snow
+            : code.contains("sleet") || code.contains("freezing") || code == "wintrymix" || code == "hail" ? .sleet
+            : code.contains("rain") || code.contains("drizzle") || code.contains("showers") || code.contains("storm")
+                || code == "hurricane" ? .rain
+            : .none
+        // Measured falling, whatever the condition says.
+        if precipitation == .none, rate >= 0.1 { precipitation = .rain }
+        let conditionIntensity: Double =
+            code == "drizzle" || code.contains("flurries") || code == "freezingdrizzle" ? 0.35
+            : code.hasPrefix("heavy") || code == "blizzard" || code == "strongstorms" || code == "hurricane" || code == "tropicalstorm" ? 1
+            : 0.65
+        let intensity = rate >= 0.1 ? (rate < 2.5 ? 0.35 : rate < 7.6 ? 0.65 : 1) : conditionIntensity
+        self.init(
+            cloudCover: min(max(cloudCover, 0), 1),
+            precipitation: precipitation,
+            intensity: intensity,
+            isShowers: code.contains("showers") || code.hasPrefix("isolated") || code.hasPrefix("scattered") || code == "sunflurries",
+            isThunder: code.contains("thunder") || code == "strongstorms" || code == "tropicalstorm" || code == "hurricane",
+            isFog: code == "foggy" || code == "haze" || code == "smoky",
+            windSpeed: max(windSpeed, 0)
         )
     }
 }

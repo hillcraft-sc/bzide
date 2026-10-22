@@ -2,10 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Device builds. The App Group shares what's playing with the
-	     BzideControls extension (widgets and controls); see WidgetSnapshot.
-	     Simulator builds use MusicApp-Simulator.entitlements, which also
-	     has CarPlay. -->
+	<!-- Device builds. Simulator builds use MusicApp-Simulator.entitlements,
+	     which also has CarPlay. -->
+	<!-- Weather (Live) asks Apple Weather first; see AppleWeather.swift. -->
+	<key>com.apple.developer.weatherkit</key>
+	<true/>
+	<!-- Shares what's playing with the BzideControls extension (widgets and
+	     controls); see WidgetSnapshot. -->
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.erichebert.musicapp</string>

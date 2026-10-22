@@ -166,3 +166,67 @@ struct METNorwayClientTests {
         #expect(await transport.requests.isEmpty)
     }
 }
+
+/// Gitea #10: Apple's current weather (WeatherKit).
+struct AppleWeatherMappingTests {
+    private func weather(_ condition: String, clouds: Double = 0.5, rate: Double? = 0, wind: Double = 3) -> LiveWeather {
+        LiveWeather(appleCondition: condition, cloudCover: clouds, precipitationRate: rate, windSpeed: wind)
+    }
+
+    @Test func conditionsBecomeTheSky() {
+        let clear = weather("clear", clouds: 0.02)
+        #expect(clear.precipitation == .none)
+        #expect(clear.cloudCover == 0.02)
+        #expect(weather("heavyRain", rate: nil).precipitation == .rain)
+        #expect(weather("heavyRain", rate: nil).intensity == 1)
+        #expect(weather("drizzle", rate: nil).intensity == 0.35)
+        #expect(weather("snow").precipitation == .snow)
+        #expect(weather("flurries").precipitation == .snow)
+        #expect(weather("blizzard").intensity == 1)
+        #expect(weather("wintryMix").precipitation == .sleet)
+        #expect(weather("freezingRain").precipitation == .sleet)
+        #expect(weather("hail").precipitation == .sleet)
+        #expect(weather("foggy").isFog)
+        #expect(weather("haze").isFog)
+        #expect(weather("windy", wind: 12).windSpeed == 12)
+        #expect(weather("windy").precipitation == .none)
+    }
+
+    @Test func showersAndThunder() {
+        let storms = weather("scatteredThunderstorms")
+        #expect(storms.isThunder)
+        #expect(storms.isShowers)
+        #expect(storms.precipitation == .rain)
+        #expect(weather("sunShowers").isShowers)
+        #expect(weather("strongStorms").isThunder)
+        #expect(!weather("rain").isShowers)
+        #expect(!weather("rain").isThunder)
+    }
+
+    /// The point of #10: rain measured now shows, whatever the condition says.
+    @Test func measuredRainWinsAndSetsTheIntensity() {
+        let raining = weather("cloudy", clouds: 0.9, rate: 5)
+        #expect(raining.precipitation == .rain)
+        #expect(raining.intensity == 0.65)
+        #expect(weather("rain", rate: 1).intensity == 0.35)
+        #expect(weather("rain", rate: 12).intensity == 1)
+        #expect(weather("snow", rate: 0.5).precipitation == .snow)
+        // A trace isn't rain.
+        #expect(weather("cloudy", rate: 0.05).precipitation == .none)
+    }
+
+    @Test func outOfRangeValuesAreClamped() {
+        let odd = weather("cloudy", clouds: 1.4, rate: -1, wind: -2)
+        #expect(odd.cloudCover == 1)
+        #expect(odd.precipitation == .none)
+        #expect(odd.windSpeed == 0)
+    }
+
+    @Test func appleIsTheDefaultSourceAndOlderSettingsGetIt() throws {
+        #expect(StreamingSettings().liveWeatherSource == .apple)
+        let old = try JSONDecoder().decode(StreamingSettings.self, from: Data(#"{"liveWeather":true}"#.utf8))
+        #expect(old.liveWeatherSource == .apple)
+        let met = try JSONDecoder().decode(StreamingSettings.self, from: Data(#"{"liveWeatherSource":"met"}"#.utf8))
+        #expect(met.liveWeatherSource == .met)
+    }
+}

@@ -130,13 +130,16 @@ struct SettingsView: View {
             Section {
                 Toggle("Live Weather", isOn: $settings.settings.liveWeather)
                 if settings.settings.liveWeather {
+                    Picker("Source", selection: $settings.settings.liveWeatherSource) {
+                        ForEach(LiveWeatherProvider.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
                     Toggle("Use My Location", isOn: $settings.settings.liveWeatherUsesLocation)
                     LiveWeatherPlaceField(settings: settings)
                 }
             } header: {
                 Text("Weather (Live)")
             } footer: {
-                Text("The Weather (Live) visualizer can show the real weather where you are, from MET Norway (api.met.no; data CC BY 4.0). It sends your approximate location, rounded to about a kilometer, while the visualizer is open. Use My Location asks for your location once. Place is used when location is off or unavailable: a city and state (“Springfield, IL”) or a ZIP code; elsewhere, a postal code with the country (“10115 Germany”). It's looked up by Apple, and the match shows under it. Off, it shows the time of day only.")
+                Text("The Weather (Live) visualizer can show the real weather where you are, from Apple Weather or MET Norway (api.met.no; data CC BY 4.0). Apple Weather uses observations and radar where it has them, so it more often matches the sky outside; when it can't be reached, MET Norway is used. Either gets your approximate location, rounded to about a kilometer, while the visualizer is open. Use My Location asks for your location once. Place is used when location is off or unavailable: a city and state (“Springfield, IL”) or a ZIP code; elsewhere, a postal code with the country (“10115 Germany”). It's looked up by Apple, and the match shows under it. Off, it shows the time of day only.")
             }
             .themedRows(grouped: true)
             Section {

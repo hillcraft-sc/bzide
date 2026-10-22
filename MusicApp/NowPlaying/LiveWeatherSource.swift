@@ -1,10 +1,12 @@
 import CoreLocation
 import MapKit
 import NavidromeCore
+import os
 
 /// Feeds Weather (Live) its place and weather while it's open: the phone's
 /// location (asked for once; approximate is enough) or the city typed in
-/// Settings, then MET Norway's forecast for there, checked every 10 minutes
+/// Settings, then the weather there, checked every 10 minutes: from Apple
+/// Weather, or MET Norway when that's the choice or Apple's can't be had
 /// (MET's answer is reused until it expires). Nothing is asked with Live
 /// Weather off, and nothing runs once the visualizer closes.
 @MainActor
@@ -22,7 +24,11 @@ final class LiveWeatherSource {
     }
 
     private(set) var status = Status.off
+    /// Apple's mark and legal page while its weather is shown; `nil` for MET Norway.
+    private(set) var appleAttribution: AppleWeather.Attribution?
     @ObservationIgnored private let met: METNorwayClient
+    @ObservationIgnored private let apple = AppleWeather()
+    private static let logger = Logger(subsystem: "MusicApp", category: "LiveWeather")
     /// The place found for the current settings, so reopening doesn't ask again.
     @ObservationIgnored private var found: (key: String, place: SkyClock.Place)?
 
@@ -52,7 +58,7 @@ final class LiveWeatherSource {
         state.place = place
         while !Task.isCancelled {
             do {
-                state.weather = try await met.weather(at: place)
+                state.weather = try await weather(at: place, from: settings.liveWeatherSource)
                 status = .live
             } catch {
                 if Task.isCancelled { return }
@@ -60,6 +66,22 @@ final class LiveWeatherSource {
             }
             try? await Task.sleep(for: Self.refresh)
         }
+    }
+
+    private func weather(at place: SkyClock.Place, from source: LiveWeatherProvider) async throws -> LiveWeather {
+        if source == .apple {
+            do {
+                let (weather, attribution) = try await apple.weather(at: place)
+                appleAttribution = attribution
+                return weather
+            } catch {
+                if Task.isCancelled { throw CancellationError() }
+                // Not set up for WeatherKit, Apple's service down, or over its limit.
+                Self.logger.error("Apple Weather failed, using MET Norway: \(String(describing: type(of: error)), privacy: .public)")
+            }
+        }
+        appleAttribution = nil
+        return try await met.weather(at: place)
     }
 
     // MARK: - Finding the place
