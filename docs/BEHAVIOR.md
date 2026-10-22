@@ -9,7 +9,11 @@ How the app behaves, written so the web and Android clients can be ported from t
 - Only `http` and `https` base URLs are accepted.
 - Auth: every request carries `u`, `t = md5(password + salt)`, `s = salt`, `v`, `c` (the client name, `Bzide`). The salt is 16 random bytes as hex, new for every request. The plain password is never sent.
 - Query values are percent-encoded including `+`, because the server decodes a bare `+` as a space.
-- Auth parameters (`t`, `s`, `u`, `p`) are replaced with `REDACTED` before a URL is logged.
+- **API keys** (OpenSubsonic `apiKeyAuthentication`): Sign In offers **Password** or **API Key**. With a key, every request carries `apiKey` instead of `u`, `t` and `s` (the spec forbids sending both), no password is stored, and the username comes from the server (`tokenInfo`, which also checks the key; error 44 is an invalid key). Codes 40 to 44 count as authentication failures; 41 (token sign-in not supported for the account) suggests an API key.
+- **Plain http warning:** Sign In warns, under the address, when it's `http://` to an address outside this network or a private one, as the username and token (or key) can then be read on the way. Local and private addresses aren't warned about: `localhost`, names without a dot, `.local`, `.lan`, `.home.arpa`, `.internal`, IPv4 10/8, 172.16/12, 192.168/16, 127/8, 169.254/16 and 100.64/10 (Tailscale and other VPNs), and IPv6 loopback, unique-local and link-local. It's a warning; signing in still works.
+- **No disk cache:** every connection (the server and each outside service) uses a private session: no URL cache, cookies or stored credentials; background downloads keep no cache either. iOS's shared URL cache is emptied at each launch, as earlier versions left server answers there on disk, keyed by request URLs carrying the username and token.
+- Auth parameters (`t`, `s`, `u`, `p`, `apiKey`) are replaced with `REDACTED` before a URL is logged.
+- **Settings > Privacy** shows the privacy page, `docs/PRIVACY.md`, bundled with the app (the same file, so the two never differ) and drawn natively: headings, paragraphs, bullet lists, and its services table as a card per service (the first column as the title, the others labeled with their headers), with bold, italic and links styled.
 - Errors are reported as one of: invalid base URL, network failure, non-2xx HTTP status, server `status: "failed"` (with the Subsonic error code), or an unreadable response. Codes 40 and 41 count as authentication failures.
 - Decoding is tolerant, because servers fill fields inconsistently:
   - An item without a non-empty `id` is dropped. Nothing else in its list is affected.
@@ -379,6 +383,9 @@ How the app behaves, written so the web and Android clients can be ported from t
 Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.md`.
 
 ### Account
+- [x] Settings > Privacy opens the privacy page: headings, bullets and a card per outside service, readable in light, dark and each theme. (2026-10-22)
+- [x] Sign out. On the sign-in screen, type an `http://` address with a public host name: an orange warning appears under the address; a local address (`http://192.168.…`, `http://nas.local`) or `https://`: none. (2026-10-22)
+- [x] Sign In With > API Key, with a key from your server's settings (if it supports OpenSubsonic API keys): signs in, no username needed, and everything works as with a password. A wrong key: "That API key isn't valid." If your server doesn't support keys, the error says so. (2026-10-22)
 - [x] Settings shows the server and user. Sign Out (confirm): playback stops, the sign-in screen appears, and the lock screen no longer shows the app. (2026-10-17)
 - [x] Sign back in to the same account: downloads, history and the queue (paused where it was) are all still there. (2026-10-17)
 - [x] Sign out and sign in to a different user: Sign In asks first, naming the downloads' size. Cancel: still on the sign-in screen. Sign in again > Sign In and Remove Downloads: Storage Used is zero, and history and the queue are empty. Sign back in to the first account (it asks again): its history and queue (paused where it was) are back; its downloads are gone. (2026-10-17)

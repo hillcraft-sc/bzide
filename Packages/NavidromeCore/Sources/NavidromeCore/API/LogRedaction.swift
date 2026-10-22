@@ -2,7 +2,7 @@ import Foundation
 
 /// Removes auth parameters from URLs before they are logged.
 enum LogRedaction {
-    private static let sensitiveNames: Set<String> = ["t", "s", "u", "p"]
+    private static let sensitiveNames: Set<String> = ["t", "s", "u", "p", "apiKey"]
 
     static func redact(_ url: URL) -> String {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {

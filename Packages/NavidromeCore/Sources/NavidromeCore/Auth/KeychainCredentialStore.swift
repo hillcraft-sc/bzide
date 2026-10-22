@@ -3,7 +3,8 @@ import Security
 
 /// Stores one server login as a single Keychain item.
 ///
-/// URL, username and password are kept together so they can never get out of sync.
+/// URL, username and password (or API key) are kept together so they can
+/// never get out of sync.
 public struct KeychainCredentialStore: CredentialStore {
     private let service: String
     private let account = "server"
@@ -67,14 +68,17 @@ private struct StoredCredentials: Codable {
     let baseURL: URL
     let username: String
     let password: String
+    /// Missing in items saved before API keys.
+    let apiKey: String?
 
     init(_ credentials: ServerCredentials) {
         baseURL = credentials.baseURL
         username = credentials.username
         password = credentials.password
+        apiKey = credentials.apiKey
     }
 
     var credentials: ServerCredentials {
-        ServerCredentials(baseURL: baseURL, username: username, password: password)
+        ServerCredentials(baseURL: baseURL, username: username, password: password, apiKey: apiKey)
     }
 }

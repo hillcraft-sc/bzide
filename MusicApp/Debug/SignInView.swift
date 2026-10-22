@@ -1,3 +1,4 @@
+import NavidromeCore
 import SwiftUI
 
 struct SignInView: View {
@@ -5,23 +6,64 @@ struct SignInView: View {
     @State private var serverURL = ""
     @State private var username = ""
     @State private var password = ""
+    @State private var method = Method.password
+    @State private var apiKey = ""
+
+    /// A password, or an API key from the server (OpenSubsonic), which keeps
+    /// the password off the phone.
+    private enum Method: Hashable {
+        case password, apiKey
+    }
+
+    /// Plain http to a public address: the login can be read on the way.
+    private var exposesLogin: Bool {
+        URL(string: serverURL.trimmingCharacters(in: .whitespaces)).map(ServerAddress.exposesLogin) ?? false
+    }
+
+    private var canSignIn: Bool {
+        guard !model.isSigningIn, !serverURL.isEmpty else { return false }
+        return method == .apiKey ? !apiKey.isEmpty : !username.isEmpty && !password.isEmpty
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Group {
-                    Section("Navidrome server") {
+                    Section {
                         TextField("https://music.example.com", text: $serverURL)
                             .keyboardType(.URL)
                             .textContentType(.URL)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
-                        TextField("Username", text: $username)
-                            .textContentType(.username)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                        SecureField("Password", text: $password)
-                            .textContentType(.password)
+                        Picker("Sign In With", selection: $method) {
+                            Text("Password").tag(Method.password)
+                            Text("API Key").tag(Method.apiKey)
+                        }
+                        .pickerStyle(.segmented)
+                        if method == .password {
+                            TextField("Username", text: $username)
+                                .textContentType(.username)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                            SecureField("Password", text: $password)
+                                .textContentType(.password)
+                        } else {
+                            SecureField("API Key", text: $apiKey)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                        }
+                    } header: {
+                        Text("Navidrome server")
+                    } footer: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if exposesLogin {
+                                Label("This address isn't encrypted (http), so your login can be read by anyone on the way to your server. Use https if your server supports it.", systemImage: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                            }
+                            if method == .apiKey {
+                                Text("An API key from your server's settings signs you in without your password, which then never touches this iPhone. It needs a server that supports OpenSubsonic API keys.")
+                            }
+                        }
                     }
                     if let error = model.signInError {
                         Section {
@@ -30,9 +72,11 @@ struct SignInView: View {
                     }
                     Section {
                         Button(model.isSigningIn ? "Signing in…" : "Sign in") {
-                            Task { await model.signIn(serverURL: serverURL, username: username, password: password) }
+                            Task {
+                                await model.signIn(serverURL: serverURL, username: username, password: password, apiKey: method == .apiKey ? apiKey : nil)
+                            }
                         }
-                        .disabled(model.isSigningIn || serverURL.isEmpty || username.isEmpty || password.isEmpty)
+                        .disabled(!canSignIn)
                     }
                 }
                 .themedRows(grouped: true)

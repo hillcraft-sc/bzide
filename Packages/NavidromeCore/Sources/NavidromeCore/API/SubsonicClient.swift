@@ -34,6 +34,20 @@ public struct SubsonicClient: Sendable {
         _ = try await request("ping", as: EmptyPayload.self)
     }
 
+    /// The username an API key belongs to (OpenSubsonic `tokenInfo`, part of
+    /// `apiKeyAuthentication`), which also checks the key. Error 44: not a
+    /// valid key.
+    public func apiKeyUsername() async throws(SubsonicError) -> String {
+        struct Payload: Decodable {
+            struct TokenInfo: Decodable { let username: String? }
+            let tokenInfo: TokenInfo?
+        }
+        guard let username = try await request("tokenInfo", as: Payload.self).tokenInfo?.username, !username.isEmpty else {
+            throw .decoding("tokenInfo without a username")
+        }
+        return username
+    }
+
     /// The OpenSubsonic extensions the server supports. Plain Subsonic servers don't
     /// have this endpoint; that is reported as an empty list, not an error.
     public func openSubsonicExtensions() async throws(SubsonicError) -> [OpenSubsonicExtension] {

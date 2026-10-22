@@ -30,6 +30,15 @@ struct KeychainCredentialStoreTests {
         #expect(try store.load() == changed)
     }
 
+    /// Signed in with an API key: the key is kept, and no password.
+    @Test func roundTripsAnAPIKey() throws {
+        defer { try? store.delete() }
+        let keyed = ServerCredentials(baseURL: URL(string: "https://music.example.test")!, username: "listener", password: "", apiKey: "k-123")
+        try store.save(keyed)
+        #expect(try store.load() == keyed)
+        #expect(try store.load()?.apiKey == "k-123")
+    }
+
     @Test func deleteRemovesAndIsIdempotent() throws {
         try store.save(credentials)
         try store.delete()

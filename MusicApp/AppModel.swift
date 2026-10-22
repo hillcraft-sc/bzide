@@ -71,17 +71,23 @@ final class AppModel {
 
     // MARK: - Sign in
 
-    func signIn(serverURL: String, username: String, password: String) async {
+    /// With an API key, `username` and `password` are ignored: the server
+    /// says whose key it is (OpenSubsonic `tokenInfo`).
+    func signIn(serverURL: String, username: String, password: String, apiKey: String? = nil) async {
         signInError = nil
         let trimmed = serverURL.trimmingCharacters(in: .whitespaces)
         guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else {
             signInError = "Enter the full server address, starting with http:// or https://."
             return
         }
-        let credentials = ServerCredentials(baseURL: url, username: username, password: password)
+        let key = apiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+        var credentials = ServerCredentials(baseURL: url, username: username, password: key == nil ? password : "", apiKey: key)
         isSigningIn = true
         defer { isSigningIn = false }
         do {
+            if credentials.apiKey != nil {
+                credentials.username = try await SubsonicClient(credentials: credentials).apiKeyUsername()
+            }
             try await SubsonicClient(credentials: credentials).ping()
             // Another account's data is here: say what a switch removes first.
             if let scope = try? Self.accountScope(), scope.isDifferentAccount(credentials) {

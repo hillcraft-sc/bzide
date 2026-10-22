@@ -203,6 +203,16 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                NavigationLink {
+                    PrivacyView()
+                } label: {
+                    Label("Privacy", systemImage: "hand.raised")
+                }
+            } footer: {
+                Text("What Bzide sends, to whom, and what it keeps on this iPhone.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 Button("Restore Default Settings", role: .destructive) { isConfirmingRestoreDefaults = true }
             } footer: {
                 Text("Puts every setting back to how Bzide starts, with the online services off, and resets the Library layout, filters and visualizer. Your downloads, history (and how long it's kept), tagged radio songs, profile picture and lyrics timing fixes stay.")

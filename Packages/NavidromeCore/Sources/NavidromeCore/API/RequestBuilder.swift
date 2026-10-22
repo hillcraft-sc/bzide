@@ -7,11 +7,19 @@ struct RequestBuilder: Sendable {
     let makeSalt: @Sendable () -> String
 
     func url(endpoint: String, parameters: [URLQueryItem] = []) throws(SubsonicError) -> URL {
-        let salt = makeSalt()
-        let auth = [
-            URLQueryItem(name: "u", value: credentials.username),
-            URLQueryItem(name: "t", value: AuthToken.make(password: credentials.password, salt: salt)),
-            URLQueryItem(name: "s", value: salt),
+        // An API key replaces the username and token; the spec forbids sending both.
+        let login: [URLQueryItem]
+        if let apiKey = credentials.apiKey {
+            login = [URLQueryItem(name: "apiKey", value: apiKey)]
+        } else {
+            let salt = makeSalt()
+            login = [
+                URLQueryItem(name: "u", value: credentials.username),
+                URLQueryItem(name: "t", value: AuthToken.make(password: credentials.password, salt: salt)),
+                URLQueryItem(name: "s", value: salt),
+            ]
+        }
+        let auth = login + [
             URLQueryItem(name: "v", value: identity.apiVersion),
             URLQueryItem(name: "c", value: identity.name),
             URLQueryItem(name: "f", value: "json"),

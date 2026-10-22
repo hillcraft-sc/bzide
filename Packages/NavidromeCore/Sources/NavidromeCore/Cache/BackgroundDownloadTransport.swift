@@ -28,6 +28,9 @@ public final class BackgroundDownloadTransport: NSObject, DownloadTransport {
         self.stagingDirectory = stagingDirectory
         super.init()
         let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
+        // Download URLs carry the login token: nothing kept beyond the files.
+        configuration.urlCache = nil
+        configuration.httpCookieStorage = nil
         configuration.sessionSendsLaunchEvents = true
         configuration.isDiscretionary = false
         session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
