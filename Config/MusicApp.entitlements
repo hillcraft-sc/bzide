@@ -2,8 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Device builds. Simulator builds use MusicApp-Simulator.entitlements,
-	     which also has CarPlay. -->
+	<!-- CarPlay, as an audio app (granted by Apple 2026-10-22); see MusicApp/CarPlay. -->
+	<key>com.apple.developer.carplay-audio</key>
+	<true/>
 	<!-- Weather (Live) asks Apple Weather first; see AppleWeather.swift. -->
 	<key>com.apple.developer.weatherkit</key>
 	<true/>
