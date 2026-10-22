@@ -385,3 +385,17 @@ private struct NoticeBanner: ViewModifier {
         .animation(.default, value: message)
     }
 }
+
+/// Icon and title side by side, the title wrapping in its own column. At the
+/// accessibility text sizes the standard style lets a long title wrap back
+/// under the icon.
+struct WrappingLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            configuration.icon
+            configuration.title
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}

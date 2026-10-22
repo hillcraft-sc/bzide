@@ -36,6 +36,9 @@ struct VisualizerView: View {
     @State private var chromeState = ChromeState()
     @State private var typesetState = TypesetState()
     @State private var polygraphState = PolygraphState()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// With Reduce Motion on, the visualizer waits for "Start Anyway".
+    @State private var startedAnyway = false
 
     init(model: AppModel, engine: PlaybackEngine) {
         self.model = model
@@ -53,6 +56,17 @@ struct VisualizerView: View {
                 if let message = unavailableMessage {
                     ContentUnavailableView(message, systemImage: "waveform.slash")
                         .foregroundStyle(.white)
+                } else if reduceMotion, !startedAnyway {
+                    // It's all motion: ask first, rather than start moving.
+                    ContentUnavailableView {
+                        Label("Reduce Motion Is On", systemImage: "figure.walk.motion")
+                    } description: {
+                        Text("The visualizer is full of movement and flashes in time with the music. Settings > Visualizer can also hide it.")
+                    } actions: {
+                        Button("Start Anyway") { startedAnyway = true }
+                            .buttonStyle(.borderedProminent)
+                    }
+                    .foregroundStyle(.white)
                 } else {
                     visualization(landscape: landscape)
                         .contentShape(.rect)

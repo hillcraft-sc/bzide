@@ -379,6 +379,18 @@ How the app behaves, written so the web and Android clients can be ported from t
 - No storage limit; the user removes downloads, one at a time or all at once in Settings, which also shows the space used.
 - The download URL carries an auth token and is handed to iOS's download service. Subsonic has no other way to authenticate a download.
 
+## Accessibility
+
+Checked against the App Store's Accessibility Nutrition Labels (Gitea #19).
+
+- **VoiceOver and Voice Control:** every control has a spoken name (icon buttons use titled labels; color swatches say their name and whether they're chosen). Banners are announced. Headings are marked as headings; decorative images are hidden. The progress bar reads the time ("0:05 of 3:36") and a swipe up or down on it seeks 15 seconds forward or back. Each line of synced lyrics is a button ("Jumps the song to this line"); instrumental breaks are skipped.
+- **Larger Text:** screens use the system text styles, so they follow the text size. Lyrics are sized relative to it too (from 26 and 30 points at the default size). At the accessibility text sizes, a Library row's See All goes under its title (which wraps left-aligned) rather than squeezing it into a narrow column, Now Playing's Clear Up Next goes under the Queue heading, and Library's Random Mix, Mix My Cuts and Spin the Dial wrap beside their icons. Controls grow with the text only up to the largest standard size (not the extra accessibility sizes), where they still fit and match: Now Playing's transport controls and icon row, and the mini player, whose space is fixed.
+- **Reduce Motion:** lyrics move to the current line without the spring, lines don't shrink or animate, and an instrumental break's dots don't breathe. The visualizer, being all motion, shows "Reduce Motion Is On" with a **Start Anyway** button instead of starting by itself (each time it's opened).
+- **Visualizer setting:** Settings > Visualizer > **Visualizer** (on by default). Off, Now Playing has no visualizer button, so no visualization can be opened at all.
+- **Increase Contrast:** lyric lines that aren't current are brighter (60% instead of 35%) and never blurred; the lyrics' notes and credit are brighter too.
+- **Not by color alone:** favorites and ratings change shape when set (filled heart and star), the playing song in the queue has a speaker icon, and "Wrong lyrics?" changes its icon (a checkmark) as well as its color when a chosen version shows.
+- **Dark interface:** light and dark modes and the dark themes. Captions and audio descriptions don't apply (no video).
+
 ## Manual test checklist
 
 Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.md`.
@@ -729,6 +741,14 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Open and close it while music plays, and rotate it in each pose: Bzide follows each change without losing its place, and music keeps playing. (2026-10-22)
 - [x] Partly folded: nothing important sits on the fold in a way that can't be read (a known limit on iOS 27.0; note anything bad for the iOS 27.1 follow-up). (2026-10-22)
 - [x] An iPhone in landscape: Now Playing shows two columns too. (2026-10-22)
+
+### Accessibility
+- [x] VoiceOver on: Library, an album, Search, Now Playing and Settings can all be used by swiping and double-tapping, and every button says what it does. On Now Playing's progress bar, VoiceOver says the time ("… of …"), and swiping up or down jumps 15 seconds. (2026-10-22)
+- [x] VoiceOver in Lyrics (synced): each line is read and double-tapping one jumps the song there. (2026-10-22)
+- [x] Settings > Accessibility > Display & Text Size > Larger Text at the largest size: Library's row titles stay whole words with See All under them; Now Playing's icon row fits; lyrics are bigger; nothing important is cut off on the main screens. (2026-10-22)
+- [x] Reduce Motion on: lyrics follow without springing; opening the visualizer shows "Reduce Motion Is On" and Start Anyway starts it. (2026-10-22)
+- [x] Settings > Visualizer off: Now Playing has no visualizer button; on again: it's back. (2026-10-22)
+- [x] Increase Contrast on: lyrics' other lines are brighter and not blurred. (2026-10-22)
 
 ### Scrobbling
 - [x] Settings > Scrobbling > Send Plays to Server off: play a song past halfway; it doesn't appear in Navidrome's play history or as now playing, and isn't sent later. Turn it back on: the next play is recorded. (2026-10-22)

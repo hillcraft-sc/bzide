@@ -13,6 +13,10 @@ struct LyricsView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.themeAccent) private var accent
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
+    /// Unsynced lyrics' size, following the user's text size.
+    @ScaledMetric(relativeTo: .title) private var plainSize: CGFloat = 26
     @State private var clock = LyricsClock()
     @State private var cover: UIImage?
     /// Until when hand scrolling has stopped the view following the song.
@@ -146,7 +150,8 @@ struct LyricsView: View {
                 if model.isTryingAnother {
                     ProgressView().controlSize(.small).tint(.white)
                 } else {
-                    Image(systemName: "text.badge.xmark")
+                    // A different symbol too, not just the color, once changed.
+                    Image(systemName: isChangedVersion ? "text.badge.checkmark" : "text.badge.xmark")
                 }
                 Text(isFromLRCLIB ? "Wrong lyrics?" : "LRCLIB off").font(.footnote.weight(.semibold))
             }
@@ -254,12 +259,14 @@ struct LyricsView: View {
                             LyricsLineView(line: line, current: current, clock: clock, engine: engine, offset: offset)
                                 .id(line.id)
                                 .contentShape(.rect)
-                                .onTapGesture {
-                                    guard let start = line.start else { return }
-                                    // Where the line shows, with the timing fix.
-                                    engine.seek(to: max(start - offset, 0))
-                                    followingPausedUntil = .distantPast
-                                }
+                                .onTapGesture { jump(to: line) }
+                                // VoiceOver: each line a button that jumps there.
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(line.text)
+                                .accessibilityHidden(line.isBreak)
+                                .accessibilityAddTraits(line.start == nil ? [] : .isButton)
+                                .accessibilityHint(line.start == nil ? "" : "Jumps the song to this line")
+                                .accessibilityAction { jump(to: line) }
                         }
                         credit(lyrics)
                     }
@@ -285,11 +292,19 @@ struct LyricsView: View {
         }
     }
 
+    /// Where the line shows, with the timing fix.
+    private func jump(to line: Lyrics.Line) {
+        guard let start = line.start else { return }
+        engine.seek(to: max(start - offset, 0))
+        followingPausedUntil = .distantPast
+    }
+
     private func follow(_ line: Int?, proxy: ScrollViewProxy, animated: Bool) {
         guard Date.now >= followingPausedUntil else { return }
         // Before the first line, keep the top in view.
         let target = line ?? 0
-        withAnimation(animated ? .spring(duration: 0.6, bounce: 0.1) : nil) {
+        // With Reduce Motion, it moves without the spring.
+        withAnimation(animated && !reduceMotion ? .spring(duration: 0.6, bounce: 0.1) : nil) {
             proxy.scrollTo(target, anchor: UnitPoint(x: 0, y: 0.3))
         }
     }
@@ -301,14 +316,14 @@ struct LyricsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Label("These lyrics aren't synced to the music.", systemImage: "info.circle")
                     .font(.footnote)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(contrast == .increased ? 0.85 : 0.6))
                     .padding(.bottom, 8)
                 ForEach(lyrics.lines) { line in
                     if line.isBreak {
                         Spacer().frame(height: 14)
                     } else {
                         Text(line.text)
-                            .font(.system(size: 26, weight: .bold))
+                            .font(.system(size: plainSize, weight: .bold))
                             .foregroundStyle(.white.opacity(0.9))
                     }
                 }
@@ -327,7 +342,7 @@ struct LyricsView: View {
         if lyrics.source == .lrclib {
             Text("Lyrics from LRCLIB")
                 .font(.footnote)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(.white.opacity(contrast == .increased ? 0.8 : 0.5))
                 .padding(.top, 24)
         }
     }
@@ -357,6 +372,11 @@ private struct LyricsLineView: View {
     /// The song's timing fix: seconds earlier to show its lyrics.
     let offset: TimeInterval
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorSchemeContrast) private var contrast
+    /// Following the user's text size.
+    @ScaledMetric(relativeTo: .title) private var size: CGFloat = 30
+
     private var isCurrent: Bool { line.id == current }
     private var distance: Int { abs(line.id - (current ?? -1)) }
 
@@ -369,22 +389,24 @@ private struct LyricsLineView: View {
                     Text(Self.lit(line, at: clock.time(engine: engine, at: timeline.date) + offset))
                 }
             } else {
-                Text(line.text).foregroundStyle(.white.opacity(0.35))
+                // Brighter, and never blurred, with Increase Contrast.
+                Text(line.text).foregroundStyle(.white.opacity(contrast == .increased ? 0.6 : 0.35))
             }
         }
-        .font(.system(size: 30, weight: .bold))
+        .font(.system(size: size, weight: .bold))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .scaleEffect(isCurrent ? 1 : 0.96, anchor: .leading)
-        .blur(radius: isCurrent ? 0 : min(Double(distance), 3) * 0.6)
-        .animation(.easeOut(duration: 0.35), value: isCurrent)
+        .scaleEffect(isCurrent || reduceMotion ? 1 : 0.96, anchor: .leading)
+        .blur(radius: isCurrent || contrast == .increased ? 0 : min(Double(distance), 3) * 0.6)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.35), value: isCurrent)
     }
 
     /// An instrumental break: three dots, breathing while it's the current line.
     @ViewBuilder
     private var breakDots: some View {
         if isCurrent {
-            TimelineView(.animation) { timeline in
-                let pulse = (sin(timeline.date.timeIntervalSinceReferenceDate * 3) + 1) / 2
+            TimelineView(.animation(paused: reduceMotion)) { timeline in
+                // Still with Reduce Motion: no breathing.
+                let pulse = reduceMotion ? 1 : (sin(timeline.date.timeIntervalSinceReferenceDate * 3) + 1) / 2
                 HStack(spacing: 10) {
                     ForEach(0..<3, id: \.self) { _ in
                         Circle().frame(width: 12, height: 12)

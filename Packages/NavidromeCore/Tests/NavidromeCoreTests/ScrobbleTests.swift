@@ -251,3 +251,14 @@ struct SendPlaysToServerTests {
         #expect(old.sendPlaysToServer)
     }
 }
+
+/// Settings > Visualizer (Gitea #19).
+struct ShowsVisualizerSettingTests {
+    @Test func onByDefaultAndForOlderSettings() throws {
+        #expect(StreamingSettings().showsVisualizer)
+        let old = try JSONDecoder().decode(StreamingSettings.self, from: Data(#"{"liveWeather":true}"#.utf8))
+        #expect(old.showsVisualizer)
+        let off = try JSONDecoder().decode(StreamingSettings.self, from: Data(#"{"showsVisualizer":false}"#.utf8))
+        #expect(!off.showsVisualizer)
+    }
+}

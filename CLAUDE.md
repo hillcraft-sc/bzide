@@ -123,6 +123,7 @@ xcodebuild test ... -only-testing:<TestTarget>/<TestClass>/<testMethod>
 - The app target defaults to main-actor isolation (`SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`). A closure written inside main-actor code is main-actor isolated, and Swift 6 checks that at runtime. Closures handed to Apple frameworks that may call them on another thread (KVO handlers, `MPMediaItemArtwork`, AVFoundation and MediaPlayer callbacks) must be `@Sendable` or built in a `nonisolated` function, then hop to the main actor themselves. Getting this wrong hangs or crashes the app, and unit tests with fakes won't catch it.
 - Small files, small functions, clear names. Comment the *why*, not the *what*.
 - Keep SwiftUI views small and composable. No networking or business logic inside views.
+- Accessibility is part of done (see `docs/BEHAVIOR.md`, Accessibility): every control has a spoken name; text follows the text size (`@ScaledMetric` where a fixed size is wanted); motion respects Reduce Motion; nothing is signaled by color alone; dim text brightens with Increase Contrast.
 
 ## Workflow rules for Claude
 

@@ -37,6 +37,9 @@ struct MiniPlayer: View {
         .buttonStyle(.borderless)
         .font(.title3)
         .padding(.horizontal)
+        // Its space is fixed (above the tab bar): beyond the largest standard
+        // size the title would be cut to a few letters.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 }
 
@@ -125,7 +128,7 @@ struct NowPlayingView: View {
                     .listRowSeparator(.hidden)
             }
             if let song = engine.queue.current?.song {
-                HStack(spacing: 32) {
+                HStack(spacing: 28) {
                     // A station isn't on the server, so it can't be favorited or
                     // rated, and has no lyrics or levels for the visualizer.
                     if !song.isLive {
@@ -135,11 +138,16 @@ struct NowPlayingView: View {
                         .frame(width: 32, height: 32)
                     if !song.isLive {
                         Button("Lyrics", systemImage: "quote.bubble") { isLyricsOpen = true }
-                        Button("Visualizer", systemImage: "waveform") { isVisualizerOpen = true }
+                        if library.settings.settings.showsVisualizer {
+                            Button("Visualizer", systemImage: "waveform") { isVisualizerOpen = true }
+                        }
                     }
                 }
                 .labelStyle(.iconOnly)
                 .font(.title3)
+                // Like the transport controls: up to the largest standard size,
+                // so all five fit and match (the AirPlay icon has a fixed size).
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 // Borderless, like the transport controls. With the default style a
                 // button in a list row is drawn in the text color instead of the
                 // accent, and takes taps anywhere in the row.
@@ -158,19 +166,27 @@ struct NowPlayingView: View {
         .themedRows()
     }
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// Side by side, or stacked at the accessibility text sizes.
+    private var queueHeaderLayout: AnyLayout {
+        typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout())
+    }
+
     @ViewBuilder
     private var queueSection: some View {
         Section {
             QueueList(engine: engine, library: library)
         } header: {
-            HStack {
+            queueHeaderLayout {
                 if let spinOff = engine.spinOff {
                     Label(spinOff.heading, systemImage: spinOff == .rated ? "flame" : "opticaldisc")
                         .lineLimit(1)
                 } else {
                     Text("Queue")
                 }
-                Spacer()
+                // At the accessibility sizes, under the heading (see `queueHeaderLayout`).
+                if !typeSize.isAccessibilitySize { Spacer() }
                 if engine.queue.hasNext {
                     Button("Clear Up Next") { engine.clearUpNext() }
                         .font(.subheadline)

@@ -131,6 +131,14 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Visualizer", isOn: $settings.settings.showsVisualizer)
+            } header: {
+                Text("Visualizer")
+            } footer: {
+                Text("Off, Now Playing has no visualizer button, so none of the visualizations can be opened. With Reduce Motion on (Settings > Accessibility > Motion), the visualizer asks before it starts moving.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 Toggle("Live Weather", isOn: $settings.settings.liveWeather)
                 if settings.settings.liveWeather {
                     Picker("Source", selection: $settings.settings.liveWeatherSource) {

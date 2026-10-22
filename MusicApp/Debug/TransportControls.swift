@@ -6,6 +6,9 @@ struct TransportControls: View {
     /// While dragging, the slider shows this instead of the engine's position.
     @State private var scrubPosition: TimeInterval?
 
+    /// How far a VoiceOver swipe on the position moves.
+    static let accessibilitySeekStep: TimeInterval = 15
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             TitleRow(
@@ -39,6 +42,14 @@ struct TransportControls: View {
                         engine.seek(to: target)
                         scrubPosition = nil
                     }
+                }
+                // VoiceOver reads the time, not a percentage, and its swipes
+                // seek (they don't end a drag, so they'd change nothing).
+                .accessibilityLabel("Position")
+                .accessibilityValue("\(Self.format(engine.position)) of \(Self.format(duration))")
+                .accessibilityAdjustableAction { direction in
+                    let step: TimeInterval = direction == .increment ? Self.accessibilitySeekStep : -Self.accessibilitySeekStep
+                    engine.seek(to: min(max(engine.position + step, 0), duration))
                 }
                 HStack {
                     Text(Self.format(scrubPosition ?? engine.position))
@@ -83,6 +94,9 @@ struct TransportControls: View {
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
             .disabled(engine.queue.isEmpty)
+            // The controls grow with the text only up to the largest standard
+            // size: beyond it, five big icons collide across a phone.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         }
         .padding(.vertical, 4)
     }

@@ -191,6 +191,7 @@ struct LibraryView: View {
                 Text(notice)
             }
         }
+        .labelStyle(WrappingLabelStyle())
         .themedRows(grouped: true)
     }
 }

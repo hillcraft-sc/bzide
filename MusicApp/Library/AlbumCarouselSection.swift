@@ -24,13 +24,20 @@ struct AlbumCarouselSection: View {
         }
     }
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// At the accessibility text sizes, See All goes under the title, which
+    /// would otherwise be squeezed into a narrow column, broken mid-word.
     private var header: some View {
-        HStack {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout())
+        return layout {
             Button {
                 withAnimation { isCollapsed.toggle() }
             } label: {
                 HStack(spacing: 6) {
                     Text(title)
+                        // A button centers wrapped lines; a heading reads from the left.
+                        .multilineTextAlignment(.leading)
                     Image(systemName: "chevron.down")
                         .font(.caption.bold())
                         .rotationEffect(.degrees(isCollapsed ? -90 : 0))
@@ -41,7 +48,7 @@ struct AlbumCarouselSection: View {
             .tint(.primary)
             .accessibilityValue(isCollapsed ? "Collapsed" : "Expanded")
             .accessibilityHint(isCollapsed ? "Shows \(shows)" : "Hides \(shows)")
-            Spacer()
+            if !typeSize.isAccessibilitySize { Spacer() }
             if let seeAll {
                 NavigationLink("See All", value: seeAll)
                     .font(.subheadline)
