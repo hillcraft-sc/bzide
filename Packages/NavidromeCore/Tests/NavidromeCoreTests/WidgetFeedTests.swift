@@ -154,3 +154,27 @@ struct WidgetFeedTests {
         #expect(store.readArtwork() == nil)
     }
 }
+
+/// The app's theme, shared with the widgets.
+struct WidgetThemeTests {
+    @Test func aThemesColorsAndAccent() {
+        let dark = WidgetTheme(palette: .gruvboxDark, accent: RGBColor(0xfe8019))
+        #expect(dark.colors == .init(base: 0x282828, surface: 0x3c3836, text: 0xebdbb2, isLight: false))
+        #expect(dark.accentLight == 0xfe8019 && dark.accentDark == 0xfe8019)
+        // Light themes' tiles are a shade darker than the background.
+        let light = WidgetTheme(palette: .gruvboxLight, accent: RGBColor(0xaf3a03))
+        #expect(light.colors?.surface == 0xebdbb2)
+        #expect(light.colors?.isLight == true)
+    }
+
+    @Test func keptInTheSharedFolder() {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "WidgetTheme-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = WidgetSnapshotStore(directory: directory)
+        #expect(store.readTheme() == nil)
+        let system = WidgetTheme(colors: nil, accentLight: 0x9b2d3f, accentDark: 0xe0606f)
+        store.writeTheme(system)
+        #expect(store.readTheme() == system)
+        #expect(WidgetSnapshotStore(directory: nil).readTheme() == nil)
+    }
+}

@@ -1,4 +1,5 @@
 import NavidromeCore
+import SwiftUI
 import UIKit
 import WidgetKit
 
@@ -37,6 +38,30 @@ enum WidgetBridge {
         store.write(nil)
         store.writeArtwork(nil)
         reload()
+    }
+
+    /// Shares the theme's colors with the widgets (and redraws them) when
+    /// they've changed. A system accent is resolved for light and dark mode,
+    /// as the widgets follow the phone's mode with it.
+    static func shareTheme(_ settings: AppearanceSettings) {
+        let theme: WidgetTheme
+        if let palette = settings.theme.palette, let accent = settings.themeAccent {
+            theme = WidgetTheme(palette: palette, accent: accent.color)
+        } else {
+            let color = UIColor(settings.systemAccent.color)
+            theme = WidgetTheme(colors: nil, accentLight: hex(color, style: .light), accentDark: hex(color, style: .dark))
+        }
+        let store = WidgetSnapshotStore.shared()
+        guard store.readTheme() != theme else { return }
+        store.writeTheme(theme)
+        reload()
+    }
+
+    private static func hex(_ color: UIColor, style: UIUserInterfaceStyle) -> UInt32 {
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        color.resolvedColor(with: UITraitCollection(userInterfaceStyle: style)).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        func byte(_ value: CGFloat) -> UInt32 { UInt32((min(max(value, 0), 1) * 255).rounded()) }
+        return byte(red) << 16 | byte(green) << 8 | byte(blue)
     }
 
     private static func reload() {

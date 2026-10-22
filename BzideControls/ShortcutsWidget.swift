@@ -13,7 +13,7 @@ struct ShortcutsWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WidgetKinds.shortcuts, provider: NowPlayingProvider()) { entry in
             ShortcutsWidgetView(snapshot: entry.snapshot)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .themedWidget(entry.theme)
         }
         .configurationDisplayName("Shortcuts")
         .description("Continue, Random Mix, Mix My Cuts and Favorite.")
@@ -68,13 +68,14 @@ private struct Tile<Intent: AppIntent>: View {
     let isMedium: Bool
 
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.widgetSurface) private var surface
 
     var body: some View {
         Button(intent: intent) {
             Group {
                 if isMedium {
                     HStack(spacing: 8) {
-                        Image(systemName: systemImage).font(.title3)
+                        Image(systemName: systemImage).font(.title3).foregroundStyle(.tint)
                         VStack(alignment: .leading, spacing: 0) {
                             Text(title).font(.subheadline.bold()).lineLimit(1)
                             if let detail {
@@ -86,13 +87,13 @@ private struct Tile<Intent: AppIntent>: View {
                     .padding(.horizontal, 10)
                 } else {
                     VStack(spacing: 4) {
-                        Image(systemName: systemImage).font(.title3)
+                        Image(systemName: systemImage).font(.title3).foregroundStyle(.tint)
                         Text(title).font(.caption2).lineLimit(1).minimumScaleFactor(0.8)
                     }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(.fill.secondary, in: .rect(cornerRadius: 12))
+            .background(surface.map(AnyShapeStyle.init) ?? AnyShapeStyle(.fill.secondary), in: .rect(cornerRadius: 12))
             .opacity(isEnabled ? 1 : 0.4)
         }
         .buttonStyle(.plain)

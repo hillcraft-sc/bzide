@@ -33,6 +33,50 @@ public struct WidgetSnapshot: Codable, Equatable, Sendable {
     }
 }
 
+/// The app's theme, for the widgets to draw in: its colors (`nil` for the
+/// System, Light and Dark themes, which follow the phone), and the accent as
+/// it looks in light and dark mode (the same for a theme; the system accents
+/// differ). Colors only, nothing else about the user.
+public struct WidgetTheme: Codable, Equatable, Sendable {
+    public struct Colors: Codable, Equatable, Sendable {
+        public var base: UInt32
+        /// Tiles and placeholders, a shade off the background.
+        public var surface: UInt32
+        public var text: UInt32
+        public var isLight: Bool
+
+        public init(base: UInt32, surface: UInt32, text: UInt32, isLight: Bool) {
+            self.base = base
+            self.surface = surface
+            self.text = text
+            self.isLight = isLight
+        }
+    }
+
+    public var colors: Colors?
+    public var accentLight: UInt32
+    public var accentDark: UInt32
+
+    public init(colors: Colors?, accentLight: UInt32, accentDark: UInt32) {
+        self.colors = colors
+        self.accentLight = accentLight
+        self.accentDark = accentDark
+    }
+
+    /// For a theme with a palette: its colors and chosen accent. Light themes'
+    /// tiles are a shade darker than the background (`crust`), dark themes'
+    /// a shade lighter (`surface0`), as in the app's grouped lists.
+    public init(palette: ThemePalette, accent: RGBColor) {
+        self.init(
+            colors: Colors(
+                base: palette.base.hex, surface: (palette.isLight ? palette.crust : palette.surface0).hex,
+                text: palette.text.hex, isLight: palette.isLight
+            ),
+            accentLight: accent.hex, accentDark: accent.hex
+        )
+    }
+}
+
 /// The snapshot and its artwork, as files in a folder both processes can
 /// reach (the App Group's container on a device; any folder in tests).
 /// Without a folder (no App Group), nothing is kept and nothing is read.
@@ -40,6 +84,7 @@ public struct WidgetSnapshotStore: Sendable {
     public static let appGroup = "group.com.erichebert.musicapp"
     static let snapshotName = "NowPlaying.json"
     static let artworkName = "NowPlayingArtwork.jpg"
+    static let themeName = "Theme.json"
 
     public let directory: URL?
 
@@ -64,6 +109,18 @@ public struct WidgetSnapshotStore: Sendable {
             try? FileManager.default.removeItem(at: url)
             return
         }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? data.write(to: url, options: .atomic)
+    }
+
+    /// `nil` before the app has shared one (the widgets then look as iOS draws them).
+    public func readTheme() -> WidgetTheme? {
+        guard let url = directory?.appending(path: Self.themeName), let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(WidgetTheme.self, from: data)
+    }
+
+    public func writeTheme(_ theme: WidgetTheme) {
+        guard let url = directory?.appending(path: Self.themeName), let data = try? JSONEncoder().encode(theme) else { return }
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try? data.write(to: url, options: .atomic)
     }

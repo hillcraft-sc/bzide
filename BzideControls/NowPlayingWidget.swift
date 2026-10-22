@@ -11,7 +11,7 @@ struct NowPlayingWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: WidgetKinds.nowPlaying, provider: NowPlayingProvider()) { entry in
             NowPlayingWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .themedWidget(entry.theme)
                 .widgetURL(WidgetLinks.nowPlaying)
         }
         .configurationDisplayName("Now Playing")
@@ -25,6 +25,8 @@ struct NowPlayingEntry: TimelineEntry {
     /// `nil`: nothing queued.
     let snapshot: WidgetSnapshot?
     let artwork: UIImage?
+    /// The app's theme, if it has shared one.
+    var theme: WidgetTheme?
 }
 
 struct NowPlayingProvider: TimelineProvider {
@@ -45,7 +47,7 @@ struct NowPlayingProvider: TimelineProvider {
         let snapshot = store.read()
         // The artwork only if the snapshot says it's this song's.
         let artwork = snapshot?.coverArtID == nil ? nil : store.readArtwork().flatMap(UIImage.init(data:))
-        return NowPlayingEntry(date: .now, snapshot: snapshot, artwork: artwork)
+        return NowPlayingEntry(date: .now, snapshot: snapshot, artwork: artwork, theme: store.readTheme())
     }
 }
 
@@ -100,6 +102,7 @@ struct NowPlayingWidgetView: View {
                     }
                 }
                 .font(.title3)
+                .foregroundStyle(.tint)
             }
         }
         .buttonStyle(.plain)
@@ -147,6 +150,7 @@ private struct Titles: View {
 private struct Cover: View {
     let image: UIImage?
     let isLive: Bool
+    @Environment(\.widgetSurface) private var surface
 
     var body: some View {
         Group {
@@ -157,7 +161,7 @@ private struct Cover: View {
                     .font(.title2)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.fill.secondary)
+                    .background(surface.map(AnyShapeStyle.init) ?? AnyShapeStyle(.fill.secondary))
             }
         }
         .clipShape(.rect(cornerRadius: 8))
@@ -171,6 +175,7 @@ private struct PlayPauseButton: View {
         Button(intent: TogglePlaybackIntent()) {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2)
+                .foregroundStyle(.tint)
                 .accessibilityLabel(isPlaying ? "Pause" : "Play")
         }
         .buttonStyle(.plain)
