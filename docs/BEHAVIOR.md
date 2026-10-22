@@ -164,6 +164,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - "Now playing" is sent once per play, when it first plays (including when one track flows straight into the next). It is best effort and never retried.
 - Scrobbles are saved to `Application Support/PendingScrobbles.json` before sending and removed only once the server accepts them. They are sent oldest first, never in parallel, stopping at the first failure. Pending ones are retried at the next scrobble and at launch.
 - Known limit: if the server records a scrobble but the reply is lost, it will be sent again and may count twice.
+- **Last.fm and ListenBrainz** aren't contacted by Bzide. Plays go to the user's server only; Navidrome forwards them to the services each user links in its web interface (Personal settings), so it works the same from every client and no service credentials are on the phone. Settings > Scrobbling says so (information only; Gitea #18).
 
 ## Queue
 
