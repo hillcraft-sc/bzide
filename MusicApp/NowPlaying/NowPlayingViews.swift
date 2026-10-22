@@ -95,7 +95,7 @@ struct NowPlayingView: View {
     /// Two columns when wider than tall and wide enough for both.
     private var isWide: Bool { size.width > size.height && size.width >= 700 }
 
-    private var leadingWidth: CGFloat { max(size.width * 0.45, 320) }
+    private var leadingWidth: CGFloat { max(size.width * 0.5, 320) }
 
     /// About 72% of its column (280 points on a typical iPhone), never so big
     /// the controls fall out of view beside the queue.
@@ -215,11 +215,15 @@ struct NowPlayingView: View {
                         List { nowPlayingSection(artwork) }
                             .listStyle(.plain)
                             .themedList()
+                            // Room before the divider: in landscape the other
+                            // side already has the Dynamic Island's margin.
+                            .safeAreaPadding(.trailing, 20)
                             .frame(width: leadingWidth)
                         Divider()
                         List { queueSection }
                             .listStyle(.plain)
                             .themedList()
+                            .safeAreaPadding(.leading, 8)
                     }
                 } else {
                     List {
