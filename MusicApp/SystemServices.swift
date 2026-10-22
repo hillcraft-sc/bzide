@@ -13,6 +13,8 @@ final class SystemServices {
     let nowPlaying: SystemNowPlaying
     let network = SystemNetworkMonitor()
     let settings = StreamingSettingsModel()
+    /// Kept per iPhone, across accounts, like the player it shapes.
+    let equalizer: EqualizerModel
     let downloadsDirectory: URL
     let downloadTransport: BackgroundDownloadTransport
 
@@ -20,6 +22,7 @@ final class SystemServices {
 
     init(loadArtwork: @escaping (String) async -> UIImage?) {
         nowPlaying = SystemNowPlaying(loadArtwork: loadArtwork)
+        equalizer = EqualizerModel(control: player.equalizer)
         downloadsDirectory = Self.makeDownloadsDirectory()
         downloadTransport = BackgroundDownloadTransport(stagingDirectory: downloadsDirectory.appending(path: "Incoming"))
     }

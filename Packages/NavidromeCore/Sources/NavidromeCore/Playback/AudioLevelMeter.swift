@@ -10,8 +10,9 @@ import Synchronization
 /// allocate, or touch the main actor: levels go into atomics, and samples into
 /// a buffer reserved up front, written only if its lock is free at that
 /// instant (otherwise that buffer's samples are skipped). The UI reads both
-/// whenever it draws. Each tap can also apply a gain (volume normalization),
-/// changeable while it plays; at 1 the audio passes through untouched.
+/// whenever it draws. Each tap can also equalize (`EqualizerFilter`, from the
+/// shared `EqualizerControl`) and apply a gain (volume normalization), both
+/// changeable while it plays; flat and at 1, the audio passes through untouched.
 public final class AudioLevelMeter: Sendable {
     private let leftBits = Atomic<UInt32>(0)
     private let rightBits = Atomic<UInt32>(0)
@@ -58,11 +59,11 @@ public final class AudioLevelMeter: Sendable {
         callbacks.load(ordering: .relaxed)
     }
 
-    /// A new tap for one player item: it applies `gain` and feeds this meter.
-    /// Its context (meter and gain) is retained by the tap and released when
-    /// the tap is finalized.
-    func makeTap(gain: TapGain = TapGain()) -> MTAudioProcessingTap? {
-        let context = Unmanaged.passRetained(TapContext(meter: self, gain: gain))
+    /// A new tap for one player item: it equalizes, applies `gain` and feeds
+    /// this meter. Its context (meter, equalizer and gain) is retained by the
+    /// tap and released when the tap is finalized.
+    func makeTap(gain: TapGain = TapGain(), equalizer: EqualizerControl = EqualizerControl()) -> MTAudioProcessingTap? {
+        let context = Unmanaged.passRetained(TapContext(meter: self, gain: gain, equalizer: EqualizerFilter(control: equalizer)))
         var callbacks = MTAudioProcessingTapCallbacks(
             version: kMTAudioProcessingTapCallbacksVersion_0,
             clientInfo: context.toOpaque(),
@@ -79,14 +80,18 @@ public final class AudioLevelMeter: Sendable {
                 context.isFloat.store(isFloat, ordering: .relaxed)
                 context.meter.sampleRateBits.store(description.mSampleRate.bitPattern, ordering: .relaxed)
                 context.meter.isFloat.store(isFloat, ordering: .relaxed)
+                // Not yet rendering: the filter may reserve its storage here.
+                context.equalizer.prepare(sampleRate: description.mSampleRate, channels: Int(description.mChannelsPerFrame))
             },
             unprepare: nil,
             process: { tap, frames, _, bufferList, framesOut, flagsOut in
-                // Pass the audio through in place, apply the gain, then measure it if wanted.
+                // Pass the audio through in place, equalize it, apply the gain,
+                // then measure it if wanted (so the visualizer sees what's heard).
                 guard MTAudioProcessingTapGetSourceAudio(tap, frames, bufferList, flagsOut, nil, framesOut) == noErr else { return }
                 let context = AudioLevelMeter.context(of: tap)
                 let buffers = UnsafeMutableAudioBufferListPointer(bufferList)
                 if context.isFloat.load(ordering: .relaxed) {
+                    context.equalizer.process(buffers, frames: Int(framesOut.pointee))
                     AudioLevelMeter.apply(context.gain.value, to: buffers)
                 }
                 guard context.meter.measuring.load(ordering: .relaxed) else { return }
@@ -160,16 +165,18 @@ public final class TapGain: Sendable {
     }
 }
 
-/// What one tap needs on the audio thread: the shared meter, its own gain, and
-/// whether its format is one the gain can be applied to.
+/// What one tap needs on the audio thread: the shared meter, its own
+/// equalizer and gain, and whether its format is one they can be applied to.
 private final class TapContext: Sendable {
     let meter: AudioLevelMeter
     let gain: TapGain
+    let equalizer: EqualizerFilter
     let isFloat = Atomic<Bool>(false)
 
-    init(meter: AudioLevelMeter, gain: TapGain) {
+    init(meter: AudioLevelMeter, gain: TapGain, equalizer: EqualizerFilter) {
         self.meter = meter
         self.gain = gain
+        self.equalizer = equalizer
     }
 }
 

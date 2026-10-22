@@ -31,6 +31,7 @@ final class AppModel {
     /// Visualizer phase 1 test: the player's live level meter, and the switch
     /// that taps playback for it. Off at every launch.
     var levelMeter: AudioLevelMeter { system.player.levelMeter }
+    var equalizer: EqualizerModel { system.equalizer }
     var isMetering: Bool {
         get { system.player.isMetering }
         set { system.player.isMetering = newValue }

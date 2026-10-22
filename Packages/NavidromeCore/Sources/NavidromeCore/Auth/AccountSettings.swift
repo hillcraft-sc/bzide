@@ -40,6 +40,8 @@ public struct AccountSettings {
         return AccountSettings(
             defaults: .standard,
             domain: Bundle.main.bundleIdentifier ?? "",
+            // About this iPhone and its listener, not the account: kept on a switch.
+            deviceKeys: [EqualizerModel.key],
             directory: support.appending(path: directoryName),
             files: [
                 support.appending(path: Wishlist.fileName),

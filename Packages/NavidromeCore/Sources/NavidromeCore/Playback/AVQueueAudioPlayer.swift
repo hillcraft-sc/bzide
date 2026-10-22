@@ -26,6 +26,8 @@ public final class AVQueueAudioPlayer: AudioPlayer {
 
     /// Live levels of what's playing, while `isMetering` is on.
     public let levelMeter = AudioLevelMeter()
+    /// The equalizer's settings, read by every item's tap.
+    public let equalizer = EqualizerControl()
 
     /// Whether `levelMeter` measures. Every item is tapped when it's loaded,
     /// before it plays, and the tap stays: adding or removing a tap on a playing
@@ -291,7 +293,7 @@ public final class AVQueueAudioPlayer: AudioPlayer {
     private func attachLevelTap(to item: AVPlayerItem, gain: TapGain) {
         Task { [weak self] in
             guard let track = try? await item.asset.loadTracks(withMediaType: .audio).first,
-                  let self, let tap = self.levelMeter.makeTap(gain: gain) else { return }
+                  let self, let tap = self.levelMeter.makeTap(gain: gain, equalizer: self.equalizer) else { return }
             let parameters = AVMutableAudioMixInputParameters(track: track)
             parameters.audioTapProcessor = tap
             let mix = AVMutableAudioMix()

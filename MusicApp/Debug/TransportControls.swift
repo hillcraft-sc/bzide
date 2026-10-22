@@ -3,6 +3,8 @@ import SwiftUI
 
 struct TransportControls: View {
     let engine: PlaybackEngine
+    /// Shows whether the equalizer is heard; the debug player has none.
+    var equalizer: EqualizerModel?
     /// While dragging, the slider shows this instead of the engine's position.
     @State private var scrubPosition: TimeInterval?
 
@@ -20,6 +22,9 @@ struct TransportControls: View {
                 Spacer()
                 if let quality = engine.currentQuality {
                     QualityLabel(quality: quality)
+                }
+                if let equalizer {
+                    EqualizerBadge(equalizer: equalizer, engine: engine)
                 }
             }
             .font(.caption)

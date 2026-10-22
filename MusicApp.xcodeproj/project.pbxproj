@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0000000000000005000000A2 /* PRIVACY.md in Resources */ = {isa = PBXBuildFile; fileRef = 0000000000000005000000A1 /* PRIVACY.md */; };
 		000000000000000200000010 /* NavidromeCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000200000020 /* NavidromeCore */; };
 		000000000000000200000011 /* NavidromeCore in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000200000021 /* NavidromeCore */; };
+		0000000000000005000000A2 /* docs/PRIVACY.md in Resources */ = {isa = PBXBuildFile; fileRef = 0000000000000005000000A1 /* docs/PRIVACY.md */; };
 		6C1EC7EA308187D60026ADB3 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C1EC7E9308187D60026ADB3 /* WidgetKit.framework */; };
 		6C1EC7EC308187D60026ADB3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C1EC7EB308187D60026ADB3 /* SwiftUI.framework */; };
 		6C1EC7F7308187D70026ADB3 /* BzideControlsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -45,9 +45,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		0000000000000005000000A1 /* PRIVACY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = docs/PRIVACY.md; sourceTree = "<group>"; };
 		000000000000000000000120 /* MusicApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MusicApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000300000001 /* MusicAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MusicAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0000000000000005000000A1 /* docs/PRIVACY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = docs/PRIVACY.md; sourceTree = "<group>"; };
 		6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BzideControlsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C1EC7E9308187D60026ADB3 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = /System/Library/Frameworks/WidgetKit.framework; sourceTree = "<absolute>"; };
 		6C1EC7EB308187D60026ADB3 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = /System/Library/Frameworks/SwiftUI.framework; sourceTree = "<absolute>"; };
@@ -129,7 +129,7 @@
 		000000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				0000000000000005000000A1 /* PRIVACY.md */,
+				0000000000000005000000A1 /* docs/PRIVACY.md */,
 				000000000000000000000010 /* MusicApp */,
 				000000000000000300000002 /* MusicAppTests */,
 				6C1EC7ED308187D60026ADB3 /* BzideControls */,
@@ -277,7 +277,7 @@
 		000000000000000140000000 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
-				0000000000000005000000A2 /* PRIVACY.md in Resources */,
+				0000000000000005000000A2 /* docs/PRIVACY.md in Resources */,
 			);
 		};
 		000000000000000300000005 /* Resources */ = {

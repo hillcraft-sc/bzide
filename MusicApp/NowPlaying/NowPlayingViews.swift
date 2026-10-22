@@ -50,6 +50,7 @@ struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isVisualizerOpen = false
     @State private var isLyricsOpen = false
+    @State private var isEqualizerOpen = false
     /// The saved stations, loaded while a dialed station plays, so Save
     /// Station shows only for one that isn't saved.
     @State private var savedStations: RadioStationsModel?
@@ -117,7 +118,7 @@ struct NowPlayingView: View {
                 .id(artwork)
                 .frame(maxWidth: .infinity)
                 .listRowSeparator(.hidden)
-            TransportControls(engine: engine)
+            TransportControls(engine: engine, equalizer: model.equalizer)
             // The song a station is playing: in the library, or not (once
             // the search has said so), to add to the Wishlist.
             if engine.isLive, let match = library.onAir.match {
@@ -202,6 +203,7 @@ struct NowPlayingView: View {
             if let song = engine.queue.current?.song {
                 SpinOffButton(library: library, song: song)
                 SongInfoButton(library: library, song: song)
+                Button("Equalizer", systemImage: "slider.vertical.3") { isEqualizerOpen = true }
                 if let albumID = song.albumID {
                     AlbumInfoButton(library: library, albumID: albumID)
                 }
@@ -287,6 +289,17 @@ struct NowPlayingView: View {
             .appMessages(library, isEnabled: !isVisualizerOpen && !isLyricsOpen)
             .fullScreenCover(isPresented: $isVisualizerOpen) {
                 VisualizerView(model: model, engine: engine)
+            }
+            .sheet(isPresented: $isEqualizerOpen) {
+                NavigationStack {
+                    EqualizerView(equalizer: model.equalizer, engine: engine)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done", systemImage: "checkmark") { isEqualizerOpen = false }
+                            }
+                        }
+                }
+                .presentationDetents([.medium, .large])
             }
             .fullScreenCover(isPresented: $isLyricsOpen) {
                 LyricsView(library: library)

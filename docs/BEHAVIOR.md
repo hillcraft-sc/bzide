@@ -118,6 +118,15 @@ How the app behaves, written so the web and Android clients can be ported from t
 - The gain is applied in each item's audio tap (the same one the visualizer measures with), multiplying the samples on the audio thread without locks or allocation, so it can boost as well as cut. It's set when a song is loaded; changing the setting applies at once to the current, next and (for repeat all) first songs, without interrupting playback. The tap attaches as the item loads, normally before it's heard.
 - Now Playing's quality line adds the adjustment in use, e.g. "FLAC · 964 kbps · −4.2 dB" (nothing when there's none).
 
+### Equalizer
+
+- **Settings > Equalizer**, and Now Playing's ⋯ > **Equalizer** (a sheet, half or full height): on or off (off by default), a **preset**, and ten **bands** one octave apart (32, 64, 125, 250 and 500 Hz, 1, 2, 4, 8 and 16 kHz), each −12 to +12 dB in half-decibel steps. Presets: Flat, Bass Boost, Bass Reducer, Treble Boost, Treble Reducer, Vocal, Loudness, Late Night, Rock, Pop, Jazz, Classical, Electronic, Hip-Hop, Acoustic, Small Speakers, and **Custom** (the user's own). Moving a band copies the preset's gains into Custom and switches to it; Custom has Reset to Flat. Settings shows "Off" or the preset's name. The bands are disabled while the equalizer is off.
+- **Kept per iPhone**, not per account (it's about the listener's ears and speakers): a device setting that an account switch and Restore Default Settings leave alone.
+- **How it's applied:** in each item's audio tap, the same one that measures for the visualizer and applies volume normalization, after the source audio and before the normalization gain (so the visualizer shows what's heard). Each band is a peaking filter (Audio EQ Cookbook, one octave wide, Q 1.414); a band at or above 45% of the sample rate is left out. To keep boosted bands from clipping, the audio is first lowered by the largest boost (up to 12 dB). Changes reach every playing item at once and glide in over about 20 ms (1,024 frames), so moving a slider doesn't click. With the equalizer off or flat, the audio passes through untouched, bit for bit.
+- **Real-time rules:** the tap's storage is reserved when its format is known; while playing it never allocates, locks or waits (a settings change is picked up on the next buffer the tap can read it without waiting).
+- **Where it applies:** songs (streamed or downloaded) played on the iPhone's speaker, wired headphones and Bluetooth. **Not radio stations** (any kind: AVFoundation plays endless streams through a path that skips audio taps, see Audio levels) and **not AirPlay** (the receiver decodes the audio; it never passes through the phone's audio path). Nor audio that isn't 32-bit float in the tap (it then plays untouched, as for normalization).
+- **Is it heard?** Each tap notes when it last processed audio. While the equalizer is on and something is playing, Now Playing's status line ends with **EQ** (in the accent) when a tap processed audio within the last 1.5 seconds and the output isn't AirPlay, else **EQ unavailable**; the Equalizer screen says "Applied to what's playing" or "Can't be applied to what's playing (radio or AirPlay)". Both are checked once a second. Paused or off: nothing shown.
+
 ### Sleep timer
 
 - Now Playing's moon button (top bar, beside Save Queue) offers 15, 30 and 45 minutes, 1 hour, and End of Song; while a timer runs it also offers Turn Off Timer, and the button shows a filled moon and when the music will stop, counting down each second in the accent: the time left on the timer ("14:53"), or for End of Song the time left in the song ("End" if its length isn't known). Choosing again replaces the running timer.
@@ -643,6 +652,16 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Settings > Playback > Volume Normalization: By Album. Play a song with ReplayGain tags: Now Playing's quality line ends with its adjustment (e.g. "−6.1 dB") and it plays at that level; a song without tags shows none and sounds as before. (2026-10-13)
 - [ ] While a tagged song plays, switch between Off, By Track and By Album: the volume changes at once with no skip, and the quality line follows.
 - [ ] Play an album with quiet and loud songs By Album, then By Track: By Album keeps the quiet song quiet, By Track brings it up to the others.
+
+### Equalizer
+- [x] Settings > Equalizer: off by default; turn it on, choose Bass Boost while a song plays: the bass grows within a moment, with no click or gap; Flat: back to normal; off: unchanged sound. (2026-10-22)
+- [x] Move bands while playing (headphones): each change is heard at once, smoothly. Moving one switches the preset to Custom; Reset to Flat clears it. (2026-10-22)
+- [x] A loud song with Bass Boost or Rock: no crackle or distortion, just a little quieter overall. (2026-10-22)
+- [x] Skip through songs and let one run into the next with the equalizer on: still equalized, still gapless. (2026-10-22)
+- [x] Bluetooth: the equalizer is heard, and Now Playing says EQ. AirPlay: it isn't, and Now Playing says EQ unavailable. (2026-10-22)
+- [x] Now Playing ⋯ > Equalizer opens it as a sheet; Done closes it. (2026-10-22)
+- [x] Sign out and in as another user: the equalizer is as it was. Force quit and relaunch: kept. (2026-10-22)
+- [x] With the equalizer on, a song: Now Playing's status line ends with EQ (accent), and the Equalizer screen says Applied to what's playing. A radio station: EQ unavailable, and Can't be applied; the station plays normally. Paused: neither shows. (2026-10-22)
 
 ### Sleep timer
 
