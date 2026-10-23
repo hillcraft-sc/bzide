@@ -407,7 +407,7 @@ Checked against the App Store's Accessibility Nutrition Labels (Gitea #19).
 Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.md`.
 
 ### Account
-- [ ] Settings > Help opens the user guide: headings, numbered steps, bullets and links read well, in light, dark and a theme, and at a large text size.
+- [x] Settings > Help opens the user guide: headings, numbered steps, bullets and links read well, in light, dark and a theme, and at a large text size. (2026-10-22)
 - [x] Settings > Privacy opens the privacy page: headings, bullets and a card per outside service, readable in light, dark and each theme. (2026-10-22)
 - [x] Sign out. On the sign-in screen, type an `http://` address with a public host name: an orange warning appears under the address; a local address (`http://192.168.…`, `http://nas.local`) or `https://`: none. (2026-10-22)
 - [x] Sign In With > API Key, with a key from your server's settings (if it supports OpenSubsonic API keys): signs in, no username needed, and everything works as with a password. A wrong key: "That API key isn't valid." If your server doesn't support keys, the error says so. (2026-10-22)

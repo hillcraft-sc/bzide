@@ -1,12 +1,11 @@
 # Open device checks
 
-A snapshot of the 75 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-21. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
+A snapshot of the 74 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-21. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
 
 The number after each check is its line in `BEHAVIOR.md`.
 
-## Account (2)
+## Account (1)
 
-- [ ] Settings > Help opens the user guide: headings, numbered steps, bullets and links read well, in light, dark and a theme, and at a large text size. (line 410)
 - [ ] Sign out and sign in to your own account at another address for the same server (e.g. its local network address instead of the domain): Sign In asks; Same Server, Keep Everything: downloads, history, queue and settings are all there. (line 417)
 
 ## Audio session (1)
