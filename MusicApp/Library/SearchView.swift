@@ -13,6 +13,7 @@ struct SearchView: View {
     @FocusState private var isSearchFocused: Bool
     /// The scope and filters, saved on this device.
     @AppStorage("searchFilters") private var savedFilters = Data()
+    @Environment(\.simplifiedRating) private var simplifiedRating
 
     init(library: Library, focusRequest: Int = 0) {
         self.library = library
@@ -50,6 +51,11 @@ struct SearchView: View {
             if let saved = try? JSONDecoder().decode(SearchFilters.self, from: savedFilters) {
                 model.filters = saved
             }
+            model.filters.rating = model.filters.rating.inStyle(simplified: simplifiedRating)
+        }
+        // A rating filter from the other style would hide results unseen.
+        .onChange(of: simplifiedRating) {
+            model.filters.rating = model.filters.rating.inStyle(simplified: simplifiedRating)
         }
         .onChange(of: model.filters) { _, filters in
             savedFilters = (try? JSONEncoder().encode(filters)) ?? Data()
@@ -61,7 +67,7 @@ struct SearchView: View {
     private var filterMenu: some View {
         Menu {
             Picker("Rating", selection: Binding(get: { model.filters.rating }, set: { model.filters.rating = $0 })) {
-                ForEach(SearchFilters.RatingFilter.allCases, id: \.self) { rating in
+                ForEach(SearchFilters.RatingFilter.choices(simplified: simplifiedRating), id: \.self) { rating in
                     Text(rating.title).tag(rating)
                 }
             }
@@ -131,7 +137,7 @@ struct SearchView: View {
                                 } label: {
                                     SongRow(
                                         song: song, isCurrent: song.id == library.engine.queue.current?.song.id,
-                                        isFavorite: library.isFavorite(song), rating: library.rating(of: song)
+                                        isFavorite: library.isFavorite(song), stars: library.stars(of: song)
                                     )
                                 }
                                 .foregroundStyle(.primary)

@@ -19,7 +19,7 @@ struct HistoryView: View {
                         } label: {
                             HistoryRow(
                                 item: item, isCurrent: item.entry.song.id == library.engine.queue.current?.song.id,
-                                isFavorite: library.isFavorite(item.entry.song), rating: library.rating(of: item.entry.song)
+                                isFavorite: library.isFavorite(item.entry.song), stars: library.stars(of: item.entry.song)
                             )
                         }
                         .foregroundStyle(.primary)
@@ -92,7 +92,7 @@ private struct HistoryRow: View {
     let item: HistoryItem
     let isCurrent: Bool
     let isFavorite: Bool
-    let rating: Rating?
+    let stars: Int?
 
     private var entry: PlayHistoryEntry { item.entry }
 
@@ -108,7 +108,7 @@ private struct HistoryRow: View {
                     .lineLimit(1)
             }
             Spacer()
-            SongMarks(isFavorite: isFavorite, rating: rating)
+            SongMarks(isFavorite: isFavorite, stars: stars)
             VStack(alignment: .trailing, spacing: 2) {
                 Text(entry.playedAt.formatted(date: .omitted, time: .shortened))
                 if item.playCount > 1 {

@@ -62,6 +62,8 @@ struct RootView: View {
         .onDisappear { HomeScreenActions.clear() }
         // Messages from anywhere in the app, shown here unless Now Playing is open.
         .appMessages(library, isEnabled: !isNowPlayingOpen)
+        // Meh, Like and Love, or stars, everywhere a rating shows or is chosen.
+        .environment(\.simplifiedRating, library.settings.settings.useSimplifiedRating)
     }
 
     private func run(_ action: HomeScreenAction) {

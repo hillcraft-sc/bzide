@@ -170,7 +170,9 @@ struct LibraryView: View {
                         }
                     }
                     .disabled(library.spinOff.isStarting)
-                    .accessibilityHint("Plays the songs you Love or Like, and favorites if included, shuffled, without end")
+                    .accessibilityHint(library.settings.settings.useSimplifiedRating
+                        ? "Plays the songs you Love or Like, and favorites if included, shuffled, without end"
+                        : "Plays the songs you rated 3 stars or more, and favorites if included, shuffled, without end")
                 default:
                     Button {
                         Task { await randomMix.start() }

@@ -13,6 +13,7 @@ struct FavoritesView: View {
     @State private var text = ""
     /// The scope, filters and order, saved on this device.
     @AppStorage("favoritesFilters") private var savedFilters = Data()
+    @Environment(\.simplifiedRating) private var simplifiedRating
 
     init(library: Library) {
         self.library = library
@@ -51,7 +52,7 @@ struct FavoritesView: View {
                                     isCurrent: song.id == library.engine.queue.current?.song.id,
                                     showsTrackNumber: false,
                                     isFavorite: library.isFavorite(song),
-                                    rating: library.rating(of: song)
+                                    stars: library.stars(of: song)
                                 )
                             }
                             .foregroundStyle(.primary)
@@ -110,6 +111,11 @@ struct FavoritesView: View {
         }
         .onAppear {
             if let saved = try? JSONDecoder().decode(FavoritesFilters.self, from: savedFilters) { filters = saved }
+            filters.rating = filters.rating.inStyle(simplified: simplifiedRating)
+        }
+        // A rating filter from the other style would hide favorites unseen.
+        .onChange(of: simplifiedRating) {
+            filters.rating = filters.rating.inStyle(simplified: simplifiedRating)
         }
         .onChange(of: filters) { _, filters in
             savedFilters = (try? JSONEncoder().encode(filters)) ?? Data()
@@ -148,7 +154,7 @@ struct FavoritesView: View {
             }
             .pickerStyle(.menu)
             Picker("Rating", selection: $filters.rating) {
-                ForEach(SearchFilters.RatingFilter.allCases, id: \.self) { Text($0.title).tag($0) }
+                ForEach(SearchFilters.RatingFilter.choices(simplified: simplifiedRating), id: \.self) { Text($0.title).tag($0) }
             }
             .pickerStyle(.inline)
             Section {

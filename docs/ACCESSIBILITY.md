@@ -31,7 +31,7 @@ Bzide follows iOS's light and dark modes. You can also choose a theme in Setting
 
 Nothing in Bzide is shown by color alone:
 
-- Favorites show a filled heart, and ratings show filled stars.
+- Favorites show a filled heart. Ratings show a face (Meh, Like or Love) or a number of stars, and the Rate button's star is filled once something is rated.
 - The song that's playing has a speaker icon in the queue.
 - "EQ" and "EQ unavailable" are written out in Now Playing.
 - When you've chosen different lyrics with **Wrong lyrics?**, its button shows a checkmark as well as changing color.

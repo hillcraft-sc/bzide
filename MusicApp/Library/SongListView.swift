@@ -36,7 +36,7 @@ struct SongListView<Header: View>: View {
                             isCurrent: song.id == library.engine.queue.current?.song.id,
                             showsTrackNumber: showsTrackNumbers,
                             isFavorite: library.isFavorite(song),
-                            rating: library.rating(of: song)
+                            stars: library.stars(of: song)
                         )
                     }
                     .foregroundStyle(.primary)

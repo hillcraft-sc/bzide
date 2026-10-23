@@ -87,18 +87,28 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Use Simplified Rating", isOn: $settings.settings.useSimplifiedRating)
+            } header: {
+                Text("Ratings")
+            } footer: {
+                Text(settings.settings.useSimplifiedRating
+                    ? "Rate songs, albums and artists Meh, Like or Love. Your server stores them as 1, 3 and 5 stars, so other apps show them as stars."
+                    : "Rate songs, albums and artists with 1 to 5 stars, as in Navidrome. Turn this on to rate Meh, Like or Love instead.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 Picker("Volume Normalization", selection: $settings.settings.volumeNormalization) {
                     ForEach(VolumeNormalization.allCases, id: \.self) { mode in
                         Text(mode.title).tag(mode)
                     }
                 }
                 Toggle("Keep Spinning", isOn: $settings.settings.keepSpinning)
-                Toggle("Include Meh Songs", isOn: $settings.settings.includeMehInMixes)
+                Toggle(settings.settings.useSimplifiedRating ? "Include Meh Songs" : "Include 1–2 Star Songs", isOn: $settings.settings.includeMehInMixes)
                 Toggle("Include Favorites in My Cuts", isOn: $settings.settings.myCutsIncludeFavorites)
             } header: {
                 Text("Playback")
             } footer: {
-                Text("Volume Normalization evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume; By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged, and Now Playing shows the adjustment beside the quality.\n\nKeep Spinning: when the queue reaches its last song, Bzide spins off from it so the music keeps going, with similar songs if your server has them (Navidrome with Last.fm), otherwise a mix from your library. Repeat turns it off.\n\nInclude Meh Songs: off, Random Mix, Spin Off and Keep Spinning leave out songs you rated Meh. Songs you pick yourself always play.\n\nMix My Cuts plays the songs you rated Love or Like; with Include Favorites in My Cuts on, your favorites too (unless rated Meh).")
+                Text("Volume Normalization evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume; By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged, and Now Playing shows the adjustment beside the quality.\n\nKeep Spinning: when the queue reaches its last song, Bzide spins off from it so the music keeps going, with similar songs if your server has them (Navidrome with Last.fm), otherwise a mix from your library. Repeat turns it off.\n\n\(mixesFooter)")
             }
             .themedRows(grouped: true)
             Section {
@@ -277,6 +287,13 @@ struct SettingsView: View {
     }
 
     /// Where the profile picture comes from, then what's needed for that choice.
+    /// The mix settings' explanation, in the rating style in use.
+    private var mixesFooter: String {
+        settings.settings.useSimplifiedRating
+            ? "Include Meh Songs: off, Random Mix, Spin Off and Keep Spinning leave out songs you rated Meh. Songs you pick yourself always play.\n\nMix My Cuts plays the songs you rated Love or Like; with Include Favorites in My Cuts on, your favorites too (unless rated Meh)."
+            : "Include 1–2 Star Songs: off, Random Mix, Spin Off and Keep Spinning leave out songs you rated 1 or 2 stars. Songs you pick yourself always play.\n\nMix My Cuts plays the songs you rated 3 stars or more; with Include Favorites in My Cuts on, your favorites too (unless rated 1 or 2 stars)."
+    }
+
     private var profileSection: some View {
         Section {
             Picker("Picture", selection: $profile.settings.picture) {

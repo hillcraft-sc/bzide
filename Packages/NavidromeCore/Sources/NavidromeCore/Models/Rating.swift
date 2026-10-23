@@ -1,6 +1,9 @@
-/// The app's three-level rating, stored on the server as Subsonic's 1–5 stars.
+/// The app's simplified three-level rating, stored on the server as
+/// Subsonic's 1–5 stars. With Use Simplified Rating off, the stars themselves
+/// are shown and chosen instead (see `Rating.stars(serverValue:)`); the mixes
+/// read either the same way, so 1–2 stars are Meh.
 public enum Rating: Int, Sendable, CaseIterable {
-    case meh = 2
+    case meh = 1
     case like = 3
     case love = 5
 
@@ -30,5 +33,20 @@ public enum Rating: Int, Sendable, CaseIterable {
         case 4, 5: self = .love
         default: return nil
         }
+    }
+
+    /// A server rating as stars: 1–5, or `nil` for unrated (0, missing or out of range).
+    public static func stars(serverValue: Int?) -> Int? {
+        serverValue.flatMap { (1...5).contains($0) ? $0 : nil }
+    }
+
+    /// "1 Star", "4 Stars".
+    public static func starsTitle(_ stars: Int) -> String {
+        stars == 1 ? "1 Star" : "\(stars) Stars"
+    }
+
+    /// What a server rating is called in the chosen style: "Love", or "4 Stars".
+    public static func title(serverValue: Int?, simplified: Bool) -> String? {
+        simplified ? Rating(serverValue: serverValue)?.title : stars(serverValue: serverValue).map(starsTitle)
     }
 }

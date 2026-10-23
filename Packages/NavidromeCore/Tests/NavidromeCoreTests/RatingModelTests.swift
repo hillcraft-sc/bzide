@@ -8,8 +8,8 @@ struct RatingRequest: Sendable, Equatable {
 }
 
 struct RatingTests {
-    @Test func levelsAreSentAsTwoThreeAndFiveStars() {
-        #expect(Rating.allCases.map(\.rawValue) == [2, 3, 5])
+    @Test func levelsAreSentAsOneThreeAndFiveStars() {
+        #expect(Rating.allCases.map(\.rawValue) == [1, 3, 5])
     }
 
     @Test func serverRatingsRoundToTheNearestLevel() {
@@ -21,6 +21,28 @@ struct RatingTests {
         #expect(Rating(serverValue: nil) == nil)
         #expect(Rating(serverValue: 6) == nil)
         #expect(Rating(serverValue: -1) == nil)
+    }
+
+    @Test func starsAreTheServerValueWhenInRange() {
+        #expect([1, 2, 3, 4, 5].map { Rating.stars(serverValue: $0) } == [1, 2, 3, 4, 5])
+        #expect([0, 6, -1, nil].map { Rating.stars(serverValue: $0) } == [nil, nil, nil, nil])
+    }
+
+    @Test func titlesFollowTheStyle() {
+        #expect(Rating.title(serverValue: 4, simplified: true) == "Love")
+        #expect(Rating.title(serverValue: 4, simplified: false) == "4 Stars")
+        #expect(Rating.title(serverValue: 1, simplified: false) == "1 Star")
+        #expect(Rating.title(serverValue: nil, simplified: false) == nil)
+    }
+
+    @Test func simplifiedIsTheDefaultAndOlderSettingsKeepIt() throws {
+        #expect(StreamingSettings().useSimplifiedRating)
+        let older = try JSONDecoder().decode(StreamingSettings.self, from: Data(#"{"wifiQuality":0,"cellularQuality":192}"#.utf8))
+        #expect(older.useSimplifiedRating)
+        var stars = StreamingSettings()
+        stars.useSimplifiedRating = false
+        let saved = try JSONDecoder().decode(StreamingSettings.self, from: JSONEncoder().encode(stars))
+        #expect(!saved.useSimplifiedRating)
     }
 }
 
@@ -50,7 +72,7 @@ struct RatingModelTests {
 
         server.reply(to: 0, with: .success(()))
         await choose.value
-        #expect(server.requests == [RatingRequest(target: album, stars: 2)])
+        #expect(server.requests == [RatingRequest(target: album, stars: 1)])
         #expect(model.rating(album, fromServer: nil) == .meh)
         #expect(model.error == nil)
     }
@@ -110,5 +132,67 @@ struct RatingModelTests {
         await choose.value
         #expect(model.rating(album, fromServer: nil) == nil)
         #expect(model.rating(song, fromServer: nil) == .like)
+    }
+
+    // MARK: Stars (Use Simplified Rating off)
+
+    @Test func starsAreSentAsChosen() async {
+        let model = makeModel()
+        let choose = Task { @MainActor in await model.choose(stars: 4, for: album, fromServer: nil) }
+        await server.waitForCalls(1)
+        #expect(model.stars(album, fromServer: nil) == 4)
+        server.reply(to: 0, with: .success(()))
+        await choose.value
+        #expect(server.requests == [RatingRequest(target: album, stars: 4)])
+        // The same rating in the simplified style.
+        #expect(model.rating(album, fromServer: nil) == .love)
+    }
+
+    @Test func choosingTheCurrentStarsClearsThem() async {
+        let model = makeModel()
+        let choose = Task { @MainActor in await model.choose(stars: 3, for: album, fromServer: 3) }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .success(()))
+        await choose.value
+        #expect(server.requests == [RatingRequest(target: album, stars: nil)])
+        #expect(model.stars(album, fromServer: 3) == nil)
+    }
+
+    @Test func aSimplifiedRatingShowsAsItsStars() async {
+        // Like is stored as 3 stars, so switching styles shows 3.
+        let model = makeModel()
+        let choose = Task { @MainActor in await model.choose(.like, for: album, fromServer: nil) }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .success(()))
+        await choose.value
+        #expect(model.stars(album, fromServer: nil) == 3)
+    }
+
+    @Test func clearRemovesTheRating() async {
+        let model = makeModel()
+        let clear = Task { @MainActor in await model.clear(album, fromServer: 5) }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .success(()))
+        await clear.value
+        #expect(server.requests == [RatingRequest(target: album, stars: nil)])
+        #expect(model.stars(album, fromServer: 5) == nil)
+    }
+
+    @Test func clearingWhatsUnratedSendsNothing() async {
+        let model = makeModel()
+        await model.clear(album, fromServer: nil)
+        await model.choose(stars: 0, for: album, fromServer: nil)
+        await model.choose(stars: 6, for: album, fromServer: nil)
+        #expect(server.requests.isEmpty)
+    }
+
+    @Test func failedStarsChangeBack() async {
+        let model = makeModel()
+        let choose = Task { @MainActor in await model.choose(stars: 1, for: album, fromServer: 4) }
+        await server.waitForCalls(1)
+        server.reply(to: 0, with: .failure(.network(.notConnectedToInternet)))
+        await choose.value
+        #expect(model.stars(album, fromServer: 4) == 4)
+        #expect(model.error != nil)
     }
 }

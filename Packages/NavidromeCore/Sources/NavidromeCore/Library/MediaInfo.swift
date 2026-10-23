@@ -16,7 +16,7 @@ public struct InfoSection: Sendable, Equatable {
 /// line. Only what the server said appears: a row without a value is left
 /// out, and so is a section with no rows.
 public enum MediaInfo {
-    public static func sections(for song: Song, locale: Locale = .current) -> [InfoSection] {
+    public static func sections(for song: Song, simplifiedRating: Bool = true, locale: Locale = .current) -> [InfoSection] {
         let details = song.details
         let genres = details.genres.isEmpty ? [song.genre].compactMap { $0 } : details.genres
         let general = rows([
@@ -45,7 +45,7 @@ public enum MediaInfo {
             ("Plays", details.playCount.map { $0.formatted(.number.locale(locale)) }),
             ("Last Played", details.lastPlayed.map { day($0, locale: locale) }),
             ("Added", details.added.map { day($0, locale: locale) }),
-            ("Rating", Rating(serverValue: song.userRating)?.title),
+            ("Rating", Rating.title(serverValue: song.userRating, simplified: simplifiedRating)),
             ("Favorite", song.isStarred ? "Yes" : nil),
         ])
         return [
@@ -55,7 +55,7 @@ public enum MediaInfo {
         ].filter { !$0.rows.isEmpty }
     }
 
-    public static func sections(for album: Album, locale: Locale = .current) -> [InfoSection] {
+    public static func sections(for album: Album, simplifiedRating: Bool = true, locale: Locale = .current) -> [InfoSection] {
         let details = album.details
         let genres = details.genres.isEmpty ? [album.genre].compactMap { $0 } : details.genres
         let year: String? = album.year.map { year in
@@ -75,7 +75,7 @@ public enum MediaInfo {
         let library = rows([
             ("Plays", details.playCount.map { $0.formatted(.number.locale(locale)) }),
             ("Added", details.added.map { day($0, locale: locale) }),
-            ("Rating", Rating(serverValue: album.userRating)?.title),
+            ("Rating", Rating.title(serverValue: album.userRating, simplified: simplifiedRating)),
             ("Favorite", album.isStarred ? "Yes" : nil),
         ])
         return [

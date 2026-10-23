@@ -80,7 +80,7 @@ struct SongRow: View {
     var showsTrackNumber = false
     /// See `SongMarks`; the caller reads them from the shared models.
     var isFavorite = false
-    var rating: Rating?
+    var stars: Int?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -104,7 +104,7 @@ struct SongRow: View {
                     .foregroundStyle(.tint)
                     .accessibilityLabel("Now playing")
             }
-            SongMarks(isFavorite: isFavorite, rating: rating)
+            SongMarks(isFavorite: isFavorite, stars: stars)
             if let duration = song.duration {
                 Text(formatDuration(TimeInterval(duration)))
                     .font(.caption.monospacedDigit())
@@ -115,11 +115,11 @@ struct SongRow: View {
     }
 }
 
-/// A song's favorite heart and rating face, shown in lists. Display only: they're
+/// A song's favorite heart and rating, shown in lists. Display only: they're
 /// changed from the song's menu, not by tapping these.
 struct SongMarks: View {
     let isFavorite: Bool
-    let rating: Rating?
+    let stars: Int?
 
     var body: some View {
         HStack(spacing: 4) {
@@ -129,11 +129,7 @@ struct SongMarks: View {
                     .foregroundStyle(.tint)
                     .accessibilityLabel("Favorite")
             }
-            if let rating {
-                Text(rating.face)
-                    .font(.caption)
-                    .accessibilityLabel("Rated \(rating.title)")
-            }
+            RatingMark(stars: stars)
         }
     }
 }
@@ -144,9 +140,9 @@ extension Library {
         stars.isStarred(.song(id: song.id), fromServer: song.isStarred)
     }
 
-    /// The rating as the user last set it, in this session or on the server.
-    func rating(of song: Song) -> Rating? {
-        ratings.rating(.song(id: song.id), fromServer: song.userRating)
+    /// The rating (1–5 stars) as the user last set it, in this session or on the server.
+    func stars(of song: Song) -> Int? {
+        ratings.stars(.song(id: song.id), fromServer: song.userRating)
     }
 }
 
@@ -178,39 +174,6 @@ struct FavoriteButton: View {
         let favorite = stars.isStarred(target, fromServer: fromServer)
         Button(favorite ? "Unfavorite" : "Favorite", systemImage: favorite ? "heart.fill" : "heart") {
             Task { await stars.toggle(target, fromServer: fromServer) }
-        }
-    }
-}
-
-/// Meh, Like or Love, with a checkmark on the current one; choosing it again
-/// clears it. Reads and writes through the shared `RatingModel`.
-struct RateMenu: View {
-    let ratings: RatingModel
-    let target: StarTarget
-    let fromServer: Int?
-
-    var body: some View {
-        let current = ratings.rating(target, fromServer: fromServer)
-        Menu(current.map { "Rated: \($0.title)" } ?? "Rate", systemImage: current == nil ? "star" : "star.fill") {
-            ForEach(Rating.allCases.reversed(), id: \.self) { rating in
-                // A toggle so the menu draws the checkmark; turning the current
-                // one off is choosing it again, which clears it.
-                Toggle("\(rating.face) \(rating.title)", isOn: Binding(
-                    get: { rating == current },
-                    set: { _ in Task { await ratings.choose(rating, for: target, fromServer: fromServer) } }
-                ))
-            }
-        }
-    }
-}
-
-extension Rating {
-    /// Shown beside the title in the Rate menu.
-    var face: String {
-        switch self {
-        case .meh: "😩"
-        case .like: "👌"
-        case .love: "😈"
         }
     }
 }

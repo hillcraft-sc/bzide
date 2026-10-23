@@ -38,7 +38,7 @@ Above the tabs sits the **mini player**: what's playing, with play/pause and nex
 - **Play** and **Shuffle** buttons at the top of an album, playlist, genre or Favorites start them in order or shuffled.
 - **Long-press** almost anything (a song, album, artist, playlist, genre) for a menu: **Play**, **Shuffle**, **Play Next** (right after the current song), **Add to Queue** (at the end), **Add to Playlist…**, **Download**, **Favorite**, **Rate**, and **Go to Album** or **Go to Artist**.
 - **Random Mix** (top of Library) plays 50 random songs from your library.
-- **Mix My Cuts** plays the songs you've rated Love or Like (and your favorites) shuffled, without end.
+- **Mix My Cuts** plays the songs you've rated Love or Like, or 3 stars and up (and your favorites), shuffled, without end.
 - **Spin Off** (in a song's or artist's long-press menu, or Now Playing's ••• menu) plays endless music that grows from a song or artist: similar songs if your server knows them, otherwise songs from the same genre.
 
 ### Now Playing
@@ -71,8 +71,9 @@ Turn on **Settings > Playback > Keep Spinning**, and when a queue reaches its la
 
 - **Favorites:** tap the heart on a song, album or artist (in Now Playing, or its long-press menu). They're saved on your server, so they show in your other apps too. Library > **Favorites** lists them all.
 - **Ratings:** rate a song, album or artist **Meh** 😩, **Like** 👌 or **Love** 😈. Choose the same rating again to clear it. Ratings drive Mix My Cuts, and Meh songs are left out of the mixes (unless you turn on Settings > Playback > Include Meh Songs).
+- **Prefer stars?** Turn off **Settings > Ratings > Use Simplified Rating** to rate 1 to 5 stars, as in Navidrome. The Rate menu then shows a row of five stars: tap one to set it, tap it again or choose **Clear Rating** to clear it. Your server keeps the same ratings either way: Meh, Like and Love are saved as 1, 3 and 5 stars, and 1–2 stars count as Meh in the mixes (Include 1–2 Star Songs).
 
-Favorited and rated songs show a small heart or face in song lists.
+Favorited and rated songs show a small heart, and a face or their stars (such as 4★), in song lists.
 
 ## Searching and browsing
 

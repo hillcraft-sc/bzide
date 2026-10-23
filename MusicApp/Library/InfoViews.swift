@@ -83,6 +83,7 @@ private struct SongInfoView: View {
     let library: Library
     let song: Song
     @State private var model: LoadModel<Song>
+    @Environment(\.simplifiedRating) private var simplifiedRating
 
     init(library: Library, song: Song) {
         self.library = library
@@ -95,7 +96,7 @@ private struct SongInfoView: View {
         InfoList(
             library: library, title: "Song Info", coverArtID: shown.coverArtID,
             heading: shown.title, subheading: shown.artist,
-            sections: MediaInfo.sections(for: shown)
+            sections: MediaInfo.sections(for: shown, simplifiedRating: simplifiedRating)
         )
         .task { await model.load() }
     }
@@ -105,6 +106,7 @@ private struct SongInfoView: View {
 private struct AlbumInfoView: View {
     let library: Library
     @State private var model: LoadModel<Album>
+    @Environment(\.simplifiedRating) private var simplifiedRating
 
     init(library: Library, id: String) {
         self.library = library
@@ -117,7 +119,7 @@ private struct AlbumInfoView: View {
                 InfoList(
                     library: library, title: "Album Info", coverArtID: album.coverArtID,
                     heading: album.name, subheading: album.artist,
-                    sections: MediaInfo.sections(for: album)
+                    sections: MediaInfo.sections(for: album, simplifiedRating: simplifiedRating)
                 )
             } else {
                 NavigationStack {
