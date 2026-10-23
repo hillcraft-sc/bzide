@@ -1,6 +1,6 @@
 # Open device checks
 
-A snapshot of the 81 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-23. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
+A snapshot of the 82 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-23. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
 
 The number after each check is its line in `BEHAVIOR.md`.
 
@@ -12,7 +12,7 @@ The number after each check is its line in `BEHAVIOR.md`.
 
 - [ ] Play through wired or USB headphones, unplug them. Music pauses and does not play through the speaker. Plug back in: still paused. (line 447)
 
-## Library (37)
+## Library (38)
 
 - [ ] On a fresh layout (Edit Library > Reset), Library shows no carousels. Edit Library marks Recently Added, Recently Played and Spin It Back with the carousel icon. Switch on Recently Played and Spin It Back: they appear and fill in straight away. Recently Played shows albums played this week (including from Navidrome's web player), newest first. Spin It Back shows albums you've rated or favorited but not played in a while, at most two per artist, never Meh; it's the same all day and different tomorrow. (line 474)
 - [ ] Search with nothing typed, funnel > Love: every song, album and artist you rated Love is listed; the line above says "Love" with Clear. Tap into the search field: the scope bar appears; pick Songs: only songs. Type a word: only matching Love songs. Clear: back to the genre grid. Force quit and relaunch with a filter on: it's still on. (line 475)
@@ -51,72 +51,73 @@ The number after each check is its line in `BEHAVIOR.md`.
 - [ ] Now Playing > Save Queue > New Playlist…: the new playlist holds the whole queue in order, including songs already played. Save Queue again into an existing playlist: only songs not already there are added. (line 543)
 - [ ] Playlists > +: an empty playlist with that name appears in the list and in Navidrome. (line 544)
 - [ ] The sheet lists only your own playlists (not other users' public ones). In Airplane Mode, adding shows "Couldn't Save Playlist" and the sheet stays open. (line 545)
+- [ ] Long-press a song on one of your playlists' pages: Remove from Playlist is the first item, and removes it like the swipe. On an album page or someone else's playlist, it isn't there. (line 550)
 
 ## Streaming quality (2)
 
-- [ ] Set cellular to 96 kbps, turn Wi-Fi off, and start an album. It sounds noticeably lower quality (or check Navidrome's activity view for the transcoding). Turn Wi-Fi back on: the next track is back to original. (line 557)
-- [ ] Change the setting while playing: the current track carries on uninterrupted. (line 559)
+- [ ] Set cellular to 96 kbps, turn Wi-Fi off, and start an album. It sounds noticeably lower quality (or check Navidrome's activity view for the transcoding). Turn Wi-Fi back on: the next track is back to original. (line 558)
+- [ ] Change the setting while playing: the current track carries on uninterrupted. (line 560)
 
 ## Downloads (5)
 
-- [ ] Delete a downloaded playlist in Navidrome: Bzide keeps the download, and it still plays offline. (line 564)
-- [ ] Search Downloaded by album name, artist and a song title: each finds the right download; a search with no match says so. (line 572)
-- [ ] Long-press a song (in an album, search, history…) > Download: Library > Downloaded shows "Downloaded Songs" at the top with it inside, and it plays in Airplane Mode. Its long-press now says Remove Download, which removes it. (line 576)
-- [ ] Long-press a song from an album you've downloaded: it shows "Downloaded", grayed out. (line 577)
-- [ ] Long-press a song in Search, a playlist and History: Go to Album opens its album, Go to Artist its artist. On an album's own page, only Go to Artist is offered. (line 580)
+- [ ] Delete a downloaded playlist in Navidrome: Bzide keeps the download, and it still plays offline. (line 565)
+- [ ] Search Downloaded by album name, artist and a song title: each finds the right download; a search with no match says so. (line 573)
+- [ ] Long-press a song (in an album, search, history…) > Download: Library > Downloaded shows "Downloaded Songs" at the top with it inside, and it plays in Airplane Mode. Its long-press now says Remove Download, which removes it. (line 577)
+- [ ] Long-press a song from an album you've downloaded: it shows "Downloaded", grayed out. (line 578)
+- [ ] Long-press a song in Search, a playlist and History: Go to Album opens its album, Go to Artist its artist. On an album's own page, only Go to Artist is offered. (line 581)
 
 ## Appearance (7)
 
-- [ ] Settings > Appearance > Theme: choose Catppuccin Mocha. The app turns Mocha at once without leaving Settings: dark blue-gray background, lighter rows, Mauve tint. (line 588)
-- [ ] With Mocha, pick a few accents (e.g. Peach, Green, Blue): the swatch gets a tick and the tint changes everywhere (tab bar, Play and Shuffle, the current song, Now Playing's slider). (line 589)
-- [ ] Browse every screen in Mocha: Library, Artists (letter headers), an artist, Albums, an album, Playlists, Downloaded, History, Search with results, Now Playing and its queue. No plain black areas left; text is readable. (line 590)
-- [ ] Choose Latte: everything turns light, including Now Playing and the History date picker sheet. Then Frappé and Macchiato. (line 591)
-- [ ] With the phone in light mode, Mocha stays dark; with the phone in dark mode, Latte stays light. (line 592)
-- [ ] Back to System: the app follows the phone's light or dark mode with iOS blue, as before. (line 593)
-- [ ] Force quit and relaunch: the chosen theme and accent are kept. Sign out: the sign-in screen is in the theme too. (line 594)
+- [ ] Settings > Appearance > Theme: choose Catppuccin Mocha. The app turns Mocha at once without leaving Settings: dark blue-gray background, lighter rows, Mauve tint. (line 589)
+- [ ] With Mocha, pick a few accents (e.g. Peach, Green, Blue): the swatch gets a tick and the tint changes everywhere (tab bar, Play and Shuffle, the current song, Now Playing's slider). (line 590)
+- [ ] Browse every screen in Mocha: Library, Artists (letter headers), an artist, Albums, an album, Playlists, Downloaded, History, Search with results, Now Playing and its queue. No plain black areas left; text is readable. (line 591)
+- [ ] Choose Latte: everything turns light, including Now Playing and the History date picker sheet. Then Frappé and Macchiato. (line 592)
+- [ ] With the phone in light mode, Mocha stays dark; with the phone in dark mode, Latte stays light. (line 593)
+- [ ] Back to System: the app follows the phone's light or dark mode with iOS blue, as before. (line 594)
+- [ ] Force quit and relaunch: the chosen theme and accent are kept. Sign out: the sign-in screen is in the theme too. (line 595)
 
 ## Radio (9)
 
-- [ ] Library > Radio lists the stations added in Navidrome, by name. Tap one: it plays within a few seconds; the row shows the speaker icon. (line 599)
-- [ ] Play an http station and an https station; if one of your stations' addresses is a `.pls` or `.m3u` file, play that too. (line 600)
-- [ ] Lock screen: shows the station (and current song if announced) as live, with no scrubber; play/pause works. (line 602)
-- [ ] Pause for a minute, then play: it comes back live (what's on now), not where it paused. (line 603)
-- [ ] Turn on Airplane Mode for ~10 seconds while it plays, then off: it reconnects on its own. (line 604)
-- [ ] Force quit and relaunch: the station is shown paused; play rejoins it. Play an album afterwards: normal songs work as before (scrobbling, history). (line 605)
-- [ ] Navidrome's web UI shows no scrobbles and play history shows nothing for radio listening. (line 606)
-- [ ] As an admin: Radio shows +. Add a station (name, stream address, homepage): it appears in the list, plays, and shows in Navidrome's web UI. Leave the name blank: it's named after the stream's host. Type an address without http://: the form says why and stays open. (line 617)
-- [ ] Swipe a station > Edit: the form shows its details; change the name: the list and Navidrome show the new name. Swipe > Delete, confirm: it's gone from the list and from Navidrome. Long-press offers Edit and Delete too. (line 618)
+- [ ] Library > Radio lists the stations added in Navidrome, by name. Tap one: it plays within a few seconds; the row shows the speaker icon. (line 600)
+- [ ] Play an http station and an https station; if one of your stations' addresses is a `.pls` or `.m3u` file, play that too. (line 601)
+- [ ] Lock screen: shows the station (and current song if announced) as live, with no scrubber; play/pause works. (line 603)
+- [ ] Pause for a minute, then play: it comes back live (what's on now), not where it paused. (line 604)
+- [ ] Turn on Airplane Mode for ~10 seconds while it plays, then off: it reconnects on its own. (line 605)
+- [ ] Force quit and relaunch: the station is shown paused; play rejoins it. Play an album afterwards: normal songs work as before (scrobbling, history). (line 606)
+- [ ] Navidrome's web UI shows no scrobbles and play history shows nothing for radio listening. (line 607)
+- [ ] As an admin: Radio shows +. Add a station (name, stream address, homepage): it appears in the list, plays, and shows in Navidrome's web UI. Leave the name blank: it's named after the stream's host. Type an address without http://: the form says why and stays open. (line 618)
+- [ ] Swipe a station > Edit: the form shows its details; change the name: the list and Navidrome show the new name. Swipe > Delete, confirm: it's gone from the list and from Navidrome. Long-press offers Edit and Delete too. (line 619)
 
 ## Visualizer (2)
 
-- [ ] Debug menu (Debug: Weather) in a debug build: try Downpour, Thunderstorm, Snow and Fog with a loud and a quiet song: the rain and snow are about twice as heavy in the loud song, lightning strikes on the drums only in Thunderstorm, fog thins in the loud song; no birds in any of them; Night with Cloudy hides the stars. (line 660)
-- [ ] Scroll quickly through Albums and skip songs fast: every row and Now Playing always shows the right cover. (line 666)
+- [ ] Debug menu (Debug: Weather) in a debug build: try Downpour, Thunderstorm, Snow and Fog with a loud and a quiet song: the rain and snow are about twice as heavy in the loud song, lightning strikes on the drums only in Thunderstorm, fog thins in the loud song; no birds in any of them; Night with Cloudy hides the stars. (line 661)
+- [ ] Scroll quickly through Albums and skip songs fast: every row and Now Playing always shows the right cover. (line 667)
 
 ## Spin Off and Keep Spinning (5)
 
-- [ ] Rate a few songs Meh. Random Mix and Spin Off never play them (check Now Playing's queue); turn on Settings > Playback > Include Meh Songs and they can appear again. Spin off from a Meh song: it still plays first. (line 670)
-- [ ] With repeat all on, long-press a song > Spin Off: it plays, repeat turns off, the queue heading reads "Spin-off of “…”", and up next is similar music. Skip quickly through every song: more keep being added, and it never wraps back to the first song. Force quit and relaunch: still a spin-off, and it keeps growing. (line 672)
-- [ ] Long-press an artist (and the artist page's ⋯) > Spin Off: music by that artist and similar ones. Now Playing ⋯ > Spin Off: from the current song. (line 673)
-- [ ] With Last.fm turned off in Navidrome (or another server without it): Spin Off still plays, with a banner explaining it's a mix of the song's genre. (line 674)
-- [ ] Settings > Playback > Keep Spinning on: play a single song or let an album reach its last song; when it's on its last song, similar music is added after it. Off: the queue ends as before. With repeat on: nothing is added. (line 675)
+- [ ] Rate a few songs Meh. Random Mix and Spin Off never play them (check Now Playing's queue); turn on Settings > Playback > Include Meh Songs and they can appear again. Spin off from a Meh song: it still plays first. (line 671)
+- [ ] With repeat all on, long-press a song > Spin Off: it plays, repeat turns off, the queue heading reads "Spin-off of “…”", and up next is similar music. Skip quickly through every song: more keep being added, and it never wraps back to the first song. Force quit and relaunch: still a spin-off, and it keeps growing. (line 673)
+- [ ] Long-press an artist (and the artist page's ⋯) > Spin Off: music by that artist and similar ones. Now Playing ⋯ > Spin Off: from the current song. (line 674)
+- [ ] With Last.fm turned off in Navidrome (or another server without it): Spin Off still plays, with a banner explaining it's a mix of the song's genre. (line 675)
+- [ ] Settings > Playback > Keep Spinning on: play a single song or let an album reach its last song; when it's on its last song, similar music is added after it. Off: the queue ends as before. With repeat on: nothing is added. (line 676)
 
 ## Volume normalization (2)
 
-- [ ] While a tagged song plays, switch between Off, By Track and By Album: the volume changes at once with no skip, and the quality line follows. (line 680)
-- [ ] Play an album with quiet and loud songs By Album, then By Track: By Album keeps the quiet song quiet, By Track brings it up to the others. (line 681)
+- [ ] While a tagged song plays, switch between Off, By Track and By Album: the volume changes at once with no skip, and the quality line follows. (line 681)
+- [ ] Play an album with quiet and loud songs By Album, then By Track: By Album keeps the quiet song quiet, By Track brings it up to the others. (line 682)
 
 ## Sleep timer (1)
 
-- [ ] Start a timer, then Moon > Turn Off Timer: the moon goes back to normal and the music keeps playing. Start one and pause before it ends: nothing happens when it runs out. (line 698)
+- [ ] Start a timer, then Moon > Turn Off Timer: the moon goes back to normal and the music keeps playing. Start one and pause before it ends: nothing happens when it runs out. (line 699)
 
 ## Siri (needs Apple Intelligence) (9)
 
-- [ ] Long-press an artist > Ask Siri > "play this": that artist plays, oldest album first. Same from an album and a playlist row. (line 729)
-- [ ] Long-press an artist > Ask Siri > "tell me about this artist": Siri talks about that artist (not about Bzide or the screen). (line 730)
-- [ ] Long-press a song > Ask Siri > "add this to my <playlist> playlist": it's added; Siri says so. Ask again: Siri says it's already there. (line 731)
-- [ ] With Now Playing open, "add this to <playlist>": the current song is added. (line 732)
-- [ ] Without the app open: "Play <album name> in Bzide", "Shuffle <artist> in Bzide", "Play <playlist> in Bzide". (line 733)
-- [ ] "Play <artist with more than 100 songs> in Bzide": Siri asks first; saying no plays nothing. (line 734)
-- [ ] Signed out: a Siri request says to sign in first. (line 735)
-- [ ] Play a song, lock the phone, "Favorite this song in Bzide": Siri confirms; the heart is filled in Now Playing and Navidrome. Say it again: still a favorite (not undone). "Unfavorite this song in Bzide": cleared. On a radio station: Siri says it can't be a favorite. (line 736)
-- [ ] Settings > Action Button > Shortcut > Bzide > Favorite Current Song (or a Shortcut): pressing it hearts the playing song. (line 737)
+- [ ] Long-press an artist > Ask Siri > "play this": that artist plays, oldest album first. Same from an album and a playlist row. (line 730)
+- [ ] Long-press an artist > Ask Siri > "tell me about this artist": Siri talks about that artist (not about Bzide or the screen). (line 731)
+- [ ] Long-press a song > Ask Siri > "add this to my <playlist> playlist": it's added; Siri says so. Ask again: Siri says it's already there. (line 732)
+- [ ] With Now Playing open, "add this to <playlist>": the current song is added. (line 733)
+- [ ] Without the app open: "Play <album name> in Bzide", "Shuffle <artist> in Bzide", "Play <playlist> in Bzide". (line 734)
+- [ ] "Play <artist with more than 100 songs> in Bzide": Siri asks first; saying no plays nothing. (line 735)
+- [ ] Signed out: a Siri request says to sign in first. (line 736)
+- [ ] Play a song, lock the phone, "Favorite this song in Bzide": Siri confirms; the heart is filled in Now Playing and Navidrome. Say it again: still a favorite (not undone). "Unfavorite this song in Bzide": cleared. On a radio station: Siri says it can't be a favorite. (line 737)
+- [ ] Settings > Action Button > Shortcut > Bzide > Favorite Current Song (or a Shortcut): pressing it hearts the playing song. (line 738)

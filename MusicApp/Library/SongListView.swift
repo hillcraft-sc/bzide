@@ -51,10 +51,14 @@ struct SongListView<Header: View>: View {
                     .foregroundStyle(.primary)
                     // Track numbers mean this is the album itself.
                     .contextMenu {
-                        SongActions(library: library, song: song, showsGoToAlbum: !showsTrackNumbers)
+                        // First, in its own section: at the end of this long
+                        // menu it was below the edge of the screen.
                         if let editing {
-                            removeButton(at: index, editing)
+                            Section {
+                                removeButton(at: index, editing)
+                            }
                         }
+                        SongActions(library: library, song: song, showsGoToAlbum: !showsTrackNumbers)
                     }
                     .swipeActions {
                         if let editing {
