@@ -29,7 +29,9 @@ public final class SearchModel {
 
     public private(set) var query = ""
     /// `nil` until the first search finishes, and again when the query is cleared.
-    public private(set) var results: SearchResult?
+    public private(set) var results: SearchResult? {
+        didSet { updateVisibleResults() }
+    }
     public private(set) var isSearching = false
     public private(set) var error: String?
 
@@ -37,14 +39,16 @@ public final class SearchModel {
     public var filters = SearchFilters() {
         didSet {
             guard filters != oldValue else { return }
+            updateVisibleResults()
             filtersChanged()
         }
     }
 
-    /// The results that pass the scope and filters.
-    public var visibleResults: SearchResult? {
-        results.map { filters.apply(to: $0, isSongDownloaded: isSongDownloaded, isAlbumDownloaded: isAlbumDownloaded) }
-    }
+    /// The results that pass the scope and filters. Worked out when the
+    /// results, filters or downloads change, not each time it's read: browsing
+    /// can hold the whole library, and a list rebuilt on every redraw makes
+    /// SwiftUI compare every song again each time (which froze the app).
+    public private(set) var visibleResults: SearchResult?
 
     /// Nothing typed, but a filter on: showing everything that matches.
     public var isBrowsing: Bool {
@@ -102,6 +106,15 @@ public final class SearchModel {
         pendingSearch = scheduler.schedule(after: Self.typingPause) { [weak self] in
             self?.startSearch(trimmed, generation: thisSearch)
         }
+    }
+
+    /// Downloads changed, which Downloaded Only depends on.
+    public func downloadsChanged() {
+        updateVisibleResults()
+    }
+
+    private func updateVisibleResults() {
+        visibleResults = results.map { filters.apply(to: $0, isSongDownloaded: isSongDownloaded, isAlbumDownloaded: isAlbumDownloaded) }
     }
 
     /// Runs the current query again right away, e.g. after an error.

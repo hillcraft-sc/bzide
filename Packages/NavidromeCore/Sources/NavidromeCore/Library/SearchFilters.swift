@@ -19,8 +19,8 @@ public struct SearchFilters: Codable, Equatable, Sendable {
     public enum RatingFilter: String, Codable, CaseIterable, Sendable {
         // Love and Like were once Rocks and Don't Hate It; their saved names stay.
         case any, love = "rocks", like = "dontHateIt", meh, unrated
-        /// With Use Simplified Rating off: 5 stars, or at least 4, 3, 2 or 1.
-        case fiveStars = "stars5", fourPlus = "stars4", threePlus = "stars3", twoPlus = "stars2", onePlus = "stars1"
+        /// With Use Simplified Rating off: exactly that many stars.
+        case fiveStars = "stars5", fourStars = "stars4", threeStars = "stars3", twoStars = "stars2", oneStar = "stars1"
 
         public var title: String {
             switch self {
@@ -29,9 +29,7 @@ public struct SearchFilters: Codable, Equatable, Sendable {
             case .like: Rating.like.title
             case .meh: Rating.meh.title
             case .unrated: "Unrated"
-            case .fiveStars: "5 Stars"
-            case .onePlus: "1+ Star"
-            case .fourPlus, .threePlus, .twoPlus: "\(minimumStars ?? 0)+ Stars"
+            case .fiveStars, .fourStars, .threeStars, .twoStars, .oneStar: Rating.starsTitle(stars ?? 0)
             }
         }
 
@@ -39,7 +37,7 @@ public struct SearchFilters: Codable, Equatable, Sendable {
         public static func choices(simplified: Bool) -> [RatingFilter] {
             simplified
                 ? [.any, .love, .like, .meh, .unrated]
-                : [.any, .fiveStars, .fourPlus, .threePlus, .twoPlus, .onePlus, .unrated]
+                : [.any, .fiveStars, .fourStars, .threeStars, .twoStars, .oneStar, .unrated]
         }
 
         /// This filter, if it's offered in the style in use; otherwise none,
@@ -48,21 +46,21 @@ public struct SearchFilters: Codable, Equatable, Sendable {
             Self.choices(simplified: simplified).contains(self) ? self : .any
         }
 
-        private var minimumStars: Int? {
+        private var stars: Int? {
             switch self {
             case .fiveStars: 5
-            case .fourPlus: 4
-            case .threePlus: 3
-            case .twoPlus: 2
-            case .onePlus: 1
+            case .fourStars: 4
+            case .threeStars: 3
+            case .twoStars: 2
+            case .oneStar: 1
             default: nil
             }
         }
 
         /// Whether a server rating (Subsonic's 1–5 stars, or none) passes.
         func matches(_ serverRating: Int?) -> Bool {
-            if let minimumStars {
-                return (Rating.stars(serverValue: serverRating) ?? 0) >= minimumStars
+            if let stars {
+                return Rating.stars(serverValue: serverRating) == stars
             }
             let rating = Rating(serverValue: serverRating)
             switch self {

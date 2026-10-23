@@ -49,24 +49,25 @@ struct SearchFiltersTests {
         #expect(unrated.artists.map(\.id) == ["ar-2"])
     }
 
-    @Test func starFiltersAreAtLeast() {
+    @Test func starFiltersAreExact() {
         #expect(apply(SearchFilters(rating: .fiveStars)).songs.map(\.id) == ["so-1"])
-        #expect(apply(SearchFilters(rating: .threePlus)).albums.map(\.id) == ["al-1"])
-        #expect(apply(SearchFilters(rating: .twoPlus)).albums.map(\.id) == ["al-1", "al-2"])
-        #expect(apply(SearchFilters(rating: .onePlus)).songs.map(\.id) == ["so-1", "so-2"])
-        #expect(SearchFilters.RatingFilter.fourPlus.title == "4+ Stars")
-        #expect(SearchFilters.RatingFilter.onePlus.title == "1+ Star")
+        #expect(apply(SearchFilters(rating: .threeStars)).albums.map(\.id) == ["al-1"])
+        #expect(apply(SearchFilters(rating: .twoStars)).albums.map(\.id) == ["al-2"])
+        #expect(apply(SearchFilters(rating: .oneStar)).songs.map(\.id) == ["so-2"])
+        #expect(apply(SearchFilters(rating: .fourStars)).songs.isEmpty)
+        #expect(SearchFilters.RatingFilter.fourStars.title == "4 Stars")
+        #expect(SearchFilters.RatingFilter.oneStar.title == "1 Star")
     }
 
     @Test func eachStyleOffersItsOwnChoices() {
         typealias Filter = SearchFilters.RatingFilter
         #expect(Filter.choices(simplified: true) == [.any, .love, .like, .meh, .unrated])
-        #expect(Filter.choices(simplified: false) == [.any, .fiveStars, .fourPlus, .threePlus, .twoPlus, .onePlus, .unrated])
+        #expect(Filter.choices(simplified: false) == [.any, .fiveStars, .fourStars, .threeStars, .twoStars, .oneStar, .unrated])
         // A filter from the other style turns off rather than hiding results unseen.
         #expect(Filter.love.inStyle(simplified: false) == .any)
-        #expect(Filter.threePlus.inStyle(simplified: true) == .any)
+        #expect(Filter.threeStars.inStyle(simplified: true) == .any)
         #expect(Filter.unrated.inStyle(simplified: false) == .unrated)
-        #expect(Filter.fourPlus.inStyle(simplified: false) == .fourPlus)
+        #expect(Filter.fourStars.inStyle(simplified: false) == .fourStars)
     }
 
     @Test func favoritesOnly() {
@@ -149,6 +150,25 @@ struct SearchFiltersTests {
         model.filters = SearchFilters()
         #expect(model.results == nil)
         #expect(!model.isBrowsing)
+    }
+
+    @Test func downloadedOnlyFollowsDownloads() async {
+        // The filtered results are kept, not worked out on each read, so a
+        // download finishing has to say so.
+        final class Downloads { var songs: Set<String> = [] }
+        let downloads = Downloads()
+        let server = Server()
+        server.answer = results
+        let model = SearchModel(scheduler: FakeScheduler(), isSongDownloaded: { downloads.songs.contains($0) }) { request async throws(SubsonicError) in
+            server.requests.append(request)
+            return server.answer
+        }
+        model.filters.downloadedOnly = true
+        await model.searchTask?.value
+        #expect(model.visibleResults?.songs.isEmpty == true)
+        downloads.songs = ["so-3"]
+        model.downloadsChanged()
+        #expect(model.visibleResults?.songs.map(\.id) == ["so-3"])
     }
 
     @Test func aScopeAloneWithNothingTypedDoesntBrowse() {

@@ -60,6 +60,8 @@ struct SearchView: View {
         .onChange(of: model.filters) { _, filters in
             savedFilters = (try? JSONEncoder().encode(filters)) ?? Data()
         }
+        // Downloaded Only follows downloads finishing or being removed.
+        .onChange(of: library.downloads.collections) { model.downloadsChanged() }
     }
 
     /// Rating, favorites and downloaded filters, and Clear. The funnel fills in
@@ -105,45 +107,27 @@ struct SearchView: View {
         }
     }
 
+    // Rows capture only their own item, never the result lists: browsing can
+    // hold the whole library, and SwiftUI compares what each row captured on
+    // every redraw, so a captured list made that cost grow with the square of
+    // its length and froze the app.
     private var results: some View {
         List {
             Group {
                 if let results = model.visibleResults {
                     if !results.artists.isEmpty {
                         Section("Artists") {
-                            ForEach(results.artists) { artist in
-                                NavigationLink(artist.name.isEmpty ? "Unknown Artist" : artist.name, value: LibraryRoute.artist(id: artist.id))
-                                    .contextMenu { ArtistRowMenu(library: library, artist: artist) }
-                                    .siriEntity(artistID: artist.id)
-                            }
+                            ForEach(results.artists) { artistRow($0) }
                         }
                     }
                     if !results.albums.isEmpty {
                         Section("Albums") {
-                            ForEach(results.albums) { album in
-                                NavigationLink(value: LibraryRoute.album(id: album.id)) {
-                                    AlbumRow(library: library, album: album)
-                                }
-                                .contextMenu { AlbumRowMenu(library: library, album: album) }
-                                .siriEntity(albumID: album.id)
-                            }
+                            ForEach(results.albums) { albumRow($0) }
                         }
                     }
                     if !results.songs.isEmpty {
                         Section("Songs") {
-                            ForEach(Array(results.songs.enumerated()), id: \.offset) { index, song in
-                                Button {
-                                    library.engine.play(songs: results.songs, startIndex: index)
-                                } label: {
-                                    SongRow(
-                                        song: song, isCurrent: song.id == library.engine.queue.current?.song.id,
-                                        isFavorite: library.isFavorite(song), stars: library.stars(of: song)
-                                    )
-                                }
-                                .foregroundStyle(.primary)
-                                .contextMenu { SongActions(library: library, song: song) }
-                                .siriEntity(songID: song.id)
-                            }
+                            ForEach(Array(results.songs.enumerated()), id: \.offset) { songRow($1, at: $0) }
                         }
                     }
                 }
@@ -153,6 +137,36 @@ struct SearchView: View {
         .listStyle(.plain)
         .themedList()
         .overlay { overlay }
+    }
+
+    private func artistRow(_ artist: Artist) -> some View {
+        NavigationLink(artist.name.isEmpty ? "Unknown Artist" : artist.name, value: LibraryRoute.artist(id: artist.id))
+            .contextMenu { ArtistRowMenu(library: library, artist: artist) }
+            .siriEntity(artistID: artist.id)
+    }
+
+    private func albumRow(_ album: Album) -> some View {
+        NavigationLink(value: LibraryRoute.album(id: album.id)) {
+            AlbumRow(library: library, album: album)
+        }
+        .contextMenu { AlbumRowMenu(library: library, album: album) }
+        .siriEntity(albumID: album.id)
+    }
+
+    private func songRow(_ song: Song, at index: Int) -> some View {
+        Button {
+            // The songs shown now, looked up on the tap rather than captured.
+            guard let songs = model.visibleResults?.songs, songs.indices.contains(index) else { return }
+            library.engine.play(songs: songs, startIndex: index)
+        } label: {
+            SongRow(
+                song: song, isCurrent: song.id == library.engine.queue.current?.song.id,
+                isFavorite: library.isFavorite(song), stars: library.stars(of: song)
+            )
+        }
+        .foregroundStyle(.primary)
+        .contextMenu { SongActions(library: library, song: song) }
+        .siriEntity(songID: song.id)
     }
 
     @ViewBuilder private var overlay: some View {
