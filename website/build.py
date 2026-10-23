@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Builds Bzide's website into website/public: Home, Support (from
-docs/USER-GUIDE.md) and Privacy (from docs/PRIVACY.md), so the site, the app
+docs/USER-GUIDE.md), Privacy (from docs/PRIVACY.md) and Accessibility (from
+docs/ACCESSIBILITY.md), so the site, the app
 (Settings > Help and Privacy) and the repo always say the same thing.
 
 Only the Python standard library. Run from anywhere:
@@ -124,7 +125,7 @@ def email_link() -> str:
 def page(slug_name: str, title: str, body: str, description: str) -> str:
     nav = "".join(
         f'<a href="{href}"{" aria-current=\"page\"" if key == slug_name else ""}>{label}</a>'
-        for key, href, label in (("home", "/", "Home"), ("support", "/support.html", "Support"), ("privacy", "/privacy.html", "Privacy"))
+        for key, href, label in (("home", "/", "Home"), ("support", "/support.html", "Support"), ("privacy", "/privacy.html", "Privacy"), ("accessibility", "/accessibility.html", "Accessibility"))
     )
     full_title = SITE["name"] if slug_name == "home" else f"{title} · {SITE['name']}"
     return f"""<!doctype html>
@@ -147,7 +148,7 @@ def page(slug_name: str, title: str, body: str, description: str) -> str:
 </main>
 <footer class="site">
   <p>Bzide is an independent app for Navidrome and other Subsonic-compatible servers. It is not affiliated with or endorsed by the Navidrome or Subsonic projects.</p>
-  <p><a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · {email_link()}</p>
+  <p><a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · <a href="/accessibility.html">Accessibility</a> · {email_link()}</p>
 </footer>
 </body>
 </html>
@@ -210,6 +211,7 @@ def build():
         "index.html": home(),
         "support.html": document_page("support", REPO / "docs" / "USER-GUIDE.md", contact, "How to use Bzide, and how to get help."),
         "privacy.html": document_page("privacy", REPO / "docs" / "PRIVACY.md", "", "Bzide's privacy policy: what it sends, to whom, and what it keeps on your iPhone."),
+        "accessibility.html": document_page("accessibility", REPO / "docs" / "ACCESSIBILITY.md", "", "How Bzide works with VoiceOver, Voice Control, Larger Text, Reduce Motion and other iOS accessibility features."),
     }
     for name, content in pages.items():
         (OUT / name).write_text(content, encoding="utf-8")

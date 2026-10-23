@@ -1,6 +1,6 @@
 # Bzide website
 
-bzide.hillcraft-sc.com: Home, Support (the user guide plus the contact email) and Privacy. The Support and Privacy pages are built from `docs/USER-GUIDE.md` and `docs/PRIVACY.md`, the same files the app shows in Settings > Help and Privacy, so the three never disagree. Edit the docs, not the HTML.
+bzide.hillcraft-sc.com: Home, Support (the user guide plus the contact email), Privacy and Accessibility (the App Store's Accessibility URL). Support, Privacy and Accessibility are built from `docs/USER-GUIDE.md`, `docs/PRIVACY.md` and `docs/ACCESSIBILITY.md`; the first two are also what the app shows in Settings > Help and Privacy, so they never disagree. Edit the docs, not the HTML.
 
 - `build.py`: builds `public/` (git-ignored) using only the Python standard library. The support email and the App Store link are set in `SITE` at the top.
 - `style.css`, `static/`: the stylesheet, the icon and the favicon.

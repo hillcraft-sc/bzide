@@ -2,7 +2,7 @@
 #   docker build -f website/Dockerfile -t bzide-website .
 FROM python:3.13-alpine AS build
 WORKDIR /repo
-COPY docs/USER-GUIDE.md docs/PRIVACY.md docs/
+COPY docs/USER-GUIDE.md docs/PRIVACY.md docs/ACCESSIBILITY.md docs/
 COPY website/ website/
 RUN python3 website/build.py
 
