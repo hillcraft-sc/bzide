@@ -87,7 +87,10 @@ Favorited and rated songs show a small heart, and a face or their stars (such as
 
 - **Add to a playlist:** long-press a song, album, artist or playlist and choose **Add to Playlist…**. Pick a playlist, or **New Playlist**. Songs already in the playlist aren't added twice.
 - **Save the queue** as a playlist from Now Playing's ••• menu.
-- Playlists are saved on your server, so they're in your other apps too.
+- **Rename, share or delete** one of your playlists: long-press it in Playlists, or use the **•••** menu on its page. **Share Playlist** makes it public, so everyone with an account on your server can see and play it (tap again to stop sharing). **Delete Playlist…** asks first; the songs stay in your library.
+- **Remove a song** from one of your playlists: on the playlist's page, swipe the song left, or long-press it and choose **Remove from Playlist**. It only leaves that playlist.
+- **Reorder songs:** on the playlist's page, long-press a song and drag it to a new place.
+- Playlists are saved on your server, so they're in your other apps too. Playlists other people shared with you can be played but not changed.
 
 ## Downloads and offline listening
 

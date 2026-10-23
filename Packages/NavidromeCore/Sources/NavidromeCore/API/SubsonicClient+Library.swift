@@ -62,6 +62,33 @@ extension SubsonicClient {
         _ = try await request("updatePlaylist", parameters: parameters, as: EmptyPayload.self)
     }
 
+    /// Renames a playlist or makes it public (shared with every user) or
+    /// private. Only the owner may.
+    public func updatePlaylist(id: String, name: String? = nil, isPublic: Bool? = nil) async throws(SubsonicError) {
+        var parameters = [URLQueryItem(name: "playlistId", value: id)]
+        if let name { parameters.append(URLQueryItem(name: "name", value: name)) }
+        if let isPublic { parameters.append(URLQueryItem(name: "public", value: isPublic ? "true" : "false")) }
+        _ = try await request("updatePlaylist", parameters: parameters, as: EmptyPayload.self)
+    }
+
+    /// Removes songs by their 0-based position, then appends songs, in one
+    /// request, so it happens entirely or not at all. Positions rather than ids,
+    /// because a playlist can hold a song twice. `post` sends it as a form POST
+    /// (OpenSubsonic `formPost`), for lists too long for a URL.
+    public func editPlaylist(
+        id: String, removingIndexes: [Int], adding songIDs: [String], post: Bool
+    ) async throws(SubsonicError) {
+        let parameters = [URLQueryItem(name: "playlistId", value: id)]
+            + removingIndexes.map { URLQueryItem(name: "songIndexToRemove", value: String($0)) }
+            + songIDs.map { URLQueryItem(name: "songIdToAdd", value: $0) }
+        _ = try await request("updatePlaylist", parameters: parameters, post: post, as: EmptyPayload.self)
+    }
+
+    /// Deletes a playlist from the server. Only the owner may.
+    public func deletePlaylist(id: String) async throws(SubsonicError) {
+        _ = try await request("deletePlaylist", parameters: [URLQueryItem(name: "id", value: id)], as: EmptyPayload.self)
+    }
+
     public func search(
         _ query: String, artistCount: Int = 20, albumCount: Int = 20, songCount: Int = 20
     ) async throws(SubsonicError) -> SearchResult {

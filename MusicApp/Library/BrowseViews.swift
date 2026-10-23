@@ -427,23 +427,18 @@ struct PlaylistsView: View {
             TextField("Name", text: $newName)
             Button("Create") {
                 Task {
-                    if await library.playlistEditor.create(named: newName, with: []) {
-                        await model.load()
-                    }
+                    await library.playlistEditor.create(named: newName, with: [])
                 }
             }
             .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
             Button("Cancel", role: .cancel) {}
         }
-        .alert("Couldn't Save Playlist", isPresented: Binding(
-            get: { library.playlistEditor.error != nil && !library.addToPlaylist.isOpen },
-            set: { if !$0 { library.playlistEditor.dismissError() } }
-        )) {
-            Button("OK") { library.playlistEditor.dismissError() }
-        } message: {
-            Text(library.playlistEditor.error ?? "")
-        }
+        // Failed changes show from the root (`playlistPrompts`).
         .task { await model.load() }
         .refreshable { await model.load() }
+        // A rename, share, delete or new playlist from anywhere shows here.
+        .onChange(of: library.playlistEditor.revision) {
+            Task { await model.load() }
+        }
     }
 }

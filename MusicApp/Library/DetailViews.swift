@@ -89,16 +89,25 @@ struct AlbumView: View {
 
 struct PlaylistView: View {
     let library: Library
+    let id: String
     @State private var model: LoadModel<Playlist>
+    @State private var songEditor: PlaylistSongEditor
+    @Environment(\.dismiss) private var dismiss
 
     init(library: Library, id: String) {
         self.library = library
+        self.id = id
         _model = State(initialValue: library.playlistModel(id: id))
+        _songEditor = State(initialValue: library.playlistSongEditor(id: id))
     }
 
     var body: some View {
         LoadStateView(state: model.state, retry: model.load) { playlist in
-            SongListView(library: library, songs: playlist.songs, showsTrackNumbers: false) {
+            let songs = songEditor.shown(playlist.songs)
+            SongListView(
+                library: library, songs: songs, showsTrackNumbers: false,
+                editing: library.playlistEditor.isOwned(playlist) ? editing(songs) : nil
+            ) {
                 SongListHeader(
                     library: library,
                     coverArtID: playlist.coverArtID,
@@ -116,6 +125,7 @@ struct PlaylistView: View {
                         Button("Play Next", systemImage: "text.insert") { library.engine.playNext(playlist.songs) }
                         Button("Add to Queue", systemImage: "text.append") { library.engine.append(playlist.songs) }
                         AddToPlaylistButton(library: library, songs: playlist.songs)
+                        PlaylistManageButtons(library: library, playlist: playlist)
                     }
                 }
             }
@@ -124,6 +134,39 @@ struct PlaylistView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
         .refreshable { await model.load() }
+        // Renamed or shared from the menu: show it.
+        .onChange(of: library.playlistEditor.revision) {
+            Task { await model.load() }
+        }
+        // Deleted: there's nothing left to show.
+        .onChange(of: library.playlistEditor.deletedIDs.contains(id)) { _, deleted in
+            if deleted { dismiss() }
+        }
+        .alert("Couldn't Change Playlist", isPresented: Binding(
+            get: { songEditor.error != nil },
+            set: { if !$0 { songEditor.dismissError() } }
+        )) {
+            Button("OK") { songEditor.dismissError() }
+        } message: {
+            Text(songEditor.error ?? "")
+        }
+    }
+
+    /// Removing and moving songs, saved to the server, then the page reloads.
+    private func editing(_ songs: [Song]) -> SongListEditing {
+        SongListEditing(
+            remove: { offsets in
+                Task { await songEditor.remove(atOffsets: offsets, from: songs, reload: reload) }
+            },
+            move: { offsets, destination in
+                Task { await songEditor.move(fromOffsets: offsets, toOffset: destination, in: songs, reload: reload) }
+            }
+        )
+    }
+
+    private func reload() async {
+        await model.load()
+        library.playlistEditor.noteChange()
     }
 }
 

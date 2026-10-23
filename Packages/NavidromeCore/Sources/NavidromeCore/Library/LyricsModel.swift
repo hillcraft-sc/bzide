@@ -331,21 +331,4 @@ extension LyricsModel {
     }
 }
 
-/// What the server supports, asked once and remembered. A failed check isn't
-/// remembered, so it's tried again next time.
-actor ServerFeatures {
-    private let client: SubsonicClient
-    private var songLyrics: Bool?
 
-    init(client: SubsonicClient) {
-        self.client = client
-    }
-
-    func supportsSongLyrics() async -> Bool {
-        if let songLyrics { return songLyrics }
-        guard let extensions = try? await client.openSubsonicExtensions() else { return false }
-        let supported = extensions.contains { $0.name == "songLyrics" }
-        songLyrics = supported
-        return supported
-    }
-}

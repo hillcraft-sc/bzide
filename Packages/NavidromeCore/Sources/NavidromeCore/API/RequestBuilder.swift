@@ -40,6 +40,22 @@ struct RequestBuilder: Sendable {
         return url
     }
 
+    /// The same request as a form POST (OpenSubsonic `formPost`): the
+    /// parameters, login included, go in the body instead of the URL, which
+    /// servers and proxies limit in length.
+    func formRequest(endpoint: String, parameters: [URLQueryItem] = []) throws(SubsonicError) -> URLRequest {
+        let full = try url(endpoint: endpoint, parameters: parameters)
+        guard var components = URLComponents(url: full, resolvingAgainstBaseURL: false) else { throw .invalidBaseURL }
+        let body = components.percentEncodedQuery ?? ""
+        components.percentEncodedQuery = nil
+        guard let bare = components.url else { throw .invalidBaseURL }
+        var request = URLRequest(url: bare)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data(body.utf8)
+        return request
+    }
+
     /// URLComponents leaves `+` and `;` unescaped in queries, but Navidrome (Go)
     /// decodes `+` as a space, so "AC+DC" or a username with `+` would arrive
     /// mangled, and refuses a query with a raw `;` ("invalid semicolon

@@ -12,6 +12,8 @@ private final class FakePlaylistServer: Sendable {
         var listCalls = 0
         var failure: SubsonicError?
         var createReturnsNothing = false
+        var updates: [(playlistID: String, name: String?, isPublic: Bool?)] = []
+        var deletes: [String] = []
     }
 
     let state = Mutex(State())
@@ -45,6 +47,18 @@ private final class FakePlaylistServer: Sendable {
                 try self.state.withLock { state throws(SubsonicError) in
                     if let failure = state.failure { throw failure }
                     state.adds.append((id, songIDs))
+                }
+            },
+            update: { id, name, isPublic async throws(SubsonicError) in
+                try self.state.withLock { state throws(SubsonicError) in
+                    if let failure = state.failure { throw failure }
+                    state.updates.append((id, name, isPublic))
+                }
+            },
+            delete: { id async throws(SubsonicError) in
+                try self.state.withLock { state throws(SubsonicError) in
+                    if let failure = state.failure { throw failure }
+                    state.deletes.append(id)
                 }
             }
         )
@@ -194,6 +208,61 @@ struct PlaylistEditorTests {
         #expect(PlaylistEditor.addedMessage(added: 3, skipped: 0, to: "A") == "Added 3 songs to “A”.")
     }
 
+    // MARK: Rename, share, delete
+
+    @Test func renameSendsTheNewNameAndSaysSo() async {
+        let editor = makeEditor()
+        #expect(await editor.rename(morning, to: "  Evening "))
+        let updates = fake.state.withLock { $0.updates }
+        #expect(updates.count == 1)
+        #expect(updates.first?.playlistID == "pl-1" && updates.first?.name == "Evening" && updates.first?.isPublic == nil)
+        #expect(editor.confirmation == "Renamed to “Evening”.")
+        #expect(editor.revision == 1)
+    }
+
+    @Test func aBlankOrUnchangedNameSendsNothing() async {
+        let editor = makeEditor()
+        #expect(!(await editor.rename(morning, to: "  ")))
+        #expect(!(await editor.rename(morning, to: "Morning")))
+        #expect(fake.state.withLock { $0.updates.isEmpty })
+        #expect(editor.revision == 0)
+    }
+
+    @Test func sharingSetsPublicOnAndOff() async {
+        let editor = makeEditor()
+        await editor.setShared(morning, true)
+        #expect(editor.confirmation == "“Morning” is shared with everyone.")
+        await editor.setShared(morning, false)
+        #expect(editor.confirmation == "“Morning” is no longer shared.")
+        #expect(fake.state.withLock { $0.updates.map(\.isPublic) } == [true, false])
+        #expect(fake.state.withLock { $0.updates.allSatisfy { $0.name == nil } })
+    }
+
+    @Test func deleteSendsTheIDAndRemembersIt() async {
+        let editor = makeEditor()
+        #expect(await editor.delete(morning))
+        #expect(fake.state.withLock { $0.deletes } == ["pl-1"])
+        #expect(editor.deletedIDs == ["pl-1"])
+        #expect(editor.confirmation == "Deleted “Morning”.")
+    }
+
+    @Test func aFailedChangeSaysWhyAndChangesNothing() async {
+        let editor = makeEditor()
+        fake.state.withLock { $0.failure = .server(code: 50, message: "Not allowed") }
+        #expect(!(await editor.delete(morning)))
+        #expect(editor.deletedIDs.isEmpty)
+        #expect(editor.error != nil)
+        #expect(editor.revision == 0)
+    }
+
+    @Test func onlyYourOwnPlaylistsCanBeChanged() {
+        let editor = makeEditor()
+        #expect(editor.isOwned(morning))
+        #expect(!editor.isOwned(Playlist(id: "pl-2", name: "Theirs", owner: "someone")))
+        // A server that doesn't say gets the benefit of the doubt.
+        #expect(editor.isOwned(Playlist(id: "pl-3", name: "Unknown")))
+    }
+
     @Test func chunking() {
         #expect([Int]().chunks(of: 2).isEmpty)
         #expect([1, 2, 3, 4, 5].chunks(of: 2) == [[1, 2], [3, 4], [5]])
@@ -229,5 +298,48 @@ struct PlaylistRequestTests {
         #expect(url.path() == "/rest/updatePlaylist")
         #expect(items(url, "playlistId") == ["pl-1"])
         #expect(items(url, "songIdToAdd") == ["so-1", "so-1", "so-3"])
+    }
+
+    @Test func updateSendsTheNameAndPublic() async throws {
+        let transport = FakeTransport(.json(TestServer.ok))
+        try await TestServer.client(transport).updatePlaylist(id: "pl-1", name: "Evening", isPublic: true)
+        let url = try #require(await transport.requests.first?.url)
+        #expect(url.path() == "/rest/updatePlaylist")
+        #expect(items(url, "playlistId") == ["pl-1"])
+        #expect(items(url, "name") == ["Evening"])
+        #expect(items(url, "public") == ["true"])
+    }
+
+    @Test func editSendsRemovalsAndAdditionsInOneRequest() async throws {
+        let transport = FakeTransport(.json(TestServer.ok))
+        try await TestServer.client(transport).editPlaylist(id: "pl-1", removingIndexes: [2, 3], adding: ["so-4", "so-3"], post: false)
+        let requests = await transport.requests
+        #expect(requests.count == 1)
+        let url = try #require(requests.first?.url)
+        #expect(url.path() == "/rest/updatePlaylist")
+        #expect(items(url, "songIndexToRemove") == ["2", "3"])
+        #expect(items(url, "songIdToAdd") == ["so-4", "so-3"])
+    }
+
+    @Test func editAsAFormPostPutsEverythingInTheBody() async throws {
+        let transport = FakeTransport(.json(TestServer.ok))
+        try await TestServer.client(transport).editPlaylist(id: "pl-1", removingIndexes: [0], adding: ["so-1"], post: true)
+        let request = try #require(await transport.requests.first)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.query == nil)
+        #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/x-www-form-urlencoded")
+        let body = String(decoding: try #require(request.httpBody), as: UTF8.self)
+        var form = URLComponents()
+        form.percentEncodedQuery = body
+        let names = Set((form.queryItems ?? []).map(\.name))
+        #expect(names.isSuperset(of: ["playlistId", "songIndexToRemove", "songIdToAdd", "f", "c", "v"]))
+    }
+
+    @Test func deleteSendsTheID() async throws {
+        let transport = FakeTransport(.json(TestServer.ok))
+        try await TestServer.client(transport).deletePlaylist(id: "pl-1")
+        let url = try #require(await transport.requests.first?.url)
+        #expect(url.path() == "/rest/deletePlaylist")
+        #expect(items(url, "id") == ["pl-1"])
     }
 }

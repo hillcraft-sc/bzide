@@ -36,6 +36,7 @@ struct RootView: View {
             NowPlayingView(model: model, library: library)
         }
         .addToPlaylistSheet(library, isEnabled: !isNowPlayingOpen)
+        .playlistPrompts(library, isEnabled: !isNowPlayingOpen)
         .infoSheet(library, isEnabled: !isNowPlayingOpen)
         // Each return to the app checks downloaded playlists for changes (at
         // most every 15 minutes; see PlaylistDownloadRefresher).

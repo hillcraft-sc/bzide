@@ -87,6 +87,7 @@ struct PlaylistRowMenu: View {
     var body: some View {
         QuickActionButtons(library: library, source: .playlist(id: playlist.id))
         DownloadMenuButton(library: library, kind: .playlist, serverID: playlist.id, source: .playlist(id: playlist.id))
+        PlaylistManageButtons(library: library, playlist: playlist)
     }
 }
 

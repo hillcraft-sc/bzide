@@ -1,9 +1,9 @@
 import Foundation
 import Observation
 
-/// Creates playlists and adds songs to them, shared by every screen that offers
-/// "Add to Playlist". Only playlists the signed-in user owns can be changed, so
-/// only those are offered.
+/// Creates, renames, shares and deletes playlists and adds songs to them,
+/// shared by every screen that offers these. Only playlists the signed-in
+/// user owns can be changed, so only those are offered.
 ///
 /// Adding skips songs already in the playlist (and repeats within what's being
 /// added). Long lists go to the server in chunks, because each song id is part
@@ -16,17 +16,24 @@ public final class PlaylistEditor {
         public var playlist: @Sendable (_ id: String) async throws(SubsonicError) -> Playlist
         public var create: @Sendable (_ name: String, _ songIDs: [String]) async throws(SubsonicError) -> Playlist?
         public var add: @Sendable (_ playlistID: String, _ songIDs: [String]) async throws(SubsonicError) -> Void
+        /// A new name, or public (shared with every user) or not; `nil` leaves it.
+        public var update: @Sendable (_ playlistID: String, _ name: String?, _ isPublic: Bool?) async throws(SubsonicError) -> Void
+        public var delete: @Sendable (_ playlistID: String) async throws(SubsonicError) -> Void
 
         public init(
             playlists: @escaping @Sendable () async throws(SubsonicError) -> [Playlist],
             playlist: @escaping @Sendable (_ id: String) async throws(SubsonicError) -> Playlist,
             create: @escaping @Sendable (_ name: String, _ songIDs: [String]) async throws(SubsonicError) -> Playlist?,
-            add: @escaping @Sendable (_ playlistID: String, _ songIDs: [String]) async throws(SubsonicError) -> Void
+            add: @escaping @Sendable (_ playlistID: String, _ songIDs: [String]) async throws(SubsonicError) -> Void,
+            update: @escaping @Sendable (_ playlistID: String, _ name: String?, _ isPublic: Bool?) async throws(SubsonicError) -> Void = { _, _, _ in },
+            delete: @escaping @Sendable (_ playlistID: String) async throws(SubsonicError) -> Void = { _ in }
         ) {
             self.playlists = playlists
             self.playlist = playlist
             self.create = create
             self.add = add
+            self.update = update
+            self.delete = delete
         }
     }
 
@@ -36,6 +43,11 @@ public final class PlaylistEditor {
     public private(set) var error: String?
     /// What the last change did, e.g. "Added 8 songs to “Morning”."
     public private(set) var confirmation: String?
+    /// Goes up with every change that worked, so screens showing playlists
+    /// know to load them again.
+    public private(set) var revision = 0
+    /// Playlists deleted in this session; a screen showing one closes.
+    public private(set) var deletedIDs: Set<String> = []
 
     @ObservationIgnored private let username: String
     @ObservationIgnored private let server: Server
@@ -99,6 +111,51 @@ public final class PlaylistEditor {
         }
     }
 
+    /// Renames `playlist`. Returns whether it worked.
+    @discardableResult
+    public func rename(_ playlist: Playlist, to name: String) async -> Bool {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name != playlist.name else { return false }
+        return await save { () async throws(SubsonicError) -> String in
+            try await self.server.update(playlist.id, name, nil)
+            return "Renamed to “\(name)”."
+        }
+    }
+
+    /// Shares `playlist` with every user on the server (Navidrome's Public),
+    /// or stops. Returns whether it worked.
+    @discardableResult
+    public func setShared(_ playlist: Playlist, _ shared: Bool) async -> Bool {
+        await save { () async throws(SubsonicError) -> String in
+            try await self.server.update(playlist.id, nil, shared)
+            return shared ? "“\(playlist.name)” is shared with everyone." : "“\(playlist.name)” is no longer shared."
+        }
+    }
+
+    /// Deletes `playlist` from the server. Returns whether it worked.
+    @discardableResult
+    public func delete(_ playlist: Playlist) async -> Bool {
+        let deleted = await save { () async throws(SubsonicError) -> String in
+            try await self.server.delete(playlist.id)
+            return "Deleted “\(playlist.name)”."
+        }
+        if deleted { deletedIDs.insert(playlist.id) }
+        return deleted
+    }
+
+    /// Whether the signed-in user may change `playlist`. A server that doesn't
+    /// say who owns it gets the benefit of the doubt; it refuses the change if
+    /// it's not ours.
+    public func isOwned(_ playlist: Playlist) -> Bool {
+        guard let owner = playlist.owner else { return true }
+        return owner == username
+    }
+
+    /// A change made elsewhere (e.g. songs moved on the playlist's page).
+    public func noteChange() {
+        revision += 1
+    }
+
     public func dismissError() {
         error = nil
     }
@@ -108,13 +165,6 @@ public final class PlaylistEditor {
     }
 
     // MARK: - Private
-
-    private func isOwned(_ playlist: Playlist) -> Bool {
-        // A server that doesn't say who owns it gets the benefit of the doubt;
-        // it refuses the change if it's not ours.
-        guard let owner = playlist.owner else { return true }
-        return owner == username
-    }
 
     /// Runs one change at a time and reports how it went. The playlists are
     /// reloaded afterwards either way, since a chunked change can half succeed.
@@ -128,6 +178,7 @@ public final class PlaylistEditor {
         do {
             confirmation = try await change()
             succeeded = true
+            revision += 1
         } catch {
             if !Task.isCancelled { self.error = error.localizedDescription }
         }

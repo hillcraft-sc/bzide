@@ -63,18 +63,29 @@ public struct SubsonicClient: Sendable {
 
     // MARK: - Plumbing
 
+    /// `post` sends it as a form POST, for servers with OpenSubsonic
+    /// `formPost`, so a long list of parameters fits.
     func request<Payload: Decodable>(
         _ endpoint: String,
         parameters: [URLQueryItem] = [],
+        post: Bool = false,
         as type: Payload.Type
     ) async throws(SubsonicError) -> Payload {
-        let url = try builder.url(endpoint: endpoint, parameters: parameters)
-        Self.logger.debug("GET \(LogRedaction.redact(url), privacy: .public)")
+        let urlRequest: URLRequest
+        if post {
+            urlRequest = try builder.formRequest(endpoint: endpoint, parameters: parameters)
+            // The body holds the login, so only the endpoint is logged.
+            Self.logger.debug("POST \(endpoint, privacy: .public) (\(parameters.count) parameters)")
+        } else {
+            let url = try builder.url(endpoint: endpoint, parameters: parameters)
+            urlRequest = URLRequest(url: url)
+            Self.logger.debug("GET \(LogRedaction.redact(url), privacy: .public)")
+        }
 
         let data: Data
         let response: HTTPURLResponse
         do {
-            (data, response) = try await transport.data(for: URLRequest(url: url))
+            (data, response) = try await transport.data(for: urlRequest)
         } catch let error as URLError {
             throw .network(error.code)
         } catch {

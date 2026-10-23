@@ -16,6 +16,8 @@ final class Library {
     let siriLookup: SiriLookup
     /// Which songs the Add to Playlist sheet is open for.
     let addToPlaylist: AddToPlaylistRequest
+    /// A playlist a menu asked to rename or delete (see `playlistPrompts`).
+    let playlistPrompts = PlaylistPrompts()
     /// What the Info sheet is open for.
     let info = InfoRequest()
     let artwork: ArtworkCache
@@ -36,6 +38,8 @@ final class Library {
     /// Endless music grown from a song or artist, and Keep Spinning.
     let spinOff: SpinOffModel
     private let client: SubsonicClient
+    /// What the server supports (OpenSubsonic extensions), asked once.
+    private let features: ServerFeatures
     private let username: String
     /// What's known about saved radio stations (logo, country, genres,
     /// quality, first seen), shared by every Radio screen.
@@ -107,6 +111,7 @@ final class Library {
         }
         self.playlistRefresher = playlistRefresher
         self.client = client
+        self.features = ServerFeatures(client: client)
         self.username = username
         self.engine = engine
         self.sleepTimer = SleepTimer(target: engine)
@@ -150,6 +155,16 @@ final class Library {
                 try await client.addToPlaylist(id: id, songIDs: ids)
                 // A downloaded playlist gets the new songs too.
                 await playlistRefresher.refresh(playlistID: id)
+            },
+            update: { [client] id, name, isPublic async throws(SubsonicError) in
+                try await client.updatePlaylist(id: id, name: name, isPublic: isPublic)
+                // A downloaded playlist shows its new name.
+                await playlistRefresher.refresh(playlistID: id)
+            },
+            delete: { [client, downloads] id async throws(SubsonicError) in
+                try await client.deletePlaylist(id: id)
+                // Its download goes too; songs also in another download stay.
+                await MainActor.run { downloads.remove(collectionID: DownloadCollection.id(.playlist, serverID: id)) }
             }
         ))
         self.siriLookup = SiriLookup(
@@ -404,6 +419,19 @@ final class Library {
 
     func playlistsModel() -> LoadModel<[Playlist]> {
         LoadModel { [client] () async throws(SubsonicError) in try await client.playlists() }
+    }
+
+    /// Removing and reordering one playlist's songs. Long changes go as a form
+    /// POST when the server allows it, and a downloaded playlist follows.
+    func playlistSongEditor(id: String) -> PlaylistSongEditor {
+        PlaylistSongEditor(playlistID: id, server: .init(
+            playlist: { [client] id async throws(SubsonicError) in try await client.playlist(id: id) },
+            edit: { [client, features, playlistRefresher] id, edit async throws(SubsonicError) in
+                let post = await features.supportsFormPost()
+                try await client.editPlaylist(id: id, removingIndexes: edit.removingIndexes, adding: edit.addingSongIDs, post: post)
+                await playlistRefresher.refresh(playlistID: id)
+            }
+        ))
     }
 
     func playlistModel(id: String) -> LoadModel<Playlist> {
