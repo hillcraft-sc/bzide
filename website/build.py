@@ -110,6 +110,15 @@ def markdown(source: str) -> tuple[str, str, list[tuple[str, str]]]:
     return title, "\n".join(parts), sections
 
 
+def email_link() -> str:
+    """The support address as a mailto link. Cloudflare's Email Address
+    Obfuscation would swap it for a link to its own page and a script to
+    decode it, which the site's Content-Security-Policy blocks, so it's marked
+    for Cloudflare to leave alone."""
+    address = SITE["support_email"]
+    return f'<!--email_off--><a href="mailto:{address}">{address}</a><!--/email_off-->'
+
+
 # MARK: - Pages
 
 def page(slug_name: str, title: str, body: str, description: str) -> str:
@@ -138,7 +147,7 @@ def page(slug_name: str, title: str, body: str, description: str) -> str:
 </main>
 <footer class="site">
   <p>Bzide is an independent app for Navidrome and other Subsonic-compatible servers. It is not affiliated with or endorsed by the Navidrome or Subsonic projects.</p>
-  <p><a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · <a href="mailto:{SITE['support_email']}">{SITE['support_email']}</a></p>
+  <p><a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · {email_link()}</p>
 </footer>
 </body>
 </html>
@@ -194,7 +203,7 @@ def build():
     shutil.copy(WEBSITE / "style.css", OUT / "style.css")
     contact = (
         f'<div class="contact"><h2>Contact</h2><p>Questions, problems or ideas? Email '
-        f'<a href="mailto:{SITE["support_email"]}">{SITE["support_email"]}</a>. '
+        f'{email_link()}. '
         "It helps to include your iPhone model and iOS version (iPhone Settings > General > About), and what you were doing when it happened.</p></div>"
     )
     pages = {
