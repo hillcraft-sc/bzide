@@ -30,6 +30,7 @@ A native iOS music player for a self-hosted Navidrome server. The owner finds ex
 ├── docs/
 │   ├── BEHAVIOR.md        # Spec: queue rules, interruption handling, prefetch, caching
 │   ├── PRIVACY.md         # Plain-language privacy page: what's sent where, what's stored
+│   ├── USER-GUIDE.md      # How to use Bzide, for users (Settings > Help; also hostable)
 │   └── ISSUES.md          # Running log of bugs and annoyances found in real-world use
 ├── Packages/
 │   └── NavidromeCore/     # Swift package, NO UI imports (no SwiftUI/UIKit)
@@ -39,7 +40,8 @@ A native iOS music player for a self-hosted Navidrome server. The owner finds ex
 │       ├── Library/       # Screen logic for browsing: loading, paging, search, starring
 │       ├── Playback/      # Audio engine, queue, session handling, Now Playing
 │       └── Cache/         # Cover art cache, offline downloads
-└── MusicApp/              # iOS app target (SwiftUI), thin layer over NavidromeCore
+├── MusicApp/              # iOS app target (SwiftUI), thin layer over NavidromeCore
+└── website/               # bzide.hillcraft-sc.com: Home, Support and Privacy, built from docs/ (see its README)
 ```
 
 Siri lives in `MusicApp/Siri/`: App Intents entities and intents using the system audio schemas, annotations that tell Siri what a view shows, and lookups through the same `Library` models (`QuickActions`, `PlaylistEditor`). It needs no entitlement.
@@ -133,6 +135,7 @@ xcodebuild test ... -only-testing:<TestTarget>/<TestClass>/<testMethod>
 - Never put credentials, real server details, or personal data in code, tests, fixtures, or commits.
 - When you find a bug or annoyance during work, add it to `docs/ISSUES.md` rather than silently working around it.
 - Update `docs/BEHAVIOR.md` whenever playback, queue, caching, or interruption behavior changes.
+- Update `docs/USER-GUIDE.md` whenever a user-visible feature, setting name or menu changes: it's shown in the app (Settings > Help) and on the website's Support page (rebuild and redeploy it, see `website/README.md`). Plain language, task by task, exact names of buttons and settings.
 - Update `docs/PRIVACY.md` (and the privacy manifests, `PrivacyInfo.xcprivacy` in the app and the extension) whenever what the app sends, to whom, or stores changes. Every network session is private (`URLSessionTransport.privateSession`: no disk cache, cookies or stored credentials); keep it that way.
 - If a requirement is ambiguous, ask instead of guessing, especially for design and UX decisions.
 

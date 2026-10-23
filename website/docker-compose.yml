@@ -1,0 +1,21 @@
+# Run from the website folder: docker compose up -d --build
+# Then point cloudflared at http://localhost:8086 (see README.md).
+services:
+  bzide-website:
+    build:
+      context: ..
+      dockerfile: website/Dockerfile
+    image: bzide-website
+    container_name: bzide-website
+    # Only this machine can reach it, so visitors always come through the
+    # tunnel, never straight from the LAN.
+    ports:
+      - "127.0.0.1:8086:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

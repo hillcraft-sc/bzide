@@ -13,6 +13,7 @@ How the app behaves, written so the web and Android clients can be ported from t
 - **Plain http warning:** Sign In warns, under the address, when it's `http://` to an address outside this network or a private one, as the username and token (or key) can then be read on the way. Local and private addresses aren't warned about: `localhost`, names without a dot, `.local`, `.lan`, `.home.arpa`, `.internal`, IPv4 10/8, 172.16/12, 192.168/16, 127/8, 169.254/16 and 100.64/10 (Tailscale and other VPNs), and IPv6 loopback, unique-local and link-local. It's a warning; signing in still works.
 - **No disk cache:** every connection (the server and each outside service) uses a private session: no URL cache, cookies or stored credentials; background downloads keep no cache either. iOS's shared URL cache is emptied at each launch, as earlier versions left server answers there on disk, keyed by request URLs carrying the username and token.
 - Auth parameters (`t`, `s`, `u`, `p`, `apiKey`) are replaced with `REDACTED` before a URL is logged.
+- **Settings > Help** shows the user guide, `docs/USER-GUIDE.md`, the same way as Privacy (below): bundled, drawn natively, and also readable on the web wherever the file is hosted. Numbered steps show with their numbers.
 - **Settings > Privacy** shows the privacy page, `docs/PRIVACY.md`, bundled with the app (the same file, so the two never differ) and drawn natively: headings, paragraphs, bullet lists, and its services table as a card per service (the first column as the title, the others labeled with their headers), with bold, italic and links styled.
 - Errors are reported as one of: invalid base URL, network failure, non-2xx HTTP status, server `status: "failed"` (with the Subsonic error code), or an unreadable response. Codes 40 and 41 count as authentication failures.
 - Decoding is tolerant, because servers fill fields inconsistently:
@@ -406,6 +407,7 @@ Checked against the App Store's Accessibility Nutrition Labels (Gitea #19).
 Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.md`.
 
 ### Account
+- [ ] Settings > Help opens the user guide: headings, numbered steps, bullets and links read well, in light, dark and a theme, and at a large text size.
 - [x] Settings > Privacy opens the privacy page: headings, bullets and a card per outside service, readable in light, dark and each theme. (2026-10-22)
 - [x] Sign out. On the sign-in screen, type an `http://` address with a public host name: an orange warning appears under the address; a local address (`http://192.168.…`, `http://nas.local`) or `https://`: none. (2026-10-22)
 - [x] Sign In With > API Key, with a key from your server's settings (if it supports OpenSubsonic API keys): signs in, no username needed, and everything works as with a password. A wrong key: "That API key isn't valid." If your server doesn't support keys, the error says so. (2026-10-22)

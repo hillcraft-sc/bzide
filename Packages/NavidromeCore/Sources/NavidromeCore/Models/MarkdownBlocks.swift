@@ -1,26 +1,30 @@
 import Foundation
 
 /// A simple Markdown document as blocks, for showing the app's own pages
-/// (the privacy page, `docs/PRIVACY.md`) natively. Handles what those pages
-/// use: `#`/`##`/`###` headings, paragraphs (lines joined until a blank
-/// line), `- ` bullet lists, and `|` tables. Inline styling (bold, italic,
+/// (the privacy page and the user guide, in `docs/`) natively. Handles what
+/// those pages use: `#`/`##`/`###` headings, paragraphs (lines joined until a
+/// blank line), `- ` bullet lists, `1. ` numbered lists, and `|` tables. Inline styling (bold, italic,
 /// code, links) is left in the text for the view to render. Anything else is
 /// kept as a paragraph, so nothing is ever lost.
 public enum MarkdownBlock: Equatable, Sendable {
     case heading(level: Int, text: String)
     case paragraph(String)
     case bullets([String])
+    /// Steps, in order (their numbers are the item's position).
+    case numbered([String])
     case table(header: [String], rows: [[String]])
 
     public static func parse(_ markdown: String) -> [MarkdownBlock] {
         var blocks: [MarkdownBlock] = []
         var paragraph: [String] = []
         var bullets: [String] = []
+        var steps: [String] = []
         var table: [[String]] = []
 
         func flush() {
             if !paragraph.isEmpty { blocks.append(.paragraph(paragraph.joined(separator: " "))) }
             if !bullets.isEmpty { blocks.append(.bullets(bullets)) }
+            if !steps.isEmpty { blocks.append(.numbered(steps)) }
             if let header = table.first {
                 // The second row is the |---|---| divider.
                 let rows = table.dropFirst().filter { !isDivider($0) }
@@ -28,6 +32,7 @@ public enum MarkdownBlock: Equatable, Sendable {
             }
             paragraph = []
             bullets = []
+            steps = []
             table = []
         }
 
@@ -39,14 +44,19 @@ public enum MarkdownBlock: Equatable, Sendable {
                 flush()
                 blocks.append(.heading(level: level, text: String(line.dropFirst(level + 1)).trimmingCharacters(in: .whitespaces)))
             } else if line.hasPrefix("- ") || line.hasPrefix("* ") {
-                if !paragraph.isEmpty || !table.isEmpty { flush() }
+                if !paragraph.isEmpty || !table.isEmpty || !steps.isEmpty { flush() }
                 bullets.append(String(line.dropFirst(2)))
+            } else if let step = numberedItem(line) {
+                if !paragraph.isEmpty || !table.isEmpty || !bullets.isEmpty { flush() }
+                steps.append(step)
             } else if line.hasPrefix("|") {
                 if !paragraph.isEmpty || !bullets.isEmpty { flush() }
                 table.append(cells(line))
             } else if !bullets.isEmpty {
                 // A wrapped bullet line continues the bullet.
                 bullets[bullets.count - 1] += " " + line
+            } else if !steps.isEmpty {
+                steps[steps.count - 1] += " " + line
             } else {
                 if !table.isEmpty { flush() }
                 paragraph.append(line)
@@ -54,6 +64,13 @@ public enum MarkdownBlock: Equatable, Sendable {
         }
         flush()
         return blocks
+    }
+
+    /// "1. Open Settings" is "Open Settings"; `nil` if it isn't a numbered item.
+    private static func numberedItem(_ line: String) -> String? {
+        let digits = line.prefix { $0.isNumber }
+        guard !digits.isEmpty, digits.count <= 3, line.dropFirst(digits.count).hasPrefix(". ") else { return nil }
+        return String(line.dropFirst(digits.count + 2))
     }
 
     /// 1 to 3 for `#`, `##`, `###` followed by a space.

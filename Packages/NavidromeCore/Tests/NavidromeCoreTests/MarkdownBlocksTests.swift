@@ -34,6 +34,34 @@ struct MarkdownBlocksTests {
         ])
     }
 
+    @Test func numberedSteps() {
+        let markdown = """
+        1. Open Settings.
+        2. Tap Equalizer,
+           then turn it on.
+
+        Done.
+        """
+        #expect(MarkdownBlock.parse(markdown) == [
+            .numbered(["Open Settings.", "Tap Equalizer, then turn it on."]),
+            .paragraph("Done."),
+        ])
+        // A year isn't a step.
+        #expect(MarkdownBlock.parse("2026 was a year.") == [.paragraph("2026 was a year.")])
+    }
+
+    /// The user guide parses into headings, steps, bullets and paragraphs.
+    @Test func theUserGuideParses() throws {
+        let page = URL(filePath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "docs/USER-GUIDE.md")
+        let blocks = MarkdownBlock.parse(try String(contentsOf: page, encoding: .utf8))
+        #expect(blocks.first == .heading(level: 1, text: "Bzide User Guide"))
+        #expect(blocks.contains { if case .numbered = $0 { true } else { false } })
+        #expect(blocks.contains(.heading(level: 2, text: "Troubleshooting")))
+    }
+
     @Test func notHeadingsStayText() {
         #expect(MarkdownBlock.parse("#hashtag") == [.paragraph("#hashtag")])
         #expect(MarkdownBlock.parse("#### Deep") == [.paragraph("#### Deep")])

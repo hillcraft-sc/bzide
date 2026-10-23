@@ -1,21 +1,26 @@
 import NavidromeCore
 import SwiftUI
 
-/// Settings > Privacy: the app's privacy page, `docs/PRIVACY.md`, bundled
-/// with the app and drawn natively, so the page in the repo and the one in
-/// the app are always the same.
-struct PrivacyView: View {
-    private let blocks: [MarkdownBlock] = {
-        guard let url = Bundle.main.url(forResource: "PRIVACY", withExtension: "md"),
-              let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
-        return MarkdownBlock.parse(text)
-    }()
+/// One of the app's own pages from `docs/`, bundled with the app and drawn
+/// natively, so the page in the repo and the one in the app are always the
+/// same: Settings > Privacy (`PRIVACY.md`) and Settings > Help (`USER-GUIDE.md`).
+struct DocumentView: View {
+    let title: String
+    private let blocks: [MarkdownBlock]
+
+    /// `resource`: the bundled file's name, without `.md`.
+    init(_ resource: String, title: String) {
+        self.title = title
+        blocks = Bundle.main.url(forResource: resource, withExtension: "md")
+            .flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+            .map(MarkdownBlock.parse) ?? []
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 if blocks.isEmpty {
-                    Text("The privacy page couldn't be loaded.").foregroundStyle(.secondary)
+                    Text("This page couldn't be loaded.").foregroundStyle(.secondary)
                 }
                 ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                     BlockView(block: block)
@@ -24,7 +29,7 @@ struct PrivacyView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
         }
-        .navigationTitle("Privacy")
+        .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .themedList()
     }
@@ -42,6 +47,15 @@ private struct BlockView: View {
                 .accessibilityAddTraits(.isHeader)
         case .paragraph(let text):
             Inline(text)
+        case .numbered(let items):
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("\(index + 1).").monospacedDigit().foregroundStyle(.secondary)
+                        Inline(item)
+                    }
+                }
+            }
         case .bullets(let items):
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(items.enumerated()), id: \.offset) { _, item in

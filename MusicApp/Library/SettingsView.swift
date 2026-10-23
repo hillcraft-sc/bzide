@@ -224,12 +224,17 @@ struct SettingsView: View {
             .themedRows(grouped: true)
             Section {
                 NavigationLink {
-                    PrivacyView()
+                    DocumentView("USER-GUIDE", title: "Help")
+                } label: {
+                    Label("Help", systemImage: "questionmark.circle")
+                }
+                NavigationLink {
+                    DocumentView("PRIVACY", title: "Privacy")
                 } label: {
                     Label("Privacy", systemImage: "hand.raised")
                 }
             } footer: {
-                Text("What Bzide sends, to whom, and what it keeps on this iPhone.")
+                Text("Help: how to use everything in Bzide. Privacy: what Bzide sends, to whom, and what it keeps on this iPhone.")
             }
             .themedRows(grouped: true)
             Section {
