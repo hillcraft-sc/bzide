@@ -1,5 +1,5 @@
 # Run from the website folder: docker compose up -d --build
-# Then point cloudflared at http://localhost:8086 (see README.md).
+# cloudflared reaches it as http://bzide-website:8080 (see README.md).
 services:
   bzide-website:
     build:
@@ -7,10 +7,10 @@ services:
       dockerfile: website/Dockerfile
     image: bzide-website
     container_name: bzide-website
-    # Only this machine can reach it, so visitors always come through the
-    # tunnel, never straight from the LAN.
-    ports:
-      - "127.0.0.1:8086:8080"
+    # No published port: only containers on cloudflared's network can reach
+    # it, so visitors always come through the tunnel.
+    networks:
+      - tunnel
     read_only: true
     tmpfs:
       - /tmp
@@ -19,3 +19,8 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+
+networks:
+  # cloudflared's network, created outside this file.
+  tunnel:
+    external: true

@@ -27,16 +27,12 @@ cd website
 docker compose up -d --build
 ```
 
-The site is now on port 8086. In cloudflared's config, add an ingress rule above the catch-all:
+The site has no published port. It joins `tunnel`, the Docker network the `cloudflared` container is on (an external network in `docker-compose.yml`), so only the tunnel can reach it. In the tunnel's Public Hostname (Cloudflare dashboard, Zero Trust > Networks > Tunnels), map `bzide.hillcraft-sc.com` to `http://bzide-website:8080`.
 
-```yaml
-ingress:
-  - hostname: bzide.hillcraft-sc.com
-    service: http://localhost:8086
-  # ...existing rules...
-  - service: http_status:404
+To check it from the server (the cloudflared image has no shell tools):
+
 ```
-
-Then run `cloudflared tunnel route dns <tunnel name> bzide.hillcraft-sc.com` and restart cloudflared. If you manage the tunnel in the Cloudflare dashboard (Zero Trust > Networks > Tunnels > Public Hostname), add the hostname there instead. The site only listens on the server itself (127.0.0.1), so it can't be reached from the LAN around the tunnel. If cloudflared runs in its own container, `localhost` won't reach it: put both containers on one Docker network and use `http://bzide-website:8080` instead.
+docker run --rm --network tunnel busybox wget -qO- http://bzide-website:8080 | head -3
+```
 
 To update after the docs change: `git pull && docker compose up -d --build`.
