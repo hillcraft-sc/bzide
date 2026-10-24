@@ -737,7 +737,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Long-press a song > Ask Siri > "add this to my <playlist> playlist": it's added; Siri says so. Ask again: Siri says it's already there.
 - [ ] With Now Playing open, "add this to <playlist>": the current song is added.
 - [ ] Without the app open: "Play <album name> in Bzide", "Shuffle <artist> in Bzide", "Play <playlist> in Bzide".
-- [ ] Phone locked, Bzide not running (swipe it away first): "Play <artist> in Bzide" plays in Bzide within a few seconds, not in Apple Music. Same over CarPlay in the car, on cellular.
+- [x] Phone locked, Bzide not running (swipe it away first): "Play <artist> in Bzide" plays in Bzide within a few seconds, not in Apple Music. Same over CarPlay in the car, on cellular. (2026-10-24)
 - [ ] "Play music in Bzide" with something queued and paused: the queue carries on where it was. With the queue empty: a Random Mix starts. "Play Random Mix in Bzide" starts one too.
 - [ ] "Play <artist with more than 100 songs> in Bzide": Siri asks first; saying no plays nothing.
 - [ ] Signed out: a Siri request says to sign in first.

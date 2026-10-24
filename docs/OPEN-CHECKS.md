@@ -1,6 +1,6 @@
 # Open device checks
 
-A snapshot of the 84 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-24. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
+A snapshot of the 83 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-24. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
 
 The number after each check is its line in `BEHAVIOR.md`.
 
@@ -110,14 +110,13 @@ The number after each check is its line in `BEHAVIOR.md`.
 
 - [ ] Start a timer, then Moon > Turn Off Timer: the moon goes back to normal and the music keeps playing. Start one and pause before it ends: nothing happens when it runs out. (line 704)
 
-## Siri (needs Apple Intelligence) (11)
+## Siri (needs Apple Intelligence) (10)
 
 - [ ] Long-press an artist > Ask Siri > "play this": that artist plays, oldest album first. Same from an album and a playlist row. (line 735)
 - [ ] Long-press an artist > Ask Siri > "tell me about this artist": Siri talks about that artist (not about Bzide or the screen). (line 736)
 - [ ] Long-press a song > Ask Siri > "add this to my <playlist> playlist": it's added; Siri says so. Ask again: Siri says it's already there. (line 737)
 - [ ] With Now Playing open, "add this to <playlist>": the current song is added. (line 738)
 - [ ] Without the app open: "Play <album name> in Bzide", "Shuffle <artist> in Bzide", "Play <playlist> in Bzide". (line 739)
-- [ ] Phone locked, Bzide not running (swipe it away first): "Play <artist> in Bzide" plays in Bzide within a few seconds, not in Apple Music. Same over CarPlay in the car, on cellular. (line 740)
 - [ ] "Play music in Bzide" with something queued and paused: the queue carries on where it was. With the queue empty: a Random Mix starts. "Play Random Mix in Bzide" starts one too. (line 741)
 - [ ] "Play <artist with more than 100 songs> in Bzide": Siri asks first; saying no plays nothing. (line 742)
 - [ ] Signed out: a Siri request says to sign in first. (line 743)
