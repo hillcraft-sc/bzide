@@ -29,6 +29,15 @@ struct LibraryView: View {
     private var layout: LibraryLayout { model.libraryLayout.layout }
     private var randomMix: RandomMixModel { library.randomMix }
 
+    /// The Debug Player, only in builds installed from Xcode (#24).
+    private var debugPlayer: (() -> AnyView)? {
+        #if DEBUG
+        { [model, library] in AnyView(DebugPlayerView(model: model, engine: library.engine)) }
+        #else
+        nil
+        #endif
+    }
+
     var body: some View {
         List {
             ForEach(Array(layout.groups.enumerated()), id: \.offset) { _, group in
@@ -74,7 +83,7 @@ struct LibraryView: View {
                     SettingsView(
                         settings: library.settings, equalizer: model.equalizer, engine: library.engine, downloads: library.downloads, history: library.history, wishlist: library.wishlist,
                         appearance: model.appearance, profile: library.profile, account: model.account, signOut: model.signOut, restoreDefaults: model.restoreDefaultSettings,
-                        debugPlayer: { DebugPlayerView(model: model, engine: library.engine) },
+                        debugPlayer: debugPlayer,
                         stationSearch: { library.stationSearchModel() },
                         refreshLibrary: { try await library.refreshLibrary() }
                     )

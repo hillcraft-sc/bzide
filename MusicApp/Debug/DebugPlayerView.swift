@@ -1,7 +1,9 @@
 import NavidromeCore
 import SwiftUI
 
-/// Bare screen for exercising the playback engine. Not the real UI.
+#if DEBUG
+/// Bare screen for exercising the playback engine. Not the real UI. Only in
+/// builds Xcode installs (Debug), never TestFlight or the App Store (#24).
 struct DebugPlayerView: View {
     let model: AppModel
     let engine: PlaybackEngine
@@ -64,6 +66,8 @@ struct DebugPlayerView: View {
     }
 }
 
+#endif
+
 struct TitleRow: View {
     let title: String
     let subtitle: String?
@@ -78,6 +82,7 @@ struct TitleRow: View {
     }
 }
 
+#if DEBUG
 /// Left and right level bars, redrawn every frame from the meter, with the
 /// tap's buffer count to show it's running.
 private struct LevelMeterView: View {
@@ -112,3 +117,4 @@ private struct LevelMeterView: View {
         }
     }
 }
+#endif

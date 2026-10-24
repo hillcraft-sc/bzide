@@ -18,7 +18,7 @@ The number after each check is its line in `BEHAVIOR.md`.
 - [ ] Search with nothing typed, funnel > Love: every song, album and artist you rated Love is listed; the line above says "Love" with Clear. Tap into the search field: the scope bar appears; pick Songs: only songs. Type a word: only matching Love songs. Clear: back to the genre grid. Force quit and relaunch with a filter on: it's still on. (line 504)
 - [ ] Funnel > Favorites Only, then Downloaded Only: only favorites, then only downloaded songs and albums (no artists). (line 505)
 - [ ] With Include Favorites in My Cuts on, favorite (heart) a few unrated songs: within half an hour they come up in Mix My Cuts; turn the setting off and they no longer do. A favorite rated Meh never does. (line 507)
-- [ ] Library's toolbar shows Edit and Settings (no ladybug); Settings > Developer > Debug Player opens the debug player. (line 509)
+- [ ] Library's toolbar shows Edit and Settings (no ladybug); in a build from Xcode, Settings > Developer > Debug Player opens the debug player; in a TestFlight build, Settings has no Developer section. (line 509)
 - [ ] Edit: hide Radio and History, drag Artists and Albums above Recently Added, Done: Library shows exactly that, with Artists and Albums in one block at the top. Force quit and relaunch: kept. Edit > Reset: back to the default. (line 510)
 - [ ] Hide everything: Library says to tap Edit. (line 511)
 - [ ] Favorites: your hearted songs (Play and Shuffle work), albums and artists. Unheart a song from its long-press menu: it leaves the list. Heart an album elsewhere, come back: it's there. (line 512)

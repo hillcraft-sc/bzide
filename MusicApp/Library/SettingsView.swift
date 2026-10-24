@@ -14,8 +14,9 @@ struct SettingsView: View {
     let account: AccountSummary?
     let signOut: () -> Void
     let restoreDefaults: () -> Void
-    /// The bare player screen kept for exercising playback.
-    let debugPlayer: () -> DebugPlayerView
+    /// The bare player screen kept for exercising playback; `nil` outside
+    /// Debug builds, so TestFlight and the App Store don't have it (#24).
+    let debugPlayer: (() -> AnyView)?
     /// Radio Browser's genres, for Spin the Dial's Genres.
     let stationSearch: () -> StationSearchModel
     /// Fetches the library's lists again now.
@@ -259,21 +260,23 @@ struct SettingsView: View {
             Section {
                 Button("Restore Default Settings", role: .destructive) { isConfirmingRestoreDefaults = true }
             } footer: {
-                Text("Puts every setting back to how Bzide starts, with the online services off, and resets the Library layout, filters and visualizer. Your downloads, history (and how long it's kept), tagged radio songs, profile picture and lyrics timing fixes stay.")
+                Text("Puts every setting back to how Bzide starts, with the online services off, and resets the Library layout, filters and visualizer. Your downloads, history (and how long it's kept), Wishlist, profile picture and lyrics timing fixes stay.")
             }
             .themedRows(grouped: true)
-            Section {
-                NavigationLink {
-                    debugPlayer()
-                } label: {
-                    Label("Debug Player", systemImage: "ladybug")
+            if let debugPlayer {
+                Section {
+                    NavigationLink {
+                        debugPlayer()
+                    } label: {
+                        Label("Debug Player", systemImage: "ladybug")
+                    }
+                } header: {
+                    Text("Developer")
+                } footer: {
+                    Text("A bare player for testing playback. Only in builds installed from Xcode.")
                 }
-            } header: {
-                Text("Developer")
-            } footer: {
-                Text("A bare player for testing playback.")
+                .themedRows(grouped: true)
             }
-            .themedRows(grouped: true)
         }
         .themedList(grouped: true)
         .navigationTitle("Settings")
