@@ -783,7 +783,7 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Library > Albums, Playlists, Favorites (songs with Shuffle, albums, artists) and Genres (a genre's albums) all open and play. (2026-10-22)
 - [x] Radio: your stations, server and iPhone together, with logos; one plays and opens Now Playing. With Find Stations Online on, Spin the Dial is first and tunes a station. (2026-10-22)
 - [x] A station that won't play (e.g. a dead address): an alert explains, with OK. (2026-10-22)
-- [ ] In a car (or a Bluetooth car stereo): play Bzide, turn the car off (music pauses), wait a minute, turn it on. With Settings > CarPlay > Play When CarPlay Connects off (the default), Bzide stays paused; press play on the car's screen or wheel: it plays. Turn the setting on and repeat: the car starts Bzide where it left off.
+- [x] In a car (or a Bluetooth car stereo): play Bzide, turn the car off (music pauses), wait a minute, turn it on. With Settings > CarPlay > Play When CarPlay Connects off (the default), Bzide stays paused; press play on the car's screen or wheel: it plays. Turn the setting on and repeat: the car starts Bzide where it left off. (2026-10-24, in the owner's car)
 
 ### iPhone Duo (Device Hub's iPhone Duo, or the device)
 - [x] Closed (outer display): sign in, browse Library and Search, open Now Playing, Lyrics and a visualizer, Settings. Nothing cut off or hidden behind the camera; the bars sit where the system puts them. (2026-10-22)
