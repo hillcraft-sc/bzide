@@ -197,6 +197,6 @@ Bzide has no ads, no tracking and no accounts of its own. Your music and listeni
 - **Spin Off says similar songs aren't available:** your server needs a music-information service (in Navidrome, Last.fm) for similar songs. Bzide plays songs from the same genre instead.
 - **"EQ unavailable" or no visualizer:** you're playing radio or using AirPlay. Both work for songs on the iPhone, headphones and Bluetooth.
 - **Downloads aren't starting:** they wait for Wi-Fi unless Settings > Downloads > Download over Cellular is on.
-- **Siri doesn't understand:** Siri needs Apple Intelligence, and the phrase must say "in Bzide".
+- **Siri doesn't understand:** Siri needs Apple Intelligence, and the phrase must say "in Bzide" (say it "Bee-zide"). If Siri plays something from Apple Music instead, it probably misheard the app's name: try again, stressing "in Bee-zide".
 - **Everything looks wrong after changing lots of settings:** Settings > Restore Default Settings.
 - **Still stuck?** Ask whoever runs your server, or the person who gave you Bzide.

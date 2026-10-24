@@ -76,7 +76,7 @@ public actor AudioRequestFinder {
 
     /// "Play `query` in Bzide".
     public func find(_ query: String) async -> [AudioMatch] {
-        let wanted = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        let wanted = Self.whatToPlay(in: query)
         guard !wanted.isEmpty else { return await unspecified() }
         if Self.same(wanted, Self.randomMixTitle) { return [.randomMix] }
         let (found, lists) = await searchAndPlaylists(wanted)
@@ -141,6 +141,46 @@ public actor AudioRequestFinder {
         // An empty list may be a failed fetch; ask again next time.
         guard !fetched.isEmpty else { return }
         playlists = (fetched, now())
+    }
+
+    /// How Siri may write the app's name when it hears it as part of the
+    /// request rather than as the app ("Bee-zide", or "Bee-side"): Siri wrote
+    /// "Bzside" on device, and then searched for music by that name.
+    static let appNameSpellings = ["bzide", "bzside", "bzyde", "bee zide", "beezide", "bee-zide", "b-side", "b side", "bside", "bee side", "beeside", "bee-side"]
+
+    /// Asking for nothing in particular: the same as "play music in Bzide".
+    static let genericRequests: Set<String> = [
+        "", "music", "my music", "some music", "the music", "songs", "my songs", "some songs", "a song", "something",
+        "anything", "my library", "tunes", "some tunes", "audio", "play music", "play",
+    ]
+
+    /// What Siri's words ask for, without the app's name (a leading or trailing
+    /// "in Bzide", "Bzside" or the like) and with generic words ("music", "my
+    /// music") reduced to nothing, which means play whatever: resume, or a
+    /// Random Mix.
+    static func whatToPlay(in query: String) -> String {
+        var text = query.lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+        let connectors = ["in", "on", "from", "with", "using", "via"]
+        for name in appNameSpellings.sorted(by: { $0.count > $1.count }) {
+            if text == name { text = ""; break }
+            for connector in connectors where text.hasSuffix(" \(connector) \(name)") {
+                text = String(text.dropLast(connector.count + name.count + 2))
+            }
+            if text.hasSuffix(" \(name)") { text = String(text.dropLast(name.count + 1)) }
+            if text.hasPrefix("\(name) ") { text = String(text.dropFirst(name.count + 1)) }
+        }
+        text = text.trimmingCharacters(in: .whitespacesAndNewlines.union(.punctuationCharacters))
+        if genericRequests.contains(text) { return "" }
+        // The original casing for a real search.
+        return text.isEmpty ? "" : Self.restoringCase(text, from: query)
+    }
+
+    /// `text` (lowercased) as it appears in `query`, so the server searches
+    /// for what was said.
+    private static func restoringCase(_ text: String, from query: String) -> String {
+        guard let range = query.range(of: text, options: [.caseInsensitive, .diacriticInsensitive]) else { return text }
+        return String(query[range])
     }
 
     private static func same(_ a: String, _ b: String) -> Bool {

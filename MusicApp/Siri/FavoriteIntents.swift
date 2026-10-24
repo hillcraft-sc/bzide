@@ -31,6 +31,18 @@ enum CurrentSongFavorite {
 struct BzideShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
+            intent: PlayMusicIntent(),
+            phrases: [
+                "Play music in \(.applicationName)",
+                "Play my music in \(.applicationName)",
+                "Play \(.applicationName)",
+                "Resume \(.applicationName)",
+                "Start \(.applicationName)",
+            ],
+            shortTitle: "Play Music",
+            systemImageName: "play.fill"
+        )
+        AppShortcut(
             intent: FavoriteCurrentSongIntent(),
             phrases: [
                 "Favorite this song in \(.applicationName)",

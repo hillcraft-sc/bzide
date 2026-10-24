@@ -50,6 +50,27 @@ struct PlayAudioIntent: AudioPlaybackIntent {
     }
 }
 
+/// "Play music in Bzide", "Play Bzide": carries on with the queue, or starts
+/// a Random Mix when nothing is queued. An App Shortcut phrase (see
+/// `BzideShortcuts`), because Siri doesn't send these to the audio search:
+/// without a phrase it answered that Bzide doesn't support that (Gitea #34).
+struct PlayMusicIntent: AudioPlaybackIntent {
+    static let title: LocalizedStringResource = "Play Music"
+    static let description = IntentDescription("Carries on with what you were listening to in Bzide, or starts a Random Mix.")
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        let library = try SiriAccess.library()
+        if library.engine.queue.current != nil {
+            library.engine.play()
+        } else {
+            // Awaited, so the system keeps the app running until the music starts.
+            await library.randomMix.start()
+        }
+        return .result()
+    }
+}
+
 @AppIntent(schema: .audio.addToPlaylist)
 struct AddToPlaylistIntent {
     static let title: LocalizedStringResource = "Add to Playlist"

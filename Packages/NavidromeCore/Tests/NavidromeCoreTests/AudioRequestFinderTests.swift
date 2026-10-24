@@ -76,6 +76,35 @@ struct AudioRequestFinderTests {
         #expect(await finder.unspecified() == [.randomMix])
     }
 
+    @Test func theAppsNameIsNotMusicToSearchFor() {
+        // Siri heard "Bee-zide" as "Bzside" and searched for it.
+        #expect(AudioRequestFinder.whatToPlay(in: "Bzside") == "")
+        #expect(AudioRequestFinder.whatToPlay(in: "music in Bzside") == "")
+        #expect(AudioRequestFinder.whatToPlay(in: "Music Bzside") == "")
+        #expect(AudioRequestFinder.whatToPlay(in: "my music on B-Side") == "")
+        #expect(AudioRequestFinder.whatToPlay(in: "Creed in Bzide") == "Creed")
+        #expect(AudioRequestFinder.whatToPlay(in: "bee zide Kind of Blue") == "Kind of Blue")
+    }
+
+    @Test func genericWordsMeanPlayMusic() {
+        for words in ["music", "My Music", "some music", "songs", "something", ""] {
+            #expect(AudioRequestFinder.whatToPlay(in: words) == "", "\(words)")
+        }
+    }
+
+    @Test func realSearchesAreLeftAlone() {
+        #expect(AudioRequestFinder.whatToPlay(in: "Creed") == "Creed")
+        #expect(AudioRequestFinder.whatToPlay(in: "Music for Airports") == "Music for Airports")
+        #expect(AudioRequestFinder.whatToPlay(in: "B-Sides and Rarities") == "B-Sides and Rarities")
+    }
+
+    @Test func playMusicInTheMisheardAppResumes() async {
+        let server = Server()
+        let song = Song(id: "so-9", title: "Dawn")
+        server.state.withLock { $0.current = song }
+        #expect(await AudioRequestFinder(sources: server.sources).find("music in Bzside") == [.resume(song)])
+    }
+
     @Test func randomMixCanBeAskedForByName() async {
         let finder = AudioRequestFinder(sources: Server().sources)
         #expect(await finder.find("random mix") == [.randomMix])

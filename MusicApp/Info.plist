@@ -13,6 +13,30 @@
 			</array>
 		</dict>
 	</array>
+	<!-- Siri mishears "Bzide" (said "Bee-zide" or "Bee-side"), e.g. as
+	     "Bzside", and then treats it as music to search for (Gitea #34). These
+	     names and "sounds like" hints help it hear the app. At most three. -->
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Bee-zide</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>bee zide</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Bee-side</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>bee side</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Bzside</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>bee zide</string>
+		</dict>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<!-- The phone window and CarPlay are separate scenes that can run at once. -->

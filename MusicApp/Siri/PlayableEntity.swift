@@ -47,7 +47,13 @@ extension PlayableEntity {
             switch input.criteria {
             case .searchQuery(let query):
                 kind = "search"
+                // The words Siri sent, readable in debug builds (installed
+                // from Xcode) to see what Siri heard; private otherwise.
+                #if DEBUG
+                Self.logger.notice("Audio search for \(query, privacy: .public)")
+                #else
                 Self.logger.notice("Audio search for \(query, privacy: .private)")
+                #endif
                 matches = await finder.find(query)
             case .unspecified:
                 kind = "unspecified"
