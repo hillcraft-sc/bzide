@@ -11,6 +11,9 @@ public enum AudioSessionEvent: Sendable, Equatable {
     /// The device we were playing through went away (headphones unplugged,
     /// Bluetooth disconnected).
     case outputDeviceLost
+    /// A car (CarPlay) or Bluetooth audio device just became the output. Cars
+    /// often send "play" by themselves as they connect (see `ConnectionPlayGuard`).
+    case autoplayDeviceConnected
     /// The system's audio services went down. The player is dead until
     /// `mediaServicesReset` arrives.
     case mediaServicesLost
@@ -120,11 +123,12 @@ public final class SystemAudioSession: AudioSessionControlling {
         notificationTokens.append(center.addObserver(
             forName: AVAudioSession.routeChangeNotification, object: session, queue: .main
         ) { [weak self] notification in
-            let event = Self.routeChangeEvent(from: notification.userInfo)
-            let reason = (notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt).map(String.init) ?? "none"
+            let rawReason = notification.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt
+            let reason = rawReason.map(String.init) ?? "none"
             MainActor.assumeIsolated {
-                Self.logger.notice("Raw: route change, reason \(reason, privacy: .public)")
-                if let event { self?.deliver(event) }
+                let outputs = self?.session.currentRoute.outputs.map(\.portType) ?? []
+                Self.logger.notice("Raw: route change, reason \(reason, privacy: .public), outputs \(outputs.map(\.rawValue).joined(separator: ","), privacy: .public)")
+                if let event = Self.routeChangeEvent(reason: rawReason, outputs: outputs) { self?.deliver(event) }
             }
         })
         // Not acted on: the classic interruption notification, logged to compare
@@ -175,11 +179,20 @@ public final class SystemAudioSession: AudioSessionControlling {
         .interruptionEnded(shouldResume: recommendation == .shouldResume)
     }
 
-    nonisolated static func routeChangeEvent(from userInfo: [AnyHashable: Any]?) -> AudioSessionEvent? {
-        guard
-            let rawReason = userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
-            AVAudioSession.RouteChangeReason(rawValue: rawReason) == .oldDeviceUnavailable
-        else { return nil }
-        return .outputDeviceLost
+    /// `outputs` is where audio goes now, after the change.
+    nonisolated static func routeChangeEvent(reason rawReason: UInt?, outputs: [AVAudioSession.Port]) -> AudioSessionEvent? {
+        switch rawReason.flatMap(AVAudioSession.RouteChangeReason.init(rawValue:)) {
+        case .oldDeviceUnavailable:
+            return .outputDeviceLost
+        case .newDeviceAvailable where outputs.contains(where: autoplayPorts.contains):
+            return .autoplayDeviceConnected
+        default:
+            return nil
+        }
     }
+
+    /// Outputs that can start playback on their own as they connect: CarPlay,
+    /// and Bluetooth (car stereos without CarPlay look like any other
+    /// Bluetooth audio device).
+    nonisolated static let autoplayPorts: Set<AVAudioSession.Port> = [.carAudio, .bluetoothA2DP, .bluetoothHFP, .bluetoothLE]
 }

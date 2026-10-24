@@ -1,6 +1,6 @@
 # Open device checks
 
-A snapshot of the 82 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-23. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
+A snapshot of the 83 unticked checks in `docs/BEHAVIOR.md` (Manual test checklist), taken 2026-10-24. `BEHAVIOR.md` is the real record: tick a check here or there and tell Claude, who copies ticks from here into it. This file goes stale and can be regenerated or deleted.
 
 The number after each check is its line in `BEHAVIOR.md`.
 
@@ -121,3 +121,7 @@ The number after each check is its line in `BEHAVIOR.md`.
 - [ ] Signed out: a Siri request says to sign in first. (line 736)
 - [ ] Play a song, lock the phone, "Favorite this song in Bzide": Siri confirms; the heart is filled in Now Playing and Navidrome. Say it again: still a favorite (not undone). "Unfavorite this song in Bzide": cleared. On a radio station: Siri says it can't be a favorite. (line 737)
 - [ ] Settings > Action Button > Shortcut > Bzide > Favorite Current Song (or a Shortcut): pressing it hearts the playing song. (line 738)
+
+## CarPlay (CarPlay Simulator with the iPhone, or a car) (1)
+
+- [ ] In a car (or a Bluetooth car stereo): play Bzide, turn the car off (music pauses), wait a minute, turn it on. With Settings > CarPlay > Play When CarPlay Connects off (the default), Bzide stays paused; press play on the car's screen or wheel: it plays. Turn the setting on and repeat: the car starts Bzide where it left off. (line 786)

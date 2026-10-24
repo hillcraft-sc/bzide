@@ -158,6 +158,8 @@ final class AppModel {
             scrobbler: scrobbler,
             history: history
         )
+        // A car's own play as it connects is ignored unless this is on (#27).
+        engine.playsWhenDeviceConnects = { [settings = system.settings] in settings.settings.playWhenCarPlayConnects }
         self.engine = engine
         library = Library(
             client: client, username: credentials.username, engine: engine, artwork: artwork,

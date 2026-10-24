@@ -87,6 +87,14 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Play When CarPlay Connects", isOn: $settings.settings.playWhenCarPlayConnects)
+            } header: {
+                Text("CarPlay")
+            } footer: {
+                Text("Off: getting into the car doesn't start the music. Some cars tell the music app to play as soon as they connect, over CarPlay or Bluetooth; Bzide ignores that for a few seconds after connecting, then plays when you press play. On: the car can start Bzide where you left off.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 Toggle("Use Simplified Rating", isOn: $settings.settings.useSimplifiedRating)
             } header: {
                 Text("Ratings")

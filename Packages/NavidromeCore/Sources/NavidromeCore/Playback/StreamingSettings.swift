@@ -80,13 +80,17 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     /// On by default: ratings are Meh, Like and Love. Off: Navidrome's 1–5
     /// stars. Either way the server stores stars (see `Rating`).
     public var useSimplifiedRating: Bool
+    /// Off by default: a play the car sends by itself as CarPlay or Bluetooth
+    /// connects is ignored (see `ConnectionPlayGuard`).
+    public var playWhenCarPlayConnects: Bool
 
     public init(
         wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
         downloadOverCellular: Bool = false, downloadQuality: StreamQuality = .original,
         findLyricsOnline: Bool = false, wrongLyricsButton: Bool = false, sendPlaysToServer: Bool = true, showsVisualizer: Bool = true, findStationsOnline: Bool = false, lookUpSongsOnline: Bool = false, lookUpArtistsOnline: Bool = false,
         liveWeather: Bool = false, liveWeatherUsesLocation: Bool = true, liveWeatherCity: String = "", liveWeatherPlace: LiveWeatherPlace? = nil, liveWeatherSource: LiveWeatherProvider = .apple, spinTheDial: DialSettings = DialSettings(), volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
-        includeMehInMixes: Bool = false, myCutsIncludeFavorites: Bool = true, useSimplifiedRating: Bool = true
+        includeMehInMixes: Bool = false, myCutsIncludeFavorites: Bool = true, useSimplifiedRating: Bool = true,
+        playWhenCarPlayConnects: Bool = false
     ) {
         self.wifiQuality = wifiQuality
         self.cellularQuality = cellularQuality
@@ -110,10 +114,11 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         self.includeMehInMixes = includeMehInMixes
         self.myCutsIncludeFavorites = myCutsIncludeFavorites
         self.useSimplifiedRating = useSimplifiedRating
+        self.playWhenCarPlayConnects = playWhenCarPlayConnects
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, wrongLyricsButton, sendPlaysToServer, showsVisualizer, findStationsOnline, lookUpSongsOnline, lookUpArtistsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, liveWeatherSource, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites, useSimplifiedRating
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, wrongLyricsButton, sendPlaysToServer, showsVisualizer, findStationsOnline, lookUpSongsOnline, lookUpArtistsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, liveWeatherSource, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites, useSimplifiedRating, playWhenCarPlayConnects
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -143,6 +148,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         includeMehInMixes = (try? c.decodeIfPresent(Bool.self, forKey: .includeMehInMixes)) ?? defaults.includeMehInMixes
         myCutsIncludeFavorites = (try? c.decodeIfPresent(Bool.self, forKey: .myCutsIncludeFavorites)) ?? defaults.myCutsIncludeFavorites
         useSimplifiedRating = (try? c.decodeIfPresent(Bool.self, forKey: .useSimplifiedRating)) ?? defaults.useSimplifiedRating
+        playWhenCarPlayConnects = (try? c.decodeIfPresent(Bool.self, forKey: .playWhenCarPlayConnects)) ?? defaults.playWhenCarPlayConnects
     }
 }
 

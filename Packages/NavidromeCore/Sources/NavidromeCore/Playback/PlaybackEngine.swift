@@ -108,6 +108,10 @@ public final class PlaybackEngine {
     @ObservationIgnored private let history: (any PlayRecording)?
     @ObservationIgnored private var scrobbleTracker = ScrobbleTracker()
     @ObservationIgnored private let now: @MainActor () -> Date
+    @ObservationIgnored private var connectionGuard = ConnectionPlayGuard()
+    /// Settings > CarPlay > Play When CarPlay Connects: off, a play command
+    /// just after a car or Bluetooth device connects is ignored.
+    @ObservationIgnored public var playsWhenDeviceConnects: @MainActor () -> Bool = { false }
 
     /// Bumped by every play request and anything that cancels one, so a slow
     /// activation can't start the player after the user moved on.
@@ -423,7 +427,17 @@ public final class PlaybackEngine {
 
     // MARK: - Remote commands
 
+    /// The CarPlay screen just connected. The audio route may change before
+    /// or after the car's own play command, so this starts the window too.
+    public func carPlayConnected() {
+        connectionGuard.deviceConnected(at: now())
+    }
+
     private func handle(_ command: RemoteCommand) {
+        if startsPlayback(command), connectionGuard.blocksPlay(at: now()), !playsWhenDeviceConnects() {
+            Self.logger.notice("Ignored \(String(describing: command), privacy: .public): a car or Bluetooth device just connected")
+            return
+        }
         switch command {
         case .play: play()
         case .pause: pause()
@@ -432,6 +446,10 @@ public final class PlaybackEngine {
         case .previous: previous()
         case .seek(let position): seek(to: position)
         }
+    }
+
+    private func startsPlayback(_ command: RemoteCommand) -> Bool {
+        command == .play || (command == .togglePlayPause && !status.isActive)
     }
 
     // MARK: - Audio session events
@@ -455,6 +473,8 @@ public final class PlaybackEngine {
             guard status.isActive else { return }
             resumeAfterInterruption = false
             stopForSystem()
+        case .autoplayDeviceConnected:
+            connectionGuard.deviceConnected(at: now())
         case .mediaServicesLost:
             mediaServicesLost()
         case .mediaServicesReset:

@@ -90,11 +90,17 @@ struct SystemAudioSessionParsingTests {
         #expect(SystemAudioSession.resumptionEvent(recommendation: nil) == .interruptionEnded(shouldResume: false))
     }
 
-    @Test func onlyLosingTheOldDeviceMatters() {
-        let lost: [AnyHashable: Any] = [AVAudioSessionRouteChangeReasonKey: AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue]
-        let added: [AnyHashable: Any] = [AVAudioSessionRouteChangeReasonKey: AVAudioSession.RouteChangeReason.newDeviceAvailable.rawValue]
-        #expect(SystemAudioSession.routeChangeEvent(from: lost) == .outputDeviceLost)
-        #expect(SystemAudioSession.routeChangeEvent(from: added) == nil)
-        #expect(SystemAudioSession.routeChangeEvent(from: nil) == nil)
+    @Test func routeChanges() {
+        let lost = AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue
+        let added = AVAudioSession.RouteChangeReason.newDeviceAvailable.rawValue
+        let category = AVAudioSession.RouteChangeReason.categoryChange.rawValue
+        #expect(SystemAudioSession.routeChangeEvent(reason: lost, outputs: [.builtInSpeaker]) == .outputDeviceLost)
+        // A car or Bluetooth device connecting may send play by itself.
+        #expect(SystemAudioSession.routeChangeEvent(reason: added, outputs: [.carAudio]) == .autoplayDeviceConnected)
+        #expect(SystemAudioSession.routeChangeEvent(reason: added, outputs: [.bluetoothA2DP]) == .autoplayDeviceConnected)
+        // Wired headphones don't.
+        #expect(SystemAudioSession.routeChangeEvent(reason: added, outputs: [.headphones]) == nil)
+        #expect(SystemAudioSession.routeChangeEvent(reason: category, outputs: [.carAudio]) == nil)
+        #expect(SystemAudioSession.routeChangeEvent(reason: nil, outputs: []) == nil)
     }
 }
