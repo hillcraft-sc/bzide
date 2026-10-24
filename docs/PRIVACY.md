@@ -36,6 +36,10 @@ It also reports what you play (scrobbling), so your server can keep play counts 
 
 Internet radio plays straight from each station's own server, which sees your connection as any listener's would. Some stations only stream over plain http, which isn't encrypted: someone on your network could see which station you're listening to (not who you are). Station logos load from the station's own website.
 
+### Links you open
+
+Some things open a web page when you tap them: a release or artist on MusicBrainz, or a store's search to buy something on your Wishlist (Apple Music, Bandcamp, Qobuz, Amazon). They open in Safari or the store's app only when you tap, and get only what's in the link (the artist and title searched for). Sharing your Wishlist goes through the iOS share sheet, to wherever you choose; Bzide itself sends it nowhere.
+
 ## What stays on your iPhone
 
 - **Your login** in the Keychain, readable only on this iPhone (it isn't synced to iCloud Keychain or put in backups).

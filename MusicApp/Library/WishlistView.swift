@@ -1,11 +1,14 @@
+import CoreTransferable
 import NavidromeCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The Wishlist: songs heard on the radio, songs missing from albums, and
 /// albums and artists to get, newest first, in sections (only those with
 /// something in them). Opening it checks the library for each; ones found
 /// since are marked and open your copy when tapped. Swipe to remove;
-/// long-press to copy, or open the MusicBrainz page.
+/// long-press to copy, buy it from a store, or open the MusicBrainz page.
+/// Share exports the list as text or CSV (Gitea #29).
 struct WishlistView: View {
     let library: Library
 
@@ -40,6 +43,19 @@ struct WishlistView: View {
             }
         }
         .navigationTitle("Wishlist")
+        .toolbar {
+            if !wishlist.entries.isEmpty {
+                ToolbarItem {
+                    Menu("Share", systemImage: "square.and.arrow.up") {
+                        ShareLink("Share as Text", item: wishlist.exportText())
+                        ShareLink(
+                            "Share as CSV", item: WishlistCSV(text: wishlist.exportCSV()),
+                            preview: SharePreview("Wishlist.csv", image: Image(systemName: "tablecells"))
+                        )
+                    }
+                }
+            }
+        }
         .task { await wishlist.checkLibrary() }
         .refreshable { await wishlist.checkLibrary() }
     }
@@ -130,6 +146,22 @@ struct WishlistView: View {
         if let page = entry.musicBrainzURL {
             Button("Open MusicBrainz Page", systemImage: "safari") { openURL(page) }
         }
+        // Buying it: a store's search, opened in Safari or the store's app.
+        Menu("Buy", systemImage: "cart") {
+            ForEach(entry.storeLinks()) { link in
+                Button(link.store) { openURL(link.url) }
+            }
+        }
         Button("Remove", systemImage: "trash", role: .destructive) { wishlist.remove(entry.id) }
+    }
+}
+
+/// The Wishlist as a CSV file, for the share sheet (a spreadsheet, Files, a script).
+private struct WishlistCSV: Transferable {
+    let text: String
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .commaSeparatedText) { Data($0.text.utf8) }
+            .suggestedFileName("Wishlist.csv")
     }
 }
