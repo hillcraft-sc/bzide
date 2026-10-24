@@ -376,14 +376,23 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 ## CarPlay
 
-- **Tabs:** CarPlay gives audio apps only a few tabs (the car decides; `CPTabBarTemplate.maximumTabCount`, 4 so far), so there are four, and a car allowing fewer drops them from the end:
-  - **Recently Played:** the first page of recently played albums.
-  - **Library:** **Random Mix** and **Mix My Cuts** first (each starts its mix and opens Now Playing; CarPlay shows a spinner on the row until it has), then **Artists** (by letter, as the server groups them, with the letters as an index; an artist opens with Shuffle, which plays all their songs shuffled, then their albums), **Albums** (recently added, the first page), **Playlists**, **Favorites** (favorite songs headed by Shuffle, then favorite albums, then favorite artists) and **Genres** (each opens its albums).
-  - **Radio:** with Find Stations Online on, **Spin the Dial** first (as the Library button does on the phone); then the saved stations, on the server and this iPhone together, by name, with their logos and the line under their names on the phone (country, quality, genres). Choosing one plays it and opens Now Playing.
-  - **Downloaded:** built from the saved downloads, so it works with no connection, and refreshed each time it's shown.
+Redesigned in Gitea #28 from the owner's mockups.
+
+- **Tabs:** CarPlay gives audio apps only a few tabs (the car decides; `CPTabBarTemplate.maximumTabCount`), so there are three, and a car allowing fewer drops them from the end:
+  - **Recents:** Shuffle (a Random Mix), then the first page of recently played albums.
+  - **Library:** **Random Mix** and **Mix My Cuts** first, as buttons (each starts its mix and opens Now Playing). Then **Top Rated**: a row of the highest-rated albums' covers with their titles and artists (`getAlbumList2` `highest`, up to 8, as many as the car's width fits; left out when none are rated); one opens its album. Then more **buttons** in the same style (each an icon and a name, two or more to a line as the car's width allows; `CPListImageRowItem` with condensed elements): **Artists**, **Albums** (recently added), **Playlists**, **Favorites**, **Genres** and **Downloaded** (once a tab of its own; built from the saved downloads, so it works with no connection, and refreshed each time it's shown).
+  - **Radio:** with Find Stations Online on, **Spin the Dial** first (as the Library button does on the phone), in the same section as the stations so a line divides them; then the saved stations, on the server and this iPhone together, by name, with their logos and the line under their names on the phone.
+  - Artists are by letter, as the server groups them, with the letters as an index; an artist opens with Shuffle (their songs) and their albums.
+- **Shuffle first:** lists of things to play start with **Shuffle**, in the same section as what follows, so CarPlay draws a line under it (where the list has headers, as Favorites' Songs, Albums and Artists do, Shuffle goes above them, on its own): an album's or playlist's songs (those songs, shuffled), an artist (their songs), Favorites (its songs), a genre's albums (that genre's songs), and the Albums, Artists, Playlists and Genres lists and Recents (a Random Mix: the whole library).
+- **Driving:** while the car moves, CarPlay itself shortens long lists and turns off the keyboard (a safety rule apps can't change); the mixes, Top Rated, Shuffle rows and Artists' letter index are the quick ways to music then.
 - A mix, Spin the Dial or a station that can't start shows its message in a CarPlay alert with OK (the phone shows it too, as usual).
 - An album or playlist opens as a list of its songs, headed by Shuffle. Choosing a song plays the album or playlist from that song, the same rule as on the phone, and shows CarPlay's Now Playing screen.
-- Now Playing is CarPlay's built-in screen. It shows the same title, artwork, progress and controls as the lock screen, from the same source.
+- Now Playing is CarPlay's built-in screen. It shows the same title, artwork, progress and controls as the lock screen, from the same source. Under them (not for a station):
+  - **Shuffle** and **repeat**: CarPlay's own buttons, showing their state from the engine through the system's shuffle and repeat commands (`changeShuffleModeCommand`, `changeRepeatModeCommand`, which also carry them out). Repeat goes off, all, one.
+  - A **heart** for Favorite, filled when the song is a favorite; tapping it favorites or unfavorites it (as on the phone).
+  - **•••**: **Spin Off from This Song** or **Spin Off from <artist>** (an action sheet, with Cancel).
+  - **Up Next** at the top right (CarPlay's own button, the list icon; when anything is up next): a Queue list of the current song, marked as playing, then up next; choosing one jumps to it and returns to Now Playing. Bzide gives it no title, since a title replaces the icon with text.
+  - The **album name** opens the album's page.
 - Lists stop at CarPlay's maximum length. While loading a list shows "Loading…"; a failure shows the reason and a Try Again row.
 - Signed out, CarPlay shows "Sign in on your iPhone" and switches to the library once the user signs in.
 - The CarPlay screen can start without the phone's own window (app launched from the car with the phone locked); it uses the same single app model and playback engine as the phone.
@@ -819,6 +828,9 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [x] Library > Albums, Playlists, Favorites (songs with Shuffle, albums, artists) and Genres (a genre's albums) all open and play. (2026-10-22)
 - [x] Radio: your stations, server and iPhone together, with logos; one plays and opens Now Playing. With Find Stations Online on, Spin the Dial is first and tunes a station. (2026-10-22)
 - [x] A station that won't play (e.g. a dead address): an alert explains, with OK. (2026-10-22)
+- [ ] Tabs are Recents, Library and Radio (no Downloaded tab). Library: Random Mix and Mix My Cuts as buttons, then Top Rated covers (rate a few albums first), then buttons for Artists, Albums, Playlists, Favorites, Genres and Downloaded, two or more to a line. Each opens its list; a Top Rated cover opens its album.
+- [ ] Albums, Artists, Playlists, Genres, a genre's albums and Recents start with Shuffle, with a line under it; in Favorites it's above the Songs header; Radio has a line under Spin the Dial.
+- [ ] Now Playing: shuffle and repeat buttons show and change their state (and match the phone's); the heart fills when you favorite the song (Navidrome agrees); ••• offers Spin Off from the song or its artist; the list icon at the top right lists up next and jumps to a song; the album name opens the album.
 - [x] In a car (or a Bluetooth car stereo): play Bzide, turn the car off (music pauses), wait a minute, turn it on. With Settings > CarPlay > Play When CarPlay Connects off (the default), Bzide stays paused; press play on the car's screen or wheel: it plays. Turn the setting on and repeat: the car starts Bzide where it left off. (2026-10-24, in the owner's car)
 
 ### iPhone Duo (Device Hub's iPhone Duo, or the device)

@@ -10,6 +10,11 @@ public enum AlbumSort: String, CaseIterable, Sendable {
     case artist
     case random
     case starred
+    /// The user's highest rated (CarPlay's Top Rated; not offered on the phone).
+    case highest
+
+    /// The orders offered on the phone's Albums screen.
+    public static var phoneSorts: [AlbumSort] { allCases.filter { $0 != .highest } }
 
     public var title: String {
         switch self {
@@ -20,6 +25,7 @@ public enum AlbumSort: String, CaseIterable, Sendable {
         case .artist: "Artist"
         case .random: "Random"
         case .starred: "Favorites"
+        case .highest: "Top Rated"
         }
     }
 
@@ -32,6 +38,7 @@ public enum AlbumSort: String, CaseIterable, Sendable {
         case .artist: .alphabeticalByArtist
         case .random: .random
         case .starred: .starred
+        case .highest: .highest
         }
     }
 

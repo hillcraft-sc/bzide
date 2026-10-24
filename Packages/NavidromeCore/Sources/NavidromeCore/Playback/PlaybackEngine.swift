@@ -445,6 +445,8 @@ public final class PlaybackEngine {
         case .next: next()
         case .previous: previous()
         case .seek(let position): seek(to: position)
+        case .setShuffle(let on): if on != isShuffled { toggleShuffle() }
+        case .setRepeat(let mode): setRepeatMode(mode)
         }
     }
 
@@ -762,7 +764,9 @@ public final class PlaybackEngine {
                 isPlaying: status == .playing,
                 hasNext: canGoNext,
                 hasPrevious: !live && queue.hasPrevious,
-                isLiveStream: live
+                isLiveStream: live,
+                isShuffled: isShuffled,
+                repeatMode: repeatMode
             )
         }
         guard !hasPublishedNowPlaying || info != lastNowPlaying else { return }

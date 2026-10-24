@@ -49,7 +49,7 @@
 		000000000000000000000120 /* MusicApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MusicApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000300000001 /* MusicAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MusicAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0000000000000005000000A1 /* docs/PRIVACY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = docs/PRIVACY.md; sourceTree = "<group>"; };
-		0000000000000005000000A3 /* docs/USER-GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = docs/USER-GUIDE.md; sourceTree = "<group>"; };
+		0000000000000005000000A3 /* docs/USER-GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "docs/USER-GUIDE.md"; sourceTree = "<group>"; };
 		6C1EC7E7308187D60026ADB3 /* BzideControlsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BzideControlsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6C1EC7E9308187D60026ADB3 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = /System/Library/Frameworks/WidgetKit.framework; sourceTree = "<absolute>"; };
 		6C1EC7EB308187D60026ADB3 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = /System/Library/Frameworks/SwiftUI.framework; sourceTree = "<absolute>"; };

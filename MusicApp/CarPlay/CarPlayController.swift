@@ -4,16 +4,20 @@ import NavidromeCore
 /// Builds the CarPlay screens from the same library models the phone uses.
 /// CarPlay draws its own UI from templates; this only fills them in.
 ///
-/// Tabs: Recently Played, Library (Random Mix and Mix My Cuts, then
-/// Artists, Albums, Playlists, Favorites and Genres), Radio, Downloaded.
-/// CarPlay allows audio apps only a few tabs, so the rest of the library is
-/// one tap into Library. Choosing a song plays its list from there and
-/// shows CarPlay's Now Playing screen, which runs off the same Now Playing
-/// info as the lock screen.
+/// Tabs: Recents (recently played albums), Library (Random Mix and Mix My Cuts, Top Rated
+/// albums, then buttons for Artists, Albums, Playlists, Favorites, Genres and
+/// Downloaded), Radio. CarPlay allows audio apps only a few tabs, so the rest
+/// of the library is one tap into Library. Lists of things to play start with
+/// Shuffle, in the same section, so CarPlay draws a line under it. Choosing a
+/// song plays its list from there and shows CarPlay's Now Playing screen
+/// (see `CarPlayNowPlaying`), which runs off the same Now Playing info as
+/// the lock screen. While the car moves, CarPlay itself shortens long lists.
 final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
     private let interfaceController: CPInterfaceController
     private let model: AppModel
-    private var downloadsTab: CPListTemplate?
+    /// The Downloaded list while it's open, refreshed each time it shows.
+    private var downloadsList: CPListTemplate?
+    private var nowPlaying: CarPlayNowPlaying?
     /// Kept so their loads aren't dropped mid-flight.
     private var models: [AnyObject] = []
 
@@ -36,10 +40,12 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
             return
         }
         models = []
-        let recent = albumsTab(library, title: "Recently Played", systemImage: "clock", sort: .recentlyPlayed)
-        let downloads = downloadsTab(library)
-        downloadsTab = downloads
-        let tabs = [recent, libraryTab(library), radioTab(library), downloads]
+        nowPlaying?.stop()
+        nowPlaying = CarPlayNowPlaying(interfaceController: interfaceController, library: library) { [weak self] id, title in
+            self?.pushAlbum(id: id, title: title, library)
+        }
+        let recent = albumsTab(library, title: "Recents", systemImage: "clock", sort: .recentlyPlayed)
+        let tabs = [recent, libraryTab(library), radioTab(library)]
         // The car decides how many tabs fit; the most used come first.
         let fitting = Array(tabs.prefix(max(CPTabBarTemplate.maximumTabCount, 1)))
         interfaceController.setRootTemplate(CPTabBarTemplate(templates: fitting), animated: false, completion: nil)
@@ -49,7 +55,7 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
 
     func templateWillAppear(_ aTemplate: CPTemplate, animated: Bool) {
         // Downloads change while browsing; the list is local, so rebuilding is cheap.
-        if aTemplate === downloadsTab, let library = model.library {
+        if aTemplate === downloadsList, let library = model.library {
             fillDownloads(aTemplate as? CPListTemplate, library)
         }
     }
@@ -64,32 +70,107 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
 
     private func albumsTab(_ library: Library, title: String, systemImage: String, sort: AlbumSort) -> CPListTemplate {
         let template = loadingTemplate(title: title, systemImage: systemImage)
-        fillAlbums(template, library.albumsModel(sort: sort), library) { [weak self] in self?.start() }
+        fillAlbums(template, library.albumsModel(sort: sort), library, shuffle: randomMixItem(library)) { [weak self] in self?.start() }
         return template
     }
 
-    /// The mixes first, as the quickest way to music, then the ways in.
+    /// The mixes first, as the quickest way to music; then the Top Rated
+    /// albums' covers; then the ways in. Both as buttons, two or more to a line.
     private func libraryTab(_ library: Library) -> CPListTemplate {
-        let randomMix = actionItem("Random Mix", systemImage: "shuffle") { [weak self] in
+        let mixes = CPListSection(items: [mixButtons(library)])
+        let buttons = CPListSection(items: [libraryButtons(library)])
+        let template = CPListTemplate(title: "Library", sections: [mixes, buttons])
+        template.tabImage = UIImage(systemName: "music.note.house")
+        // Top Rated goes between them once it's loaded (and isn't empty).
+        let topRated = library.albumsModel(sort: .highest)
+        models.append(topRated)
+        Task { [weak self] in
+            await topRated.load()
+            guard let self, case .loaded(let albums) = topRated.state, !albums.isEmpty else { return }
+            template.updateSections([mixes, CPListSection(items: [topRatedRow(albums, library)]), buttons])
+        }
+        return template
+    }
+
+    /// Random Mix and Mix My Cuts, as buttons; each opens Now Playing once
+    /// its music starts (or says why it couldn't).
+    private func mixButtons(_ library: Library) -> CPListImageRowItem {
+        buttonRow([
+            ("Random Mix", "shuffle", { [weak self] in
+                await library.randomMix.start()
+                self?.showNowPlayingOrAlert(library.randomMix.error, library)
+            }),
+            ("Mix My Cuts", "flame", { [weak self] in
+                await library.spinOff.startRated()
+                self?.showNowPlayingOrAlert(library.spinOff.notice, library)
+            }),
+        ])
+    }
+
+    /// Artists, Albums, Playlists, Favorites, Genres and Downloaded, as buttons.
+    private func libraryButtons(_ library: Library) -> CPListImageRowItem {
+        buttonRow([
+            ("Artists", "music.microphone", { [weak self] in self?.pushArtists(library) }),
+            ("Albums", "square.stack", { [weak self] in self?.pushAlbums(title: "Albums", library.albumsModel(sort: .newest), library) }),
+            ("Playlists", "music.note.list", { [weak self] in self?.pushPlaylists(library) }),
+            ("Favorites", "heart", { [weak self] in self?.pushFavorites(library) }),
+            ("Genres", "guitars", { [weak self] in self?.pushGenres(library) }),
+            ("Downloaded", "arrow.down.circle", { [weak self] in self?.pushDownloads(library) }),
+        ])
+    }
+
+    /// Buttons with an icon and a name, two or more to a line (as the car's
+    /// width allows). CarPlay waits for each action to finish.
+    private func buttonRow(_ buttons: [(String, String, @MainActor () async -> Void)]) -> CPListImageRowItem {
+        let elements = buttons.map { title, symbol, _ in
+            let element = CPListImageRowItemCondensedElement(
+                image: UIImage(systemName: symbol) ?? UIImage(), imageShape: .roundedRectangle,
+                title: title, subtitle: nil, accessorySymbolName: nil
+            )
+            element.accessibilityLabel = title
+            return element
+        }
+        let row = CPListImageRowItem(text: nil, condensedElements: elements, allowsMultipleLines: true)
+        row.listImageRowHandler = { _, index, completion in
+            guard buttons.indices.contains(index) else { return completion() }
+            Task {
+                await buttons[index].2()
+                completion()
+            }
+        }
+        return row
+    }
+
+    /// The highest rated albums' covers, with their titles; one opens it.
+    private func topRatedRow(_ albums: [Album], _ library: Library) -> CPListImageRowItem {
+        let shown = Array(albums.prefix(Self.topRatedCount))
+        let placeholder = UIImage(systemName: "music.note") ?? UIImage()
+        let elements = shown.map { album in
+            let element = CPListImageRowItemRowElement(image: placeholder, title: album.name, subtitle: album.artist)
+            element.accessibilityLabel = [album.name, album.artist].compactMap { $0 }.joined(separator: ", ")
+            return element
+        }
+        let row = CPListImageRowItem(text: "Top Rated", elements: elements, allowsMultipleLines: false)
+        row.listImageRowHandler = { [weak self] _, index, completion in
+            if shown.indices.contains(index) { self?.pushAlbum(id: shown[index].id, title: shown[index].name, library) }
+            completion()
+        }
+        let pixels = Int(CPListImageRowItemRowElement.maximumImageSize.width * interfaceController.carTraitCollection.displayScale)
+        for (album, element) in zip(shown, elements) {
+            guard let cover = album.coverArtID else { continue }
+            Task {
+                if let image = await library.artwork.image(for: cover, pixels: pixels) { element.image = image }
+            }
+        }
+        return row
+    }
+
+    /// Random Mix: what Shuffle does at the top of a list of the whole library.
+    private func randomMixItem(_ library: Library, title: String = "Shuffle") -> CPListItem {
+        actionItem(title, systemImage: "shuffle") { [weak self] in
             await library.randomMix.start()
             self?.showNowPlayingOrAlert(library.randomMix.error, library)
         }
-        let myCuts = actionItem("Mix My Cuts", systemImage: "flame") { [weak self] in
-            await library.spinOff.startRated()
-            self?.showNowPlayingOrAlert(library.spinOff.notice, library)
-        }
-        let links = [
-            linkItem("Artists", systemImage: "music.microphone") { [weak self] in self?.pushArtists(library) },
-            linkItem("Albums", detail: "Recently added", systemImage: "square.stack") { [weak self] in
-                self?.pushAlbums(title: "Albums", library.albumsModel(sort: .newest), library)
-            },
-            linkItem("Playlists", systemImage: "music.note.list") { [weak self] in self?.pushPlaylists(library) },
-            linkItem("Favorites", systemImage: "heart") { [weak self] in self?.pushFavorites(library) },
-            linkItem("Genres", systemImage: "guitars") { [weak self] in self?.pushGenres(library) },
-        ]
-        let template = CPListTemplate(title: "Library", sections: [CPListSection(items: [randomMix, myCuts]), CPListSection(items: links)])
-        template.tabImage = UIImage(systemName: "music.note.house")
-        return template
     }
 
     /// The saved stations, on the server and this iPhone, by name; with Find
@@ -101,36 +182,36 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
         Task { [weak self] in
             await stations.load()
             guard let self else { return }
-            var sections: [CPListSection] = []
+            // Spin the Dial in the stations' section, so a line divides them.
+            var items: [CPListTemplateItem] = []
             if library.settings.settings.findStationsOnline {
-                let dial = actionItem("Spin the Dial", systemImage: "dial.medium") { [weak self] in
+                items.append(actionItem("Spin the Dial", systemImage: "dial.medium") { [weak self] in
                     await library.spinTheDialNow()
                     self?.showNowPlayingOrAlert(library.spinTheDial.error, library)
-                }
-                sections.append(CPListSection(items: [dial]))
+                })
             }
             let all = (stations.stations + stations.phoneStations)
                 .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-            let items = all.prefix(Self.maxItems).map { station in
+            items += all.prefix(Self.maxItems - items.count).map { station in
                 stationItem(station, library)
             }
-            if !items.isEmpty { sections.append(CPListSection(items: items)) }
             if case .failed(let message) = stations.state, stations.phoneStations.isEmpty {
                 showError(message, in: template) { [weak self] in self?.start() }
                 return
             }
-            template.updateSections(sections)
+            template.updateSections(items.isEmpty ? [] : [CPListSection(items: items)])
             template.emptyViewTitleVariants = ["No Stations"]
         }
         return template
     }
 
-    private func downloadsTab(_ library: Library) -> CPListTemplate {
+    /// Downloaded, from Library's buttons (once a tab of its own).
+    private func pushDownloads(_ library: Library) {
         let template = CPListTemplate(title: "Downloaded", sections: [])
-        template.tabImage = UIImage(systemName: "arrow.down.circle")
         template.emptyViewTitleVariants = ["No Downloads"]
         fillDownloads(template, library)
-        return template
+        downloadsList = template
+        interfaceController.pushTemplate(template, animated: true, completion: nil)
     }
 
     private func fillDownloads(_ template: CPListTemplate?, _ library: Library) {
@@ -154,8 +235,10 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
         pushLoaded(title: "Artists", load: artists.load, state: { artists.state }) { [weak self] sections in
             guard let self else { return [] }
             var remaining = Self.maxItems
-            var listSections: [CPListSection] = []
-            for section in sections.prefix(Self.maxSections) where remaining > 0 && !section.artists.isEmpty {
+            // Shuffle first, in its own section: the letters' headers follow.
+            var listSections = [CPListSection(items: [self.randomMixItem(library)])]
+            remaining -= 1
+            for section in sections.prefix(Self.maxSections - 1) where remaining > 0 && !section.artists.isEmpty {
                 let items = section.artists.prefix(remaining).map { artist in
                     self.listItem(artist.name, detail: artist.albumCount.map { $0 == 1 ? "1 album" : "\($0) albums" }, coverArtID: artist.coverArtID, library) { [weak self] in
                         self?.pushArtist(artist, library)
@@ -181,18 +264,20 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
                 library.engine.playShuffled(songs)
                 self?.showNowPlaying()
             }
-            let albums = loaded.albums.prefix(Self.maxItems).map { albumItem($0, library) }
-            return [CPListSection(items: [shuffle]), CPListSection(items: albums)]
+            let albums = loaded.albums.prefix(Self.maxItems - 1).map { albumItem($0, library) }
+            return [CPListSection(items: [shuffle] + albums)]
         }
     }
 
-    private func pushAlbums(title: String, _ albums: AlbumsModel, _ library: Library) {
+    /// `shuffle`: what the list's Shuffle plays (a Random Mix unless it's one genre's).
+    private func pushAlbums(title: String, _ albums: AlbumsModel, _ library: Library, shuffle: CPListItem? = nil) {
+        let shuffle = shuffle ?? randomMixItem(library)
         let template = CPListTemplate(title: title, sections: [])
         template.emptyViewTitleVariants = ["Loading…"]
         interfaceController.pushTemplate(template, animated: true, completion: nil)
-        fillAlbums(template, albums, library) { [weak self] in
+        fillAlbums(template, albums, library, shuffle: shuffle) { [weak self] in
             self?.interfaceController.popTemplate(animated: false, completion: nil)
-            self?.pushAlbums(title: title, albums, library)
+            self?.pushAlbums(title: title, albums, library, shuffle: shuffle)
         }
     }
 
@@ -200,12 +285,12 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
         let playlists = library.playlistsModel()
         pushLoaded(title: "Playlists", load: playlists.load, state: { playlists.state }) { [weak self] list in
             guard let self else { return [] }
-            let items = list.prefix(Self.maxItems).map { playlist in
+            let items = list.prefix(Self.maxItems - 1).map { playlist in
                 self.listItem(playlist.name, detail: playlist.songCount.map { "\($0) songs" }, coverArtID: playlist.coverArtID, library) { [weak self] in
                     self?.pushPlaylist(id: playlist.id, title: playlist.name, library)
                 }
             }
-            return [CPListSection(items: items)]
+            return [CPListSection(items: [self.randomMixItem(library)] + items)]
         }
     }
 
@@ -231,25 +316,38 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
         let genres = library.genresModel()
         pushLoaded(title: "Genres", load: genres.load, state: { genres.state }) { [weak self] list in
             guard let self else { return [] }
-            let items = list.prefix(Self.maxItems).map { genre in
+            let items = list.prefix(Self.maxItems - 1).map { genre in
                 self.linkItem(genre.name, detail: genre.albumCount.map { $0 == 1 ? "1 album" : "\($0) albums" }, systemImage: "guitars") { [weak self] in
-                    self?.pushAlbums(title: genre.name, library.genreAlbumsModel(genre.name), library)
+                    self?.pushAlbums(title: genre.name, library.genreAlbumsModel(genre.name), library, shuffle: self?.genreShuffleItem(genre.name, library))
                 }
             }
-            return [CPListSection(items: items)]
+            return [CPListSection(items: [self.randomMixItem(library)] + items)]
         }
     }
 
     // MARK: - Albums and playlists
 
-    private func fillAlbums(_ template: CPListTemplate, _ albums: AlbumsModel, _ library: Library, retry: @escaping () -> Void) {
+    /// One genre's songs, shuffled.
+    private func genreShuffleItem(_ genre: String, _ library: Library) -> CPListItem {
+        actionItem("Shuffle", systemImage: "shuffle") { [weak self] in
+            guard let songs = try? await library.quickActions.resolve(.genre(genre)).songs, !songs.isEmpty else {
+                self?.showAlert("Couldn't load \(genre)'s songs.")
+                return
+            }
+            library.engine.playShuffled(songs)
+            self?.showNowPlaying()
+        }
+    }
+
+    private func fillAlbums(_ template: CPListTemplate, _ albums: AlbumsModel, _ library: Library, shuffle: CPListItem, retry: @escaping () -> Void) {
         models.append(albums)
         Task { [weak self] in
             await albums.load()
             guard let self else { return }
             switch albums.state {
             case .loaded(let list):
-                template.updateSections([CPListSection(items: list.prefix(Self.maxItems).map { albumItem($0, library) })])
+                let items = list.prefix(Self.maxItems - 1).map { albumItem($0, library) }
+                template.updateSections(items.isEmpty ? [] : [CPListSection(items: [shuffle] + items)])
                 template.emptyViewTitleVariants = ["No Albums"]
             case .failed(let message):
                 showError(message, in: template, retry: retry)
@@ -322,7 +420,7 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
             self?.showNowPlaying()
             completion()
         }
-        let items = songs.prefix(Self.maxItems).enumerated().map { index, song in
+        let items = songs.prefix(Self.maxItems - 1).enumerated().map { index, song in
             let item = CPListItem(text: song.title, detailText: song.artist)
             item.handler = { [weak self] _, completion in
                 library.engine.play(songs: songs, startIndex: index)
@@ -331,6 +429,9 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
             }
             return item
         }
+        // One section, so CarPlay draws a line under Shuffle; with a header
+        // (Favorites' Songs), Shuffle goes above it, on its own.
+        guard let header else { return [CPListSection(items: [shuffle] + items)] }
         return [CPListSection(items: [shuffle]), CPListSection(items: items, header: header, sectionIndexTitle: nil)]
     }
 
@@ -381,6 +482,8 @@ final class CarPlayController: NSObject, CPInterfaceControllerDelegate {
     /// CarPlay caps list length and sections; anything past them wouldn't show.
     private static var maxItems: Int { CPListTemplate.maximumItemCount }
     private static var maxSections: Int { CPListTemplate.maximumSectionCount }
+    /// Top Rated's covers; the car shows as many as fit.
+    private static let topRatedCount = 8
 
     private func loadingTemplate(title: String, systemImage: String) -> CPListTemplate {
         let template = CPListTemplate(title: title, sections: [])

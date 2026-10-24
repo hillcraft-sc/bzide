@@ -36,6 +36,15 @@ final class SystemNowPlaying: NowPlayingControlling {
         // nothing before it. A station can't be restarted or scrubbed.
         commandCenter.previousTrackCommand.isEnabled = !info.isLiveStream
         commandCenter.changePlaybackPositionCommand.isEnabled = !info.isLiveStream
+        // CarPlay's shuffle and repeat buttons show these; a station has neither.
+        commandCenter.changeShuffleModeCommand.isEnabled = !info.isLiveStream
+        commandCenter.changeRepeatModeCommand.isEnabled = !info.isLiveStream
+        commandCenter.changeShuffleModeCommand.currentShuffleType = info.isShuffled ? .items : .off
+        commandCenter.changeRepeatModeCommand.currentRepeatType = switch info.repeatMode {
+        case .off: .off
+        case .all: .all
+        case .one: .one
+        }
 
         var dictionary: [String: Any] = [
             MPMediaItemPropertyTitle: info.title,
@@ -96,6 +105,18 @@ final class SystemNowPlaying: NowPlayingControlling {
         register(commandCenter.previousTrackCommand) { _ in .previous }
         register(commandCenter.changePlaybackPositionCommand) { event in
             (event as? MPChangePlaybackPositionCommandEvent).map { .seek(to: $0.positionTime) }
+        }
+        register(commandCenter.changeShuffleModeCommand) { event in
+            (event as? MPChangeShuffleModeCommandEvent).map { .setShuffle($0.shuffleType != .off) }
+        }
+        register(commandCenter.changeRepeatModeCommand) { event in
+            (event as? MPChangeRepeatModeCommandEvent).map { event in
+                switch event.repeatType {
+                case .one: .setRepeat(.one)
+                case .all: .setRepeat(.all)
+                default: .setRepeat(.off)
+                }
+            }
         }
         // No like or dislike: iOS draws liking as a star on the lock screen,
         // which in Bzide means rating, not favoriting (Gitea #14). Favorites

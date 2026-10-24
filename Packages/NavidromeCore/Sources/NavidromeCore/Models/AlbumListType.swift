@@ -7,6 +7,8 @@ public enum AlbumListType: Sendable, Equatable {
     case frequent
     case recent
     case starred
+    /// The highest rated (the user's ratings).
+    case highest
     case alphabeticalByName
     case alphabeticalByArtist
     case byYear(from: Int, to: Int)
@@ -19,6 +21,7 @@ public enum AlbumListType: Sendable, Equatable {
         case .frequent: [.init(name: "type", value: "frequent")]
         case .recent: [.init(name: "type", value: "recent")]
         case .starred: [.init(name: "type", value: "starred")]
+        case .highest: [.init(name: "type", value: "highest")]
         case .alphabeticalByName: [.init(name: "type", value: "alphabeticalByName")]
         case .alphabeticalByArtist: [.init(name: "type", value: "alphabeticalByArtist")]
         case .byYear(let from, let to):

@@ -373,7 +373,7 @@ struct AlbumsView: View {
             ToolbarItem {
                 Menu("Sort", systemImage: "arrow.up.arrow.down") {
                     Picker("Sort", selection: Binding(get: { model.sort }, set: { sort in Task { await model.setSort(sort) } })) {
-                        ForEach(AlbumSort.allCases, id: \.self) { sort in
+                        ForEach(AlbumSort.phoneSorts, id: \.self) { sort in
                             Text(sort.title).tag(sort)
                         }
                     }

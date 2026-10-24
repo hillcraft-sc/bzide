@@ -17,11 +17,14 @@ public struct NowPlayingInfo: Sendable, Equatable {
     public var hasPrevious: Bool
     /// A radio station: no duration and no seeking.
     public var isLiveStream: Bool
+    /// For CarPlay's shuffle and repeat buttons, which show these.
+    public var isShuffled: Bool
+    public var repeatMode: RepeatMode
 
     public init(
         title: String, artist: String? = nil, album: String? = nil, coverArtID: String? = nil,
         duration: TimeInterval? = nil, elapsed: TimeInterval, isPlaying: Bool, hasNext: Bool, hasPrevious: Bool,
-        isLiveStream: Bool = false
+        isLiveStream: Bool = false, isShuffled: Bool = false, repeatMode: RepeatMode = .off
     ) {
         self.title = title
         self.artist = artist
@@ -33,6 +36,8 @@ public struct NowPlayingInfo: Sendable, Equatable {
         self.hasNext = hasNext
         self.hasPrevious = hasPrevious
         self.isLiveStream = isLiveStream
+        self.isShuffled = isShuffled
+        self.repeatMode = repeatMode
     }
 }
 
@@ -44,6 +49,10 @@ public enum RemoteCommand: Sendable, Equatable {
     case next
     case previous
     case seek(to: TimeInterval)
+    /// CarPlay's shuffle button (on or off).
+    case setShuffle(Bool)
+    /// CarPlay's repeat button.
+    case setRepeat(RepeatMode)
 }
 
 /// The Now Playing boundary. The real implementation lives in the app target

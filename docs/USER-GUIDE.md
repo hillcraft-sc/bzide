@@ -183,7 +183,12 @@ An artist's page shows their picture, a short biography and their albums. Turn o
 
 ## CarPlay
 
-Connect to CarPlay and open Bzide. The tabs are **Recently Played**, **Library** (Random Mix, Mix My Cuts, Artists, Albums, Playlists, Favorites, Genres), **Radio**, and **Downloaded**. Downloaded music plays even without a signal.
+Connect to CarPlay and open Bzide. The tabs are **Recents** (albums you've played lately), **Library** and **Radio**.
+
+- **Library** starts with buttons for **Random Mix** and **Mix My Cuts**, then your **Top Rated** albums, then buttons for **Artists**, **Albums**, **Playlists**, **Favorites**, **Genres** and **Downloaded** (downloaded music plays even without a signal).
+- Lists start with **Shuffle**.
+- **Now Playing** has shuffle and repeat, a heart to favorite the song, **•••** to Spin Off from the song or its artist, and the **list** button at the top right to see what's next and jump to a song. Tap the album's name to open it.
+- While you're driving, CarPlay shortens long lists for safety; Shuffle, the mixes and Top Rated are the quickest ways to music then.
 
 - **Getting in the car doesn't start the music** unless you want it to. Some cars tell the music app to play as soon as they connect; Bzide ignores that, and plays when you press play. To let the car start Bzide where you left off, turn on **Settings > CarPlay > Play When CarPlay Connects**. It covers car stereos connected by Bluetooth too.
 
