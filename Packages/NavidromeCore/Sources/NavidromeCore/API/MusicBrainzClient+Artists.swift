@@ -120,27 +120,35 @@ extension MusicBrainzClient {
         return releases
     }
 
-    /// A release's track titles, in order, audio media only, for an album's
-    /// missing songs (the Wishlist). Only the release's id is sent.
-    public func tracklist(releaseID: String) async throws -> [String] {
+    /// A release's tracks in order, audio media only, with their disc and
+    /// number: an album's missing tracks (its page, the Wishlist). Only the
+    /// release's id is sent.
+    public func tracklist(releaseID: String) async throws -> [ReleaseTrack] {
         guard !contact.isEmpty else { throw Failure.noContact }
         let url = try Self.url("release/\(releaseID)", [.init(name: "inc", value: "recordings")])
-        return try JSONDecoder().decode(ReleaseTracklist.self, from: try await get(url, paced: true)).titles
+        return try JSONDecoder().decode(ReleaseTracklist.self, from: try await get(url, paced: true)).tracks
     }
 
     struct ReleaseTracklist: Decodable {
         struct Medium: Decodable {
-            struct Track: Decodable { let title: String? }
+            struct Track: Decodable {
+                let title: String?
+                let position: Int?
+            }
             let format: String?
+            let position: Int?
             let tracks: [Track]?
         }
         let media: [Medium]?
 
-        var titles: [String] {
-            (media ?? [])
-                .filter { !ReleaseBrowse.Release.isVideo($0.format) }
-                .flatMap { $0.tracks ?? [] }
-                .compactMap { $0.title.flatMap { $0.isEmpty ? nil : $0 } }
+        var tracks: [ReleaseTrack] {
+            let audio = (media ?? []).filter { !ReleaseBrowse.Release.isVideo($0.format) }
+            return audio.enumerated().flatMap { index, medium in
+                (medium.tracks ?? []).enumerated().compactMap { number, track -> ReleaseTrack? in
+                    guard let title = track.title, !title.isEmpty else { return nil }
+                    return ReleaseTrack(disc: medium.position ?? index + 1, number: track.position ?? number + 1, title: title)
+                }
+            }
         }
     }
 

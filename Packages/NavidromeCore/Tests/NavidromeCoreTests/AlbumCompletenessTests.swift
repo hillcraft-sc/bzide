@@ -126,6 +126,9 @@ struct AlbumCompletenessModelTests {
                 releases: { _ in
                     self.releaseLookups.withLock { $0 += 1 }
                     return [ReleaseTracks(id: "r", title: "Full", trackCount: 3)]
+                },
+                tracklist: { _ in
+                    ["One", "Two", "Three"].enumerated().map { ReleaseTrack(disc: 1, number: $0 + 1, title: $1) }
                 }
             )
         }
@@ -210,6 +213,23 @@ struct AlbumCompletenessModelTests {
         await model.load(artist([gappy, full]), info: nil, online: false)
         await model.load(artist([gappy, full]), info: nil, online: false)
         #expect(server.albumFetches.withLock { $0 } == 2)
+    }
+
+    @Test func anIncompleteAlbumPageListsItsMissingTracks() async {
+        let server = Server([])
+        let model = AlbumCompletenessModel(sources: server.sources)
+        var album = gappy
+        album.name = "Full"
+        album.artist = "Band"
+        await model.load(album, online: true)
+        #expect(model.missingTracks(of: "al-1")?.tracks == [ReleaseTrack(disc: 1, number: 2, title: "Two")])
+        // Complete, or offline: none.
+        var complete = full
+        complete.artist = "Band"
+        await model.load(complete, online: true)
+        #expect(model.missingTracks(of: "al-2") == nil)
+        await model.load(gappy, online: false)
+        #expect(model.missingTracks(of: "al-1") == nil)
     }
 
     @Test func anAlbumPageUsesItsOwnSongs() async {

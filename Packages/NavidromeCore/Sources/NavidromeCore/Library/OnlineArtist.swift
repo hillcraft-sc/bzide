@@ -85,13 +85,45 @@ public protocol ArtistLookup: Sendable {
     /// Every official release with its track count; empty when the artist
     /// can't be found. For `AlbumCompleteness`.
     func releaseTracks(for artist: ArtistReference) async throws -> [ReleaseTracks]
-    /// A release's track titles, in order. For the Wishlist's missing songs.
-    func tracklist(releaseID: String) async throws -> [String]
+    /// A release's tracks, in order. For an album's missing tracks.
+    func tracklist(releaseID: String) async throws -> [ReleaseTrack]
 }
 
 extension ArtistLookup {
     public func releaseTracks(for artist: ArtistReference) async throws -> [ReleaseTracks] { [] }
-    public func tracklist(releaseID: String) async throws -> [String] { [] }
+    public func tracklist(releaseID: String) async throws -> [ReleaseTrack] { [] }
+}
+
+/// A track of a release: its disc, its number on that disc, and its title.
+public struct ReleaseTrack: Codable, Equatable, Hashable, Sendable {
+    public var disc: Int
+    public var number: Int
+    public var title: String
+
+    public init(disc: Int, number: Int, title: String) {
+        self.disc = disc
+        self.number = number
+        self.title = title
+    }
+}
+
+/// An album's tracks the user doesn't have, and the release they're from.
+public struct MissingTracks: Equatable, Sendable {
+    public var tracks: [ReleaseTrack]
+    public var release: ReleaseTracks
+    /// The release has more than one disc, so numbers show as "2-3".
+    public var isMultiDisc: Bool
+
+    public init(tracks: [ReleaseTrack], release: ReleaseTracks, isMultiDisc: Bool = false) {
+        self.tracks = tracks
+        self.release = release
+        self.isMultiDisc = isMultiDisc
+    }
+
+    /// "3", or "2-3" (disc 2, track 3) on a release of several discs.
+    public func number(of track: ReleaseTrack) -> String {
+        isMultiDisc ? "\(track.disc)-\(track.number)" : String(track.number)
+    }
 }
 
 /// One release (an edition of an album) and how many audio tracks it has.

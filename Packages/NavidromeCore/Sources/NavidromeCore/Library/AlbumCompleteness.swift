@@ -106,8 +106,8 @@ public struct AlbumCompleteness: Equatable, Sendable {
 
     /// The release's tracks the user doesn't have, matched by title (ignoring
     /// case, accents, punctuation and anything in brackets), in the release's order.
-    public static func missingTitles(_ tracklist: [String], owned songs: [Song]) -> [String] {
+    public static func missingTracks(_ tracklist: [ReleaseTrack], owned songs: [Song]) -> [ReleaseTrack] {
         let have = Set(songs.map { Discography.matchKey($0.title) })
-        return tracklist.filter { !have.contains(Discography.matchKey($0)) }
+        return tracklist.filter { !have.contains(Discography.matchKey($0.title)) }
     }
 }

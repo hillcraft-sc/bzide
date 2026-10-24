@@ -251,6 +251,17 @@ public final class Wishlist {
         return added.count
     }
 
+    /// The same, for songs missing from the user's copy of an album, with the
+    /// MusicBrainz release they're from for the cover and the link.
+    @discardableResult
+    public func addMissingSongs(_ titles: [String], from album: Album, release: ReleaseTracks) -> Int {
+        addMissingSongs(
+            titles, album: album.name, artist: album.artist ?? "", year: album.year,
+            coverURL: MusicBrainzClient.coverArtURL.appending(path: "release/\(release.id)/front-250"),
+            musicBrainzURL: URL(string: "https://musicbrainz.org/release/\(release.id)")
+        )
+    }
+
     public func containsAlbum(titled title: String, by artist: String) -> Bool {
         entries.contains { $0.kind == .album && Self.sameAlbum($0.title, title) && Self.sameName($0.artist, artist) }
     }

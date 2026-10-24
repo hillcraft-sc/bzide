@@ -54,11 +54,12 @@ public actor OnlineArtistLookup: ArtistLookup {
         return releases
     }
 
-    public func tracklist(releaseID: String) async throws -> [String] {
-        if let cached: [String] = cached("tracklist-\(releaseID)") { return cached }
-        let titles = try await musicBrainz.tracklist(releaseID: releaseID)
-        store(titles, "tracklist-\(releaseID)")
-        return titles
+    public func tracklist(releaseID: String) async throws -> [ReleaseTrack] {
+        // "tracks-": titles alone were kept as "tracklist-" before numbers.
+        if let cached: [ReleaseTrack] = cached("tracks-\(releaseID)") { return cached }
+        let tracks = try await musicBrainz.tracklist(releaseID: releaseID)
+        store(tracks, "tracks-\(releaseID)")
+        return tracks
     }
 
     /// The server's id, else the one found by name (searched once).

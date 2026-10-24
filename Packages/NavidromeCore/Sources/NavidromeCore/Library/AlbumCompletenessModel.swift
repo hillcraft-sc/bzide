@@ -17,12 +17,12 @@ public final class AlbumCompletenessModel {
     public struct Sources: Sendable {
         public var album: @Sendable (_ id: String) async throws(SubsonicError) -> Album
         public var releases: @Sendable (_ artist: ArtistReference) async throws -> [ReleaseTracks]
-        public var tracklist: @Sendable (_ releaseID: String) async throws -> [String]
+        public var tracklist: @Sendable (_ releaseID: String) async throws -> [ReleaseTrack]
 
         public init(
             album: @escaping @Sendable (_ id: String) async throws(SubsonicError) -> Album,
             releases: @escaping @Sendable (_ artist: ArtistReference) async throws -> [ReleaseTracks],
-            tracklist: @escaping @Sendable (_ releaseID: String) async throws -> [String] = { _ in [] }
+            tracklist: @escaping @Sendable (_ releaseID: String) async throws -> [ReleaseTrack] = { _ in [] }
         ) {
             self.album = album
             self.releases = releases
@@ -34,6 +34,8 @@ public final class AlbumCompletenessModel {
     static let parallelFetches = 4
 
     private var results: [String: AlbumCompleteness] = [:]
+    /// Albums' missing tracks, for their pages (Gitea #30).
+    private var missing: [String: MissingTracks] = [:]
     /// Songs fetched this session, with the song count they were fetched at;
     /// a different count (songs added or removed) fetches again.
     @ObservationIgnored private var songs: [String: (count: Int?, songs: [Song])] = [:]
@@ -90,21 +92,39 @@ public final class AlbumCompletenessModel {
         songs[album.id] = (album.songCount, album.songs)
         guard online, let artist = album.artist, !artist.isEmpty, !album.details.isCompilation else {
             results[album.id] = .of(album, songs: album.songs, releases: [])
+            missing[album.id] = nil
             return
         }
         let known = await releases(of: ArtistReference(name: artist, musicBrainzID: nil))
-        results[album.id] = .of(album, songs: album.songs, releases: known)
+        let result = AlbumCompleteness.of(album, songs: album.songs, releases: known)
+        results[album.id] = result
+        if result.isIncomplete {
+            _ = await missingSongs(of: album)
+        } else {
+            missing[album.id] = nil
+        }
     }
 
-    /// The album's songs the user doesn't have, by title, from its release on
-    /// MusicBrainz (the Wishlist's Add Missing Songs), with that release; `nil`
-    /// when the release or its tracklist can't be had.
-    public func missingSongs(of album: Album) async -> (titles: [String], release: ReleaseTracks)? {
+    /// The album's tracks the user doesn't have, by title, from its release on
+    /// MusicBrainz, with that release; `nil` when the release or its
+    /// tracklist can't be had. Kept for `missingTracks(of:)`.
+    public func missingSongs(of album: Album) async -> MissingTracks? {
         guard let artist = album.artist, !artist.isEmpty else { return nil }
         let known = await releases(of: ArtistReference(name: artist, musicBrainzID: nil))
         guard let release = AlbumCompleteness.release(for: album, among: known),
               let tracklist = try? await sources.tracklist(release.id), !tracklist.isEmpty else { return nil }
-        return (AlbumCompleteness.missingTitles(tracklist, owned: album.songs), release)
+        let found = MissingTracks(
+            tracks: AlbumCompleteness.missingTracks(tracklist, owned: album.songs), release: release,
+            isMultiDisc: Set(tracklist.map(\.disc)).count > 1
+        )
+        missing[album.id] = found
+        return found
+    }
+
+    /// The album page's Missing Tracks (Gitea #30), once `load(_:online:)`
+    /// has found them: only for an incomplete album, with Look Up Artists Online on.
+    public func missingTracks(of albumID: String) -> MissingTracks? {
+        missing[albumID]
     }
 
     private func cachedSongs(_ album: Album) -> [Song]? {

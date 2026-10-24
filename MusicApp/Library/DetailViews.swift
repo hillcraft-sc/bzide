@@ -63,6 +63,10 @@ struct AlbumView: View {
                     noteLink: MusicBrainzClient.albumPage(album)
                 )
                 .siriEntity(albumID: album.id)
+            } footer: {
+                if marksIncomplete, let missing = library.albumCompleteness.missingTracks(of: album.id), !missing.tracks.isEmpty {
+                    MissingTracksSection(library: library, album: album, missing: missing)
+                }
             }
             .toolbar {
                 ToolbarItem {
@@ -110,11 +114,7 @@ struct AlbumView: View {
             library.wishlist.explain("Couldn't get this album's songs from MusicBrainz.")
             return
         }
-        library.wishlist.addMissingSongs(
-            missing.titles, album: album.name, artist: album.artist ?? "", year: album.year,
-            coverURL: MusicBrainzClient.coverArtURL.appending(path: "release/\(missing.release.id)/front-250"),
-            musicBrainzURL: URL(string: "https://musicbrainz.org/release/\(missing.release.id)")
-        )
+        library.wishlist.addMissingSongs(missing.tracks.map(\.title), from: album, release: missing.release)
     }
 
     /// The album, then whether it's missing tracks (after, so it never holds it up).
@@ -380,6 +380,69 @@ private struct CreditLink: View {
             .buttonStyle(.borderless)
         } else {
             Text("From \(credit.source)").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
+/// The album's tracks the user doesn't have, under its songs (Gitea #30),
+/// from its release on MusicBrainz: collapsed at first, so the page leads
+/// with what the user owns. Long-press one to put it on the Wishlist.
+private struct MissingTracksSection: View {
+    let library: Library
+    let album: Album
+    let missing: MissingTracks
+
+    @State private var isExpanded = false
+    @ScaledMetric private var numberWidth: CGFloat = 28
+
+    var body: some View {
+        Section {
+            if isExpanded {
+                ForEach(missing.tracks, id: \.self) { track in
+                    row(track)
+                }
+            }
+        } header: {
+            Button {
+                withAnimation { isExpanded.toggle() }
+            } label: {
+                HStack {
+                    Text("Missing Tracks")
+                    Text(String(missing.tracks.count)).foregroundStyle(.secondary)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(minHeight: 44)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+        }
+        .themedRows()
+    }
+
+    private func row(_ track: ReleaseTrack) -> some View {
+        HStack(spacing: 12) {
+            Text(missing.number(of: track))
+                .monospacedDigit()
+                .frame(minWidth: numberWidth, alignment: .trailing)
+            Text(track.title).lineLimit(1)
+            Spacer()
+        }
+        .foregroundStyle(.secondary)
+        .frame(minHeight: 44)
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(track.title), track \(missing.number(of: track)), not in your library")
+        .contextMenu {
+            Button("Add to Wishlist", systemImage: "tag") {
+                library.wishlist.addMissingSongs([track.title], from: album, release: missing.release)
+            }
+            Button("Copy Title", systemImage: "doc.on.doc") {
+                UIPasteboard.general.string = track.title
+            }
         }
     }
 }

@@ -79,10 +79,21 @@ struct WishlistKindsTests {
         #expect(list.entries.first { $0.title == "Weathered" }?.foundAt != nil)
     }
 
-    @Test func theMissingTitlesAreTheReleasesTracksNotOwned() {
+    @Test func theMissingTracksAreTheReleasesTracksNotOwned() {
         let owned = [Song(id: "s2", title: "Brandy (You're a Fine Girl)")]
-        let tracklist = ["Golden Rainbow", "Brandy (You’re a Fine Girl)", "Jenny-Lynne"]
-        #expect(AlbumCompleteness.missingTitles(tracklist, owned: owned) == ["Golden Rainbow", "Jenny-Lynne"])
+        let tracklist = [
+            ReleaseTrack(disc: 1, number: 1, title: "Golden Rainbow"),
+            ReleaseTrack(disc: 1, number: 2, title: "Brandy (You’re a Fine Girl)"),
+            ReleaseTrack(disc: 1, number: 3, title: "Jenny-Lynne"),
+        ]
+        #expect(AlbumCompleteness.missingTracks(tracklist, owned: owned).map(\.title) == ["Golden Rainbow", "Jenny-Lynne"])
+    }
+
+    @Test func missingTracksNumberByDiscOnlyWhenThereAreSeveral() {
+        let track = ReleaseTrack(disc: 2, number: 3, title: "Eye in the Sky")
+        let release = ReleaseTracks(id: "r", title: "Weathered", trackCount: 20)
+        #expect(MissingTracks(tracks: [track], release: release, isMultiDisc: true).number(of: track) == "2-3")
+        #expect(MissingTracks(tracks: [track], release: release).number(of: track) == "3")
     }
 
     @Test func theReleaseIsTheTaggedOneElseTheSmallestEdition() {
@@ -96,11 +107,17 @@ struct WishlistKindsTests {
     @Test func aTracklistSkipsVideo() throws {
         let json = #"""
         {"media": [
-          {"format": "CD", "tracks": [{"title": "Golden Rainbow"}, {"title": "Brandy"}]},
-          {"format": "DVD-Video", "tracks": [{"title": "Brandy (video)"}]}
+          {"format": "CD", "position": 1, "tracks": [{"title": "Golden Rainbow", "position": 1}, {"title": "Brandy", "position": 2}]},
+          {"format": "DVD-Video", "position": 2, "tracks": [{"title": "Brandy (video)", "position": 1}]},
+          {"format": "CD", "tracks": [{"title": "Jenny-Lynne"}]}
         ]}
         """#
         let tracklist = try JSONDecoder().decode(MusicBrainzClient.ReleaseTracklist.self, from: Data(json.utf8))
-        #expect(tracklist.titles == ["Golden Rainbow", "Brandy"])
+        #expect(tracklist.tracks == [
+            ReleaseTrack(disc: 1, number: 1, title: "Golden Rainbow"),
+            ReleaseTrack(disc: 1, number: 2, title: "Brandy"),
+            // No positions given: counted among the audio discs.
+            ReleaseTrack(disc: 2, number: 1, title: "Jenny-Lynne"),
+        ])
     }
 }

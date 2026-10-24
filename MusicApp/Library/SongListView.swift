@@ -11,12 +11,14 @@ struct SongListEditing {
 /// Tapping a song plays the whole list from that song. With `editing`, songs
 /// can be swiped away, removed from their long-press menu, and dragged into
 /// a new order, like the queue.
-struct SongListView<Header: View>: View {
+struct SongListView<Header: View, Footer: View>: View {
     let library: Library
     let songs: [Song]
     let showsTrackNumbers: Bool
     var editing: SongListEditing? = nil
     @ViewBuilder let header: () -> Header
+    /// Sections under the songs, e.g. an album's Missing Tracks.
+    @ViewBuilder let footer: () -> Footer
 
     var body: some View {
         List {
@@ -70,6 +72,7 @@ struct SongListView<Header: View>: View {
                 .onMove(perform: editing.map { editing in { editing.move($0, $1) } })
             }
             .themedRows()
+            footer()
         }
         .listStyle(.plain)
         .themedList()
@@ -80,6 +83,15 @@ struct SongListView<Header: View>: View {
         Button("Remove from Playlist", systemImage: "minus.circle", role: .destructive) {
             editing.remove(IndexSet(integer: index))
         }
+    }
+}
+
+extension SongListView where Footer == EmptyView {
+    init(
+        library: Library, songs: [Song], showsTrackNumbers: Bool, editing: SongListEditing? = nil,
+        @ViewBuilder header: @escaping () -> Header
+    ) {
+        self.init(library: library, songs: songs, showsTrackNumbers: showsTrackNumbers, editing: editing, header: header, footer: { EmptyView() })
     }
 }
 
