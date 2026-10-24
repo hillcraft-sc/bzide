@@ -68,7 +68,7 @@ struct TransportControls: View {
             // Previous, play and next are centered under the progress bar; shuffle
             // and repeat sit at the edges as overlays so they don't pull them off center.
             // A radio station can't be shuffled or repeated, so they're hidden for one.
-            HStack(spacing: 44) {
+            HStack(spacing: 28) {
                 Button("Previous", systemImage: "backward.fill") { engine.previous() }
                     .disabled(engine.isLive)
                 Button(engine.status.isActive ? "Pause" : "Play",
@@ -96,7 +96,7 @@ struct TransportControls: View {
                     .foregroundStyle(engine.repeatMode == .off ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 }
             }
-            .labelStyle(.iconOnly)
+            .labelStyle(.tapTarget)
             .buttonStyle(.borderless)
             .disabled(engine.queue.isEmpty)
             // The controls grow with the text only up to the largest standard

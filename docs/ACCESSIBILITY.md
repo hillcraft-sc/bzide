@@ -11,6 +11,10 @@ Bzide is built to work with the accessibility features in iOS. You can sign in, 
 - Messages that appear on screen, such as one saying a song was added to a playlist, are read aloud.
 - Color choices in Settings say their name and whether they're chosen.
 
+## Easy to tap
+
+Every button in Bzide has a tap area of at least 44 by 44 points, Apple's minimum, even where the icon you see is smaller, so you don't need to hit an icon exactly.
+
 ## Voice Control
 
 Every button has a name you can say, such as "Tap Play", "Tap Next" or "Tap Favorite". Say "Show names" to see them, or "Show numbers" to tap anything by number.

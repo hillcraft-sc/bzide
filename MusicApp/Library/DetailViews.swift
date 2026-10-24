@@ -345,8 +345,10 @@ private struct Biography: View {
                 }
             HStack {
                 if isTruncated {
-                    Button(isExpanded ? "Less" : "More") {
+                    Button {
                         withAnimation { isExpanded.toggle() }
+                    } label: {
+                        Text(isExpanded ? "Less" : "More").tapTarget()
                     }
                     .font(.subheadline.bold())
                     .buttonStyle(.borderless)
@@ -372,6 +374,7 @@ private struct CreditLink: View {
             Link(destination: url) {
                 Label("From \(credit.source)", systemImage: "arrow.up.right")
                     .labelStyle(.titleAndIcon)
+                    .tapTarget()
             }
             .font(.caption)
             .buttonStyle(.borderless)
@@ -433,6 +436,7 @@ private struct NotOwnedSections: View {
                                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
                                 .foregroundStyle(.secondary)
                         }
+                        .frame(minHeight: 44)
                         .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
@@ -484,6 +488,7 @@ private struct SimilarArtistsSection: View {
                                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
                                 .foregroundStyle(.secondary)
                         }
+                        .frame(minHeight: 44)
                         .contentShape(.rect)
                     }
                     .buttonStyle(.plain)

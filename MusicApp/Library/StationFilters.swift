@@ -59,6 +59,7 @@ struct FilterLabel: View {
         .padding(.vertical, 6)
         .foregroundStyle(isSet ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
         .background(isSet ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.fill.tertiary), in: .capsule)
+        .tapTarget()
     }
 }
 
@@ -177,6 +178,7 @@ struct SortMenu<Order: Hashable>: View {
                 .font(.subheadline)
                 .frame(width: 34, height: 30)
                 .background(.fill.tertiary, in: .capsule)
+                .tapTarget()
         }
         .accessibilityLabel("Sort By")
         .accessibilityValue(title(selection))
@@ -207,7 +209,7 @@ struct StationFilterBar<Order: Hashable>: View {
             Spacer(minLength: 0)
             if country != nil || genre != nil || minimumBitrate != nil {
                 Button("Clear Filters", systemImage: "xmark.circle.fill", action: clear)
-                    .labelStyle(.iconOnly)
+                    .labelStyle(.tapTarget)
                     .foregroundStyle(.secondary)
             }
             SortMenu(selection: $order, options: orders, title: orderTitle)

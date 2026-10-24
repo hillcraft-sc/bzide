@@ -371,16 +371,25 @@ struct VisualizerView: View {
             ZStack {
                 styleMenu
                 HStack {
-                    Button("Close", systemImage: "xmark") { dismiss() }
-                        .labelStyle(.iconOnly)
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
-                        .background(ink.opacity(isOnPaper ? 0.08 : 0.15), in: .circle)
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.body.weight(.semibold))
+                            .frame(width: 36, height: 36)
+                            .background(ink.opacity(isOnPaper ? 0.08 : 0.15), in: .circle)
+                            // A full-size target around the 36-point circle (Gitea #36).
+                            .frame(width: 44, height: 44)
+                            .contentShape(.rect)
+                    }
+                    .accessibilityLabel("Close")
                     Spacer()
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, landscape ? 8 : 12)
+            .padding(.horizontal, 16)
+            .padding(.top, landscape ? 4 : 8)
+            .padding(.bottom, 8)
+            // The whole top row takes taps and swipes, so one just missing
+            // Close doesn't reach the visualization (a swipe changes its style).
+            .contentShape(.rect)
             liveWeatherCaption
             if landscape {
                 // Title and controls in a panel on the right, vertically centered.
@@ -463,6 +472,7 @@ struct VisualizerView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(ink.opacity(isOnPaper ? 0.08 : 0.15), in: .capsule)
+                .tapTarget()
         }
         .accessibilityHint("Choose the style and colors")
         .sheet(isPresented: $isChoosingColors) {

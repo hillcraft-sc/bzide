@@ -279,7 +279,7 @@ private struct FoundStationRow: View {
                 .accessibilityLabel("In your stations")
         } else {
             Button(addTitle, systemImage: "plus.circle", action: add)
-                .labelStyle(.iconOnly)
+                .labelStyle(.tapTarget)
                 .font(.title3)
                 .buttonStyle(.borderless)
         }

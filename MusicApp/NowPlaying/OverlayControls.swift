@@ -33,24 +33,28 @@ struct OverlayTransport: View {
     var iconOnCircle: Color = .black
 
     var body: some View {
-        HStack(spacing: 48) {
+        HStack(spacing: 36) {
             Button("Previous", systemImage: "backward.fill") { engine.previous() }
                 .font(.title)
                 .disabled(engine.isLive || engine.queue.isEmpty)
-            Button(engine.status.isActive ? "Pause" : "Play",
-                   systemImage: engine.status.isActive ? "pause.fill" : "play.fill") {
+            // The whole circle is the button, not just the icon on it.
+            Button {
                 engine.togglePlayPause()
+            } label: {
+                Image(systemName: engine.status.isActive ? "pause.fill" : "play.fill")
+                    .font(.title)
+                    .foregroundStyle(iconOnCircle)
+                    .frame(width: 72, height: 72)
+                    .background(ink, in: .circle)
+                    .contentShape(.circle)
             }
-            .font(.title)
-            .foregroundStyle(iconOnCircle)
-            .frame(width: 72, height: 72)
-            .background(ink, in: .circle)
+            .accessibilityLabel(engine.status.isActive ? "Pause" : "Play")
             .disabled(engine.queue.isEmpty)
             Button("Next", systemImage: "forward.fill") { engine.next() }
                 .font(.title)
                 .disabled(!engine.canGoNext)
         }
-        .labelStyle(.iconOnly)
+        .labelStyle(.tapTarget)
         .buttonStyle(.borderless)
         .foregroundStyle(ink)
     }

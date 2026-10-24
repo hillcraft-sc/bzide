@@ -292,6 +292,7 @@ struct SwatchGrid<Option: Hashable>: View {
                                     .foregroundStyle(checkmark)
                             }
                         }
+                        .tapTarget()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(title(option))

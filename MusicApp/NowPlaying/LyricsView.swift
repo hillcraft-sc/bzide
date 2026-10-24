@@ -96,13 +96,21 @@ struct LyricsView: View {
         .animation(.easeInOut(duration: 0.4), value: cover != nil)
     }
 
+    /// Close, and LRCLIB's and the timing's menus. Solid to taps across its
+    /// width, with the lyrics fading out under it: before, a tap just missing
+    /// Close went through to the line behind and jumped the song (Gitea #36).
     private var topBar: some View {
         HStack {
-            Button("Close", systemImage: "xmark") { dismiss() }
-                .labelStyle(.iconOnly)
-                .font(.body.weight(.semibold))
-                .frame(width: 36, height: 36)
-                .background(.white.opacity(0.15), in: .circle)
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 36, height: 36)
+                    .background(.white.opacity(0.15), in: .circle)
+                    // A full-size target around the 36-point circle.
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
+            }
+            .accessibilityLabel("Close")
             Spacer()
             if let song, showsLRCLIBMenu(for: song) {
                 lrclibMenu(song)
@@ -112,8 +120,10 @@ struct LyricsView: View {
             }
         }
         .tint(.white)
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .padding(.bottom, 16)
+        .barBackground(fadingTo: .bottom)
     }
 
     /// For lyrics from LRCLIB, or a song whose LRCLIB lyrics the user changed.
@@ -159,6 +169,7 @@ struct LyricsView: View {
             .padding(.horizontal, 10)
             .frame(height: 36)
             .background(.white.opacity(0.15), in: .capsule)
+            .tapTarget()
         }
         .disabled(model.isTryingAnother)
         .accessibilityLabel("Wrong Lyrics")
@@ -203,6 +214,7 @@ struct LyricsView: View {
             .padding(.horizontal, 10)
             .frame(height: 36)
             .background(.white.opacity(0.15), in: .capsule)
+            .tapTarget()
         }
         .accessibilityLabel("Lyrics Timing")
         .accessibilityValue(LyricsTiming.describe(current) ?? "Unchanged")
@@ -214,8 +226,9 @@ struct LyricsView: View {
             OverlayTransport(engine: engine)
         }
         .tint(.white)
-        .padding(.top, 8)
+        .padding(.top, 20)
         .padding(.bottom, 24)
+        .barBackground(fadingTo: .top)
     }
 
     @ViewBuilder
@@ -465,5 +478,18 @@ final class LyricsClock {
             isPlaying: engine.status == .playing, elapsed: min(elapsed, 0.1)
         )
         return clock.songTime
+    }
+}
+
+private extension View {
+    /// A bar over the lyrics: taps anywhere on it stay with it (rather than
+    /// reaching the line scrolled behind), and the lyrics fade out under it.
+    func barBackground(fadingTo edge: UnitPoint) -> some View {
+        frame(maxWidth: .infinity)
+            .contentShape(.rect)
+            .background {
+                LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: edge == .bottom ? .top : .bottom, endPoint: edge)
+                    .ignoresSafeArea()
+            }
     }
 }

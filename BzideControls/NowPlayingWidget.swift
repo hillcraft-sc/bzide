@@ -89,12 +89,12 @@ struct NowPlayingWidgetView: View {
                 Spacer(minLength: 0)
                 HStack {
                     if !snapshot.isLive {
-                        Button(intent: PreviousTrackIntent()) { Image(systemName: "backward.fill") }
+                        Button(intent: PreviousTrackIntent()) { Image(systemName: "backward.fill").widgetTapTarget() }
                         Spacer()
                     }
                     PlayPauseButton(isPlaying: snapshot.isPlaying)
                     Spacer()
-                    Button(intent: NextTrackIntent()) { Image(systemName: "forward.fill") }
+                    Button(intent: NextTrackIntent()) { Image(systemName: "forward.fill").widgetTapTarget() }
                         .disabled(!snapshot.hasNext)
                     if let isFavorite = snapshot.isFavorite {
                         Spacer()
@@ -176,6 +176,7 @@ private struct PlayPauseButton: View {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2)
                 .foregroundStyle(.tint)
+                .widgetTapTarget()
                 .accessibilityLabel(isPlaying ? "Pause" : "Play")
         }
         .buttonStyle(.plain)
@@ -188,12 +189,21 @@ private struct FavoriteButton: View {
     var body: some View {
         if isFavorite {
             Button(intent: UnfavoriteCurrentSongIntent()) {
-                Image(systemName: "heart.fill").accessibilityLabel("Unfavorite")
+                Image(systemName: "heart.fill").widgetTapTarget().accessibilityLabel("Unfavorite")
             }
         } else {
             Button(intent: FavoriteCurrentSongIntent()) {
-                Image(systemName: "heart").accessibilityLabel("Favorite")
+                Image(systemName: "heart").widgetTapTarget().accessibilityLabel("Favorite")
             }
         }
+    }
+}
+
+private extension View {
+    /// Apple's 44-point minimum to tap, inside the button's label (the app's
+    /// `tapTarget()`; the extension doesn't share that file).
+    func widgetTapTarget() -> some View {
+        frame(minWidth: 44, minHeight: 44)
+            .contentShape(.rect)
     }
 }

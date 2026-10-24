@@ -33,7 +33,7 @@ struct MiniPlayer: View {
             Button("Next", systemImage: "forward.fill") { engine.next() }
                 .disabled(!engine.canGoNext)
         }
-        .labelStyle(.iconOnly)
+        .labelStyle(.tapTarget)
         .buttonStyle(.borderless)
         .font(.title3)
         .padding(.horizontal)
@@ -129,14 +129,16 @@ struct NowPlayingView: View {
                     .listRowSeparator(.hidden)
             }
             if let song = engine.queue.current?.song {
-                HStack(spacing: 28) {
+                // 44-point targets with less between them: the icons sit about
+                // as far apart as before.
+                HStack(spacing: 12) {
                     // A station isn't on the server, so it can't be favorited or
                     // rated, and has no lyrics or levels for the visualizer.
                     if !song.isLive {
                         MarkActions(library: library, target: .song(id: song.id), isStarred: song.isStarred, userRating: song.userRating)
                     }
                     AirPlayButton()
-                        .frame(width: 32, height: 32)
+                        .frame(width: 44, height: 44)
                     if !song.isLive {
                         Button("Lyrics", systemImage: "quote.bubble") { isLyricsOpen = true }
                         if library.settings.settings.showsVisualizer {
@@ -144,7 +146,7 @@ struct NowPlayingView: View {
                         }
                     }
                 }
-                .labelStyle(.iconOnly)
+                .labelStyle(.tapTarget)
                 .font(.title3)
                 // Like the transport controls: up to the largest standard size,
                 // so all five fit and match (the AirPlay icon has a fixed size).
@@ -337,6 +339,7 @@ private struct InYourLibraryBadge: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background(.tint.opacity(0.15), in: .capsule)
+                .tapTarget()
         }
         .frame(maxWidth: .infinity)
         .accessibilityHint("\(song.title) by \(song.artist ?? "an unknown artist") is in your library")
@@ -360,6 +363,8 @@ private struct WishlistButton: View {
                     library.wishlist.add(song, station: station, details: library.onAirInfo.details)
                 }
                 .buttonStyle(.bordered)
+                // Large: Apple's 44-point minimum to tap.
+                .controlSize(.large)
             }
         }
         .font(.subheadline.weight(.semibold))
