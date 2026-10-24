@@ -16,7 +16,11 @@ extension SubsonicClient {
     /// The biography and other details the server has looked up. An artist the
     /// server knows nothing about gives an empty `ArtistInfo`, not an error.
     public func artistInfo(id: String) async throws(SubsonicError) -> ArtistInfo {
-        try await request("getArtistInfo2", parameters: [.init(name: "id", value: id)], as: ArtistInfoPayload.self).info
+        // Similar artists not in the library too (Navidrome: id "-1"), for
+        // the artist page's Similar Artists.
+        try await request("getArtistInfo2", parameters: [
+            .init(name: "id", value: id), .init(name: "count", value: "20"), .init(name: "includeNotPresent", value: "true"),
+        ], as: ArtistInfoPayload.self).info
     }
 
     /// The album with its songs.

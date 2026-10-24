@@ -76,7 +76,9 @@ struct AlbumView: View {
                         MarkActions(library: library, target: .album(id: album.id), isStarred: album.isStarred, userRating: album.userRating)
                         AlbumInfoButton(library: library, albumID: album.id)
                         if let artistID = album.artistID {
-                            NavigationLink("Go to Artist", value: LibraryRoute.artist(id: artistID))
+                            NavigationLink(value: LibraryRoute.artist(id: artistID)) {
+                                Label("Go to Artist", systemImage: "music.microphone")
+                            }
                         }
                     }
                 }
@@ -229,6 +231,7 @@ struct ArtistView: View {
                 NotOwnedSections(library: library, state: online.discography) {
                     Task { await online.load(artist, info: info.value, enabled: library.settings.settings.lookUpArtistsOnline) }
                 }
+                SimilarArtistsSection(library: library, artists: info.value?.similarArtists ?? [])
             }
             .listStyle(.plain)
             .themedList()
@@ -411,6 +414,106 @@ private struct NotOwnedSections: View {
                 }
                 .themedRows()
             }
+        }
+    }
+}
+
+/// Artists like this one, from the server (usually Last.fm), in a row of
+/// small round pictures. Open at first; a line above sets it apart from Not
+/// Owned, and its header collapses it. One in the library
+/// opens their page; one that isn't opens a MusicBrainz search in Safari, and
+/// is marked with an arrow (not by color alone).
+private struct SimilarArtistsSection: View {
+    let library: Library
+    let artists: [SimilarArtist]
+
+    @State private var isExpanded = true
+    @ScaledMetric private var side: CGFloat = 64
+
+    var body: some View {
+        if !artists.isEmpty {
+            Section {
+                if isExpanded {
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .top, spacing: 14) {
+                            ForEach(artists) { artist in
+                                item(artist)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .scrollIndicators(.hidden)
+                }
+            } header: {
+                VStack(spacing: 12) {
+                    Divider()
+                    Button {
+                        withAnimation { isExpanded.toggle() }
+                    } label: {
+                        HStack {
+                            Text("Similar Artists")
+                            Text(String(artists.count)).foregroundStyle(.secondary)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                                .foregroundStyle(.secondary)
+                        }
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+                }
+            }
+            .themedRows()
+        }
+    }
+
+    @ViewBuilder
+    private func item(_ artist: SimilarArtist) -> some View {
+        if let id = artist.artistID {
+            NavigationLink(value: LibraryRoute.artist(id: id)) { tile(artist) }
+                .buttonStyle(.plain)
+                .accessibilityLabel(artist.name)
+        } else if let url = artist.musicBrainzSearch {
+            Link(destination: url) { tile(artist) }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(artist.name), not in your library")
+                .accessibilityHint("Opens on MusicBrainz")
+        }
+    }
+
+    private func tile(_ artist: SimilarArtist) -> some View {
+        VStack(spacing: 6) {
+            picture(artist)
+                .frame(width: side, height: side)
+                .clipShape(.circle)
+                .overlay(alignment: .bottomTrailing) {
+                    if !artist.isInLibrary {
+                        Image(systemName: "arrow.up.right.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.white, .tint)
+                    }
+                }
+            Text(artist.name)
+                .font(.caption)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(artist.isInLibrary ? .primary : .secondary)
+        }
+        .frame(width: side + 20)
+        .contentShape(.rect)
+    }
+
+    @ViewBuilder
+    private func picture(_ artist: SimilarArtist) -> some View {
+        if artist.isInLibrary, let cover = artist.coverArtID {
+            ArtworkView(library: library, coverArtID: cover, side: side)
+        } else {
+            Image(systemName: "music.microphone")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(.fill.secondary)
         }
     }
 }

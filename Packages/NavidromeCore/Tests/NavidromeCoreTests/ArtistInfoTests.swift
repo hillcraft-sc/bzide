@@ -27,6 +27,24 @@ struct ArtistInfoTests {
         let url = try #require(await transport.requests.first?.url)
         #expect(url.path() == "/rest/getArtistInfo2")
         #expect(url.queryParameters["id"] == "ar-1")
+        // Similar artists not in the library too, for Similar Artists.
+        #expect(url.queryParameters["includeNotPresent"] == "true")
+        #expect(url.queryParameters["count"] == "20")
+    }
+
+    @Test func similarArtistsInAndOutOfTheLibrary() async throws {
+        let info = try await TestServer.client(FakeTransport(fixture: "getArtistInfo2")).artistInfo(id: "ar-1")
+        #expect(info.similarArtists == [
+            SimilarArtist(name: "Tidal Rooms", artistID: "ar-2", coverArtID: "ar-2"),
+            // Navidrome's "-1": not in the library, so no id or cover; a nameless one is dropped.
+            SimilarArtist(name: "Glass Harbor"),
+        ])
+        #expect(info.similarArtists.map(\.isInLibrary) == [true, false])
+    }
+
+    @Test func anArtistNotOwnedIsSearchedForOnMusicBrainz() throws {
+        let url = try #require(SimilarArtist(name: "Glass Harbor").musicBrainzSearch)
+        #expect(url.absoluteString == "https://musicbrainz.org/search?query=Glass%20Harbor&type=artist")
     }
 
     @Test func paragraphsAndEntitiesSurvive() {
