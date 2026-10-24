@@ -54,6 +54,13 @@ public actor OnlineArtistLookup: ArtistLookup {
         return releases
     }
 
+    public func tracklist(releaseID: String) async throws -> [String] {
+        if let cached: [String] = cached("tracklist-\(releaseID)") { return cached }
+        let titles = try await musicBrainz.tracklist(releaseID: releaseID)
+        store(titles, "tracklist-\(releaseID)")
+        return titles
+    }
+
     /// The server's id, else the one found by name (searched once).
     private func musicBrainzID(for artist: ArtistReference) async throws -> String? {
         if let id = artist.musicBrainzID { return id }

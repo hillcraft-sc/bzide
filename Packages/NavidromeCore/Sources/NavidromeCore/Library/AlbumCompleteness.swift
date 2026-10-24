@@ -91,10 +91,23 @@ public struct AlbumCompleteness: Equatable, Sendable {
 
     /// The tagged release's count, else the smallest edition with the same title.
     static func expectedTracks(for album: Album, among releases: [ReleaseTracks]) -> Int? {
+        release(for: album, among: releases)?.trackCount
+    }
+
+    /// The release the album is: the one its files are tagged with, else the
+    /// smallest edition with the same title.
+    public static func release(for album: Album, among releases: [ReleaseTracks]) -> ReleaseTracks? {
         if let id = album.musicBrainzID, let tagged = releases.first(where: { $0.id == id }) {
-            return tagged.trackCount
+            return tagged
         }
         let key = Discography.matchKey(album.name)
-        return releases.filter { Discography.matchKey($0.title) == key }.map(\.trackCount).min()
+        return releases.filter { Discography.matchKey($0.title) == key }.min { $0.trackCount < $1.trackCount }
+    }
+
+    /// The release's tracks the user doesn't have, matched by title (ignoring
+    /// case, accents, punctuation and anything in brackets), in the release's order.
+    public static func missingTitles(_ tracklist: [String], owned songs: [Song]) -> [String] {
+        let have = Set(songs.map { Discography.matchKey($0.title) })
+        return tracklist.filter { !have.contains(Discography.matchKey($0)) }
     }
 }

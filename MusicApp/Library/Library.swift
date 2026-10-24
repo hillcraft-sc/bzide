@@ -89,19 +89,26 @@ final class Library {
         let lookup = artistLookup
         return AlbumCompletenessModel(sources: .init(
             album: { [client] id async throws(SubsonicError) in try await client.album(id: id) },
-            releases: { artist in try await lookup.releaseTracks(for: artist) }
+            releases: { artist in try await lookup.releaseTracks(for: artist) },
+            tracklist: { id in try await lookup.tracklist(releaseID: id) }
         ))
     }
     private static var musicBrainzContact: String {
         Bundle.main.object(forInfoDictionaryKey: "MusicBrainzContact") as? String ?? ""
     }
-    /// Songs heard on the radio to remember (Tagged Radio Songs). On this
+    /// Songs, albums and artists to remember (the Wishlist). On this
     /// iPhone; each account has its own (see `AccountSettings`).
     private(set) lazy var wishlist: Wishlist = {
         let support = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-        return Wishlist(fileURL: support?.appending(path: Wishlist.fileName)) { [client] query async throws(SubsonicError) in
-            try await client.search(query, artistCount: 0, albumCount: 0, songCount: 20).songs
-        }
+        return Wishlist(
+            fileURL: support?.appending(path: Wishlist.fileName),
+            search: { [client] query async throws(SubsonicError) in
+                try await client.search(query, artistCount: 0, albumCount: 0, songCount: 20).songs
+            },
+            searchLibrary: { [client] query async throws(SubsonicError) in
+                try await client.search(query, artistCount: 10, albumCount: 20, songCount: 0)
+            }
+        )
     }()
     /// Follows what a station is playing, for the on-air cover everywhere
     /// (the lock screen too) and Now Playing's badge and Song Info.

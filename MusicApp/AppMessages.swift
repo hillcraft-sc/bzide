@@ -33,6 +33,7 @@ private struct Messages: ViewModifier {
     func body(content: Content) -> some View {
         content
             .noticeBanner(isEnabled ? library.playlistEditor.confirmation : nil) { library.playlistEditor.dismissConfirmation() }
+            .noticeBanner(isEnabled ? library.wishlist.notice : nil) { library.wishlist.dismissNotice() }
             .noticeBanner(isEnabled ? library.spinOff.notice : nil, seconds: 5) { library.spinOff.dismissNotice() }
             .noticeBanner(isEnabled ? library.spinTheDial.notice : nil, seconds: 4) { library.spinTheDial.dismissNotice() }
             .alert("Couldn't Change Favorite", isPresented: shown(library.stars.error) { library.stars.dismissError() }) {

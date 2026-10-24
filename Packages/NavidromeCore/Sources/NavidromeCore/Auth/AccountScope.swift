@@ -8,7 +8,7 @@ import Foundation
 /// keeps everything. When a different server or user signs in, the large,
 /// re-fetchable data (downloads, cached cover art and Gravatar pictures) is
 /// deleted, and the rest (settings, the queue, play history, unsent
-/// scrobbles, the profile, saved stations, Tagged Radio Songs…) is set aside
+/// scrobbles, the profile, saved stations, the Wishlist…) is set aside
 /// for that account by `AccountSettings`, and comes back when it signs in
 /// again. The app warns before a switch (`isDifferentAccount`) and offers
 /// `adopt` for the same server reached at a new address.

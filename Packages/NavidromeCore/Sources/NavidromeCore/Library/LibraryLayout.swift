@@ -22,7 +22,7 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         case .radio: "Radio"
         case .downloads: "Downloaded"
         case .history: "History"
-        case .wishlist: "Tagged Radio Songs"
+        case .wishlist: "Wishlist"
         }
     }
 

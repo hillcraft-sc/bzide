@@ -5,7 +5,7 @@ import Foundation
 /// outside-service switches, filters, and files: the saved queue, play
 /// history, unsent scrobbles, the profile (picture choice, email, saved
 /// pictures), stations saved on the iPhone and what's remembered about
-/// stations, Spin the Dial's log, and Tagged Radio Songs.
+/// stations, Spin the Dial's log, and the Wishlist.
 ///
 /// Settings live in UserDefaults, where the app reads them, for whoever is
 /// signed in. When a different account signs in (see `AccountScope`), the
@@ -65,7 +65,7 @@ public struct AccountSettings {
 
     /// Restore Default Settings: clears the signed-in account's settings, so
     /// everything reads its default (outside services off). Keeps its files
-    /// (Tagged Radio Songs, the profile) and `keptByRestore`. Models already
+    /// (the Wishlist, the profile) and `keptByRestore`. Models already
     /// loaded need reloading after.
     public func restoreDefaults() {
         for key in accountSettings.keys where !Self.keptByRestore.contains(key) {

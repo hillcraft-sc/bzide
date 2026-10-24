@@ -75,6 +75,11 @@ struct AlbumView: View {
                         AddToPlaylistButton(library: library, songs: album.songs)
                         MarkActions(library: library, target: .album(id: album.id), isStarred: album.isStarred, userRating: album.userRating)
                         AlbumInfoButton(library: library, albumID: album.id)
+                        if canAddMissingSongs(album) {
+                            Button("Add Missing Songs to Wishlist", systemImage: "tag") {
+                                Task { await addMissingSongs(album) }
+                            }
+                        }
                         if let artistID = album.artistID {
                             NavigationLink(value: LibraryRoute.artist(id: artistID)) {
                                 Label("Go to Artist", systemImage: "music.microphone")
@@ -91,6 +96,26 @@ struct AlbumView: View {
     }
 
     private var marksIncomplete: Bool { library.settings.settings.markIncompleteAlbums }
+
+    /// Only when MusicBrainz can say which songs (Look Up Artists Online) and
+    /// the album is known to be missing some.
+    private func canAddMissingSongs(_ album: Album) -> Bool {
+        marksIncomplete && library.settings.settings.lookUpArtistsOnline
+            && library.albumCompleteness.completeness(of: album.id)?.isIncomplete == true
+    }
+
+    /// The release's songs you don't have, by title, onto the Wishlist.
+    private func addMissingSongs(_ album: Album) async {
+        guard let missing = await library.albumCompleteness.missingSongs(of: album) else {
+            library.wishlist.explain("Couldn't get this album's songs from MusicBrainz.")
+            return
+        }
+        library.wishlist.addMissingSongs(
+            missing.titles, album: album.name, artist: album.artist ?? "", year: album.year,
+            coverURL: MusicBrainzClient.coverArtURL.appending(path: "release/\(missing.release.id)/front-250"),
+            musicBrainzURL: URL(string: "https://musicbrainz.org/release/\(missing.release.id)")
+        )
+    }
 
     /// The album, then whether it's missing tracks (after, so it never holds it up).
     private func load() async {
@@ -228,7 +253,7 @@ struct ArtistView: View {
                     if online.discography != .off { Text("In Your Library") }
                 }
                 .themedRows()
-                NotOwnedSections(library: library, state: online.discography) {
+                NotOwnedSections(library: library, artistName: artist.name, state: online.discography) {
                     Task { await online.load(artist, info: info.value, enabled: library.settings.settings.lookUpArtistsOnline) }
                 }
                 SimilarArtistsSection(library: library, artists: info.value?.similarArtists ?? [])
@@ -361,6 +386,7 @@ private struct CreditLink: View {
 /// collapsed, so the page leads with what the user owns.
 private struct NotOwnedSections: View {
     let library: Library
+    let artistName: String
     let state: OnlineArtistModel.State
     let retry: () -> Void
 
@@ -390,7 +416,7 @@ private struct NotOwnedSections: View {
                 Section {
                     if isExpanded {
                         ForEach(section.releases) { release in
-                            NotOwnedRow(library: library, release: release)
+                            NotOwnedRow(library: library, release: release, artistName: artistName)
                         }
                     }
                 } header: {
@@ -479,6 +505,13 @@ private struct SimilarArtistsSection: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("\(artist.name), not in your library")
                 .accessibilityHint("Opens on MusicBrainz")
+                .contextMenu {
+                    let onList = library.wishlist.containsArtist(named: artist.name)
+                    Button(onList ? "On Your Wishlist" : "Add to Wishlist", systemImage: onList ? "checkmark" : "tag") {
+                        library.wishlist.addArtist(named: artist.name, musicBrainzURL: url)
+                    }
+                    .disabled(onList)
+                }
         }
     }
 
@@ -521,8 +554,24 @@ private struct SimilarArtistsSection: View {
 private struct NotOwnedRow: View {
     let library: Library
     let release: DiscographyRelease
+    let artistName: String
 
     var body: some View {
+        content
+            .contextMenu {
+                let onList = library.wishlist.containsAlbum(titled: release.title, by: artistName)
+                Button(onList ? "On Your Wishlist" : "Add to Wishlist", systemImage: onList ? "checkmark" : "tag") {
+                    library.wishlist.addAlbum(
+                        titled: release.title, by: artistName, year: release.year,
+                        coverURL: release.coverURL, musicBrainzURL: release.pageURL
+                    )
+                }
+                .disabled(onList)
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         let row = HStack(spacing: 12) {
             ArtworkView(library: library, coverArtID: release.coverURL.map(StationLogo.coverArtID), side: 48)
             VStack(alignment: .leading, spacing: 2) {

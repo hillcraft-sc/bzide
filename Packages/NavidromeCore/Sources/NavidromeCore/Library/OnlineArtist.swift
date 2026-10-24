@@ -85,10 +85,13 @@ public protocol ArtistLookup: Sendable {
     /// Every official release with its track count; empty when the artist
     /// can't be found. For `AlbumCompleteness`.
     func releaseTracks(for artist: ArtistReference) async throws -> [ReleaseTracks]
+    /// A release's track titles, in order. For the Wishlist's missing songs.
+    func tracklist(releaseID: String) async throws -> [String]
 }
 
 extension ArtistLookup {
     public func releaseTracks(for artist: ArtistReference) async throws -> [ReleaseTracks] { [] }
+    public func tracklist(releaseID: String) async throws -> [String] { [] }
 }
 
 /// One release (an edition of an album) and how many audio tracks it has.

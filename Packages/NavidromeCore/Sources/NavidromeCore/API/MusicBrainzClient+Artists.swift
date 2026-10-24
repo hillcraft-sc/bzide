@@ -120,6 +120,30 @@ extension MusicBrainzClient {
         return releases
     }
 
+    /// A release's track titles, in order, audio media only, for an album's
+    /// missing songs (the Wishlist). Only the release's id is sent.
+    public func tracklist(releaseID: String) async throws -> [String] {
+        guard !contact.isEmpty else { throw Failure.noContact }
+        let url = try Self.url("release/\(releaseID)", [.init(name: "inc", value: "recordings")])
+        return try JSONDecoder().decode(ReleaseTracklist.self, from: try await get(url, paced: true)).titles
+    }
+
+    struct ReleaseTracklist: Decodable {
+        struct Medium: Decodable {
+            struct Track: Decodable { let title: String? }
+            let format: String?
+            let tracks: [Track]?
+        }
+        let media: [Medium]?
+
+        var titles: [String] {
+            (media ?? [])
+                .filter { !ReleaseBrowse.Release.isVideo($0.format) }
+                .flatMap { $0.tracks ?? [] }
+                .compactMap { $0.title.flatMap { $0.isEmpty ? nil : $0 } }
+        }
+    }
+
     struct ReleaseBrowse: Decodable {
         struct Release: Decodable {
             struct Medium: Decodable {
@@ -131,13 +155,15 @@ extension MusicBrainzClient {
             let title: String?
             let media: [Medium]?
 
+            static func isVideo(_ format: String?) -> Bool {
+                let format = (format ?? "").lowercased()
+                return ["dvd", "blu-ray", "vhs", "hd-dvd"].contains { format.contains($0) }
+            }
+
             /// Audio tracks only: a deluxe edition's DVD isn't missing songs.
             var tracks: ReleaseTracks? {
                 guard let title, !title.isEmpty else { return nil }
-                let audio = (media ?? []).filter { medium in
-                    let format = (medium.format ?? "").lowercased()
-                    return !["dvd", "blu-ray", "vhs", "hd-dvd"].contains { format.contains($0) }
-                }
+                let audio = (media ?? []).filter { !Self.isVideo($0.format) }
                 let count = audio.reduce(0) { $0 + ($1.trackCount ?? 0) }
                 return count > 0 ? ReleaseTracks(id: id, title: title, trackCount: count) : nil
             }

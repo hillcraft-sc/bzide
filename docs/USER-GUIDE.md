@@ -25,7 +25,7 @@ Your login is saved securely on this iPhone, so you only do this once. If the ad
 
 Bzide has two tabs at the bottom:
 
-- **Library:** your music, organized: Artists, Albums, Playlists, Favorites, Genres, Radio, Downloaded, History and Tagged Radio Songs, plus quick ways to start music (Random Mix, Mix My Cuts, Spin the Dial).
+- **Library:** your music, organized: Artists, Albums, Playlists, Favorites, Genres, Radio, Downloaded, History and Wishlist, plus quick ways to start music (Random Mix, Mix My Cuts, Spin the Dial).
 - **Search:** find anything by name. Before you type, it shows your genres as colored tiles.
 
 Above the tabs sits the **mini player**: what's playing, with play/pause and next. Tap it to open **Now Playing**, the full-screen player with the cover, controls, and your queue. Swipe it down or tap the arrow to close it.
@@ -119,7 +119,7 @@ Favorited and rated songs show a small heart, and a face or their stars (such as
 When a station announces the song it's playing:
 
 - If the song is in your library, Now Playing shows **In Your Library**. Tap it to play your copy or open the album.
-- If it isn't, tap **Tag Song** to remember it. Library > **Tagged Radio Songs** lists them, and marks the ones that show up in your library later.
+- If it isn't, tap **Tag Song** to remember it. It goes on your **Wishlist** (Library > Wishlist), under Found on Radio, which marks the ones that show up in your library later.
 - With **Settings > Radio > Look Up Songs Online** on, Bzide also shows the song's album cover and details.
 
 ## Lyrics
@@ -154,6 +154,13 @@ Tap the **waveform** in Now Playing for a full-screen visualizer that moves with
 An artist's page shows their picture, a short biography and their albums. Turn on **Settings > Artists > Look Up Artists Online** for a longer biography from Wikipedia, and the albums, singles and live releases you don't have yet (under **Not Owned**; tap one to see it on MusicBrainz).
 
 - **Similar Artists** at the bottom of an artist's page lists artists like them (from your server, usually via Last.fm). Tap one you have to open their page; tap one with an arrow, which isn't in your library, to look them up on MusicBrainz.
+- **Your Wishlist** (Library > Wishlist) keeps what you'd like to get, in sections:
+  - **Found on Radio:** songs you tagged while a station played them.
+  - **Missing Songs:** on an album you only partly have, tap ••• > **Add Missing Songs to Wishlist** (needs Look Up Artists Online, which knows the song titles).
+  - **Albums:** long-press an album under **Not Owned** > **Add to Wishlist**.
+  - **Artists:** long-press an artist with an arrow under **Similar Artists** > **Add to Wishlist**.
+
+  Bzide checks your library for each one: anything that turns up there is marked, and tapping it plays it or opens it. Swipe to remove one, or turn on **Settings > Wishlist > Remove Found Items** to have them leave by themselves once they're in your library.
 - **Albums you don't have all of** are marked in the artist's album list: **Missing tracks** when there's a gap in the track numbers, or **9 of 12 tracks** when the full count is known. The album's page says how many you have, and its **Album Info** has **View on MusicBrainz** to see the full track list. Bzide can always spot gaps; to catch tracks missing from the end, turn on Look Up Artists Online, which gets each album's full track count from MusicBrainz. Deluxe editions don't count against a standard album. To do this, Bzide reads each of an artist's albums from your server the first time you open them; to save data, turn off **Settings > Artists > Mark Incomplete Albums**.
 
 ## Make it yours

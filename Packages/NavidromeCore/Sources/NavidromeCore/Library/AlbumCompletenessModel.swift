@@ -17,13 +17,16 @@ public final class AlbumCompletenessModel {
     public struct Sources: Sendable {
         public var album: @Sendable (_ id: String) async throws(SubsonicError) -> Album
         public var releases: @Sendable (_ artist: ArtistReference) async throws -> [ReleaseTracks]
+        public var tracklist: @Sendable (_ releaseID: String) async throws -> [String]
 
         public init(
             album: @escaping @Sendable (_ id: String) async throws(SubsonicError) -> Album,
-            releases: @escaping @Sendable (_ artist: ArtistReference) async throws -> [ReleaseTracks]
+            releases: @escaping @Sendable (_ artist: ArtistReference) async throws -> [ReleaseTracks],
+            tracklist: @escaping @Sendable (_ releaseID: String) async throws -> [String] = { _ in [] }
         ) {
             self.album = album
             self.releases = releases
+            self.tracklist = tracklist
         }
     }
 
@@ -91,6 +94,17 @@ public final class AlbumCompletenessModel {
         }
         let known = await releases(of: ArtistReference(name: artist, musicBrainzID: nil))
         results[album.id] = .of(album, songs: album.songs, releases: known)
+    }
+
+    /// The album's songs the user doesn't have, by title, from its release on
+    /// MusicBrainz (the Wishlist's Add Missing Songs), with that release; `nil`
+    /// when the release or its tracklist can't be had.
+    public func missingSongs(of album: Album) async -> (titles: [String], release: ReleaseTracks)? {
+        guard let artist = album.artist, !artist.isEmpty else { return nil }
+        let known = await releases(of: ArtistReference(name: artist, musicBrainzID: nil))
+        guard let release = AlbumCompleteness.release(for: album, among: known),
+              let tracklist = try? await sources.tracklist(release.id), !tracklist.isEmpty else { return nil }
+        return (AlbumCompleteness.missingTitles(tracklist, owned: album.songs), release)
     }
 
     private func cachedSongs(_ album: Album) -> [Song]? {

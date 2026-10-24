@@ -169,7 +169,7 @@ final class AppModel {
         self.client = client
         if let library {
             Task { await library.profile.refresh() }
-            // Tagged radio songs now in the library get marked (and removed
+            // Wishlist entries now in the library get marked (and removed
             // when due) even if the list isn't opened.
             Task { await library.wishlist.checkLibrary() }
         }
@@ -201,7 +201,7 @@ final class AppModel {
 
     /// Puts the signed-in account's settings back to how Bzide starts (see
     /// `AccountSettings.restoreDefaults`), and has the screens already loaded
-    /// read them again. Data, Tagged Radio Songs and the profile stay.
+    /// read them again. Data, the Wishlist and the profile stay.
     func restoreDefaultSettings() {
         do {
             try AccountSettings.standard().restoreDefaults()
