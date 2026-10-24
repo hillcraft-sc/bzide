@@ -8,6 +8,18 @@ public struct StoreLink: Equatable, Sendable, Identifiable {
     public var id: String { store }
 }
 
+extension Wishlist {
+    /// Every store the Buy menu can offer, in its order.
+    public static let stores = ["Apple Music", "Bandcamp", "Qobuz", "Amazon"]
+
+    /// The Buy menu's links for the entry: the stores left on, or none
+    /// when the menu is off (or every store is), so it isn't shown.
+    public func buyLinks(for entry: WishlistEntry, region: String? = Locale.current.region?.identifier) -> [StoreLink] {
+        guard showsBuyMenu else { return [] }
+        return entry.storeLinks(region: region).filter { !hiddenStores.contains($0.store) }
+    }
+}
+
 extension WishlistEntry {
     /// What to search for: the artist and title, an album's artist and title,
     /// or an artist's name.

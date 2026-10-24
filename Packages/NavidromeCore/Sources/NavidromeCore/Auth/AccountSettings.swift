@@ -14,13 +14,13 @@ import Foundation
 /// put back if it has been here before (otherwise it starts with the
 /// defaults). Nothing readable about the account is stored.
 public struct AccountSettings {
-    private let defaults: UserDefaults
+    let defaults: UserDefaults
     /// The UserDefaults domain the app's settings are in.
     private let domain: String
     /// Settings that belong to the iPhone, not an account (e.g. which account owns the data).
-    private let deviceKeys: Set<String>
+    let deviceKeys: Set<String>
     private let directory: URL
-    private let files: [URL]
+    let files: [URL]
 
     public static let directoryName = "AccountSettings"
     static let settingsFileName = "Settings.plist"
@@ -81,7 +81,7 @@ public struct AccountSettings {
         restore(new)
     }
 
-    private var accountSettings: [String: Any] {
+    var accountSettings: [String: Any] {
         (defaults.persistentDomain(forName: domain) ?? [:]).filter { !deviceKeys.contains($0.key) }
     }
 

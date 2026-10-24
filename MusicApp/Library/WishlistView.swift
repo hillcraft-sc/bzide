@@ -147,9 +147,13 @@ struct WishlistView: View {
             Button("Open MusicBrainz Page", systemImage: "safari") { openURL(page) }
         }
         // Buying it: a store's search, opened in Safari or the store's app.
-        Menu("Buy", systemImage: "cart") {
-            ForEach(entry.storeLinks()) { link in
-                Button(link.store) { openURL(link.url) }
+        // Settings > Wishlist hides the menu, or chooses its stores.
+        let links = wishlist.buyLinks(for: entry)
+        if !links.isEmpty {
+            Menu("Buy", systemImage: "cart") {
+                ForEach(links) { link in
+                    Button(link.store) { openURL(link.url) }
+                }
             }
         }
         Button("Remove", systemImage: "trash", role: .destructive) { wishlist.remove(entry.id) }

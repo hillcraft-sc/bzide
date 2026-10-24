@@ -100,6 +100,12 @@ public final class StationDetailsStore: @unchecked Sendable {
         }
     }
 
+    /// Reads the file again: a backup was restored.
+    public func reload() {
+        let read = fileURL.flatMap { try? Data(contentsOf: $0) }.flatMap { try? JSONDecoder().decode(Saved.self, from: $0) }
+        lock.withLock { saved = read ?? Saved(notListedVersion: Self.lookUpVersion) }
+    }
+
     /// `nil` if nothing is known about this stream yet.
     public func entry(for stream: URL) -> Entry? {
         lock.withLock {

@@ -22,6 +22,26 @@ struct WishlistSharingTests {
         #expect(links[3].url.absoluteString == "https://www.amazon.com/s?k=Looking%20Glass%20Brandy&i=digital-music")
     }
 
+    @Test func theBuyMenuShowsTheStoresLeftOn() {
+        let list = wishlist()
+        let entry = WishlistEntry(artist: "Looking Glass", title: "Brandy", heardAt: .now)
+        #expect(list.buyLinks(for: entry, region: "US").map(\.store) == Wishlist.stores)
+        list.hiddenStores = ["Amazon", "Apple Music"]
+        #expect(list.buyLinks(for: entry, region: "US").map(\.store) == ["Bandcamp", "Qobuz"])
+        list.showsBuyMenu = false
+        #expect(list.buyLinks(for: entry, region: "US").isEmpty)
+        // Kept: a new Wishlist (a relaunch) reads them back.
+        let again = wishlist()
+        #expect(!again.showsBuyMenu)
+        #expect(again.hiddenStores == ["Amazon", "Apple Music"])
+    }
+
+    @Test func everyStoreOffMeansNoBuyMenu() {
+        let list = wishlist()
+        list.hiddenStores = Set(Wishlist.stores)
+        #expect(list.buyLinks(for: WishlistEntry(artist: "A", title: "B", heardAt: .now), region: "US").isEmpty)
+    }
+
     @Test func albumsAndArtistsAreSearchedAsSuch() {
         let album = WishlistEntry(kind: .album, artist: "Creed", title: "Weathered", heardAt: .now)
         #expect(album.storeLinks(region: "US")[1].url.query()?.contains("item_type=a") == true)

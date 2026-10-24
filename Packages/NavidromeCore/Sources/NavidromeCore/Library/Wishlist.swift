@@ -147,8 +147,19 @@ public final class Wishlist {
         }
     }
 
+    /// The long-press menu's Buy menu; on by default.
+    public var showsBuyMenu: Bool {
+        didSet { defaults.set(!showsBuyMenu, forKey: Self.hidesBuyMenuKey) }
+    }
+    /// Stores turned off, so a store added later shows until it's turned off.
+    public var hiddenStores: Set<String> {
+        didSet { defaults.set(hiddenStores.sorted(), forKey: Self.hiddenStoresKey) }
+    }
+
     static let removesFoundKey = "wishlistRemovesFound"
     static let removeFoundAfterKey = "wishlistRemoveFoundAfter"
+    static let hidesBuyMenuKey = "wishlistHidesBuyMenu"
+    static let hiddenStoresKey = "wishlistHiddenStores"
 
     @ObservationIgnored private let fileURL: URL?
     @ObservationIgnored private let defaults: UserDefaults
@@ -169,6 +180,8 @@ public final class Wishlist {
         self.defaults = defaults
         removesFound = defaults.bool(forKey: Self.removesFoundKey)
         removeFoundAfter = defaults.object(forKey: Self.removeFoundAfterKey).flatMap { $0 as? Int }.flatMap(FoundSongRemoval.init) ?? .week
+        showsBuyMenu = !defaults.bool(forKey: Self.hidesBuyMenuKey)
+        hiddenStores = Set(defaults.stringArray(forKey: Self.hiddenStoresKey) ?? [])
         self.search = search
         self.searchLibrary = searchLibrary
         self.now = now
@@ -192,9 +205,21 @@ public final class Wishlist {
     }
 
     /// Reads its settings again, after they were restored to the defaults.
+    /// Reads the list and its settings again: a backup was restored.
+    public func reload() {
+        entries = fileURL
+            .flatMap { try? Data(contentsOf: $0) }
+            .flatMap { try? JSONDecoder().decode(LossyList<WishlistEntry>.self, from: $0).items }
+            ?? []
+        found = [:]
+        reloadSettings()
+    }
+
     public func reloadSettings() {
         removesFound = defaults.bool(forKey: Self.removesFoundKey)
         removeFoundAfter = defaults.object(forKey: Self.removeFoundAfterKey).flatMap { $0 as? Int }.flatMap(FoundSongRemoval.init) ?? .week
+        showsBuyMenu = !defaults.bool(forKey: Self.hidesBuyMenuKey)
+        hiddenStores = Set(defaults.stringArray(forKey: Self.hiddenStoresKey) ?? [])
     }
 
     public func dismissNotice() {

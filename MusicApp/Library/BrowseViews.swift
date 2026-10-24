@@ -83,6 +83,7 @@ struct LibraryView: View {
                     SettingsView(
                         settings: library.settings, equalizer: model.equalizer, engine: library.engine, downloads: library.downloads, history: library.history, wishlist: library.wishlist,
                         appearance: model.appearance, profile: library.profile, account: model.account, signOut: model.signOut, restoreDefaults: model.restoreDefaultSettings,
+                        backup: BackupActions(make: model.makeBackup, isFromAnotherAccount: model.isFromAnotherAccount, restore: model.restore),
                         debugPlayer: debugPlayer,
                         stationSearch: { library.stationSearchModel() },
                         refreshLibrary: { try await library.refreshLibrary() }

@@ -164,7 +164,7 @@ An artist's page shows their picture, a short biography and their albums. Turn o
 
   Bzide checks your library for each one: anything that turns up there is marked, and tapping it plays it or opens it. Swipe to remove one, or turn on **Settings > Wishlist > Remove Found Items** to have them leave by themselves once they're in your library.
 
-  To **buy** something on your Wishlist, long-press it and choose **Buy**: Apple Music, Bandcamp, Qobuz or Amazon opens its search for it. To **share** the list, tap the share button at the top: as text, or as a CSV file for a spreadsheet.
+  To **buy** something on your Wishlist, long-press it and choose **Buy**: Apple Music, Bandcamp, Qobuz or Amazon opens its search for it. To choose the stores, or hide Buy altogether, go to **Settings > Wishlist** (**Show Buy Menu**, and a switch for each store). To **share** the list, tap the share button at the top: as text, or as a CSV file for a spreadsheet.
 - **Albums you don't have all of** are marked in the artist's album list: **Missing tracks** when there's a gap in the track numbers, or **9 of 12 tracks** when the full count is known. The album's page says how many you have, and its **Album Info** has **View on MusicBrainz** to see the full track list. With Look Up Artists Online on, the album's page also lists the songs you're missing under **Missing Tracks**, below its songs: tap it to open the list, and long-press a song to add it to your Wishlist. Bzide can always spot gaps; to catch tracks missing from the end, turn on Look Up Artists Online, which gets each album's full track count from MusicBrainz. Deluxe editions don't count against a standard album. To do this, Bzide reads each of an artist's albums from your server the first time you open them; to save data, turn off **Settings > Artists > Mark Incomplete Albums**.
 
 ## Make it yours
@@ -199,6 +199,7 @@ Connect to CarPlay and open Bzide. The tabs are **Recents** (albums you've playe
 - **Sign out:** Settings > Sign Out. Everything stays on the phone for when you sign back in.
 - **Switching to another account:** Bzide asks first. Each account keeps its own settings, history and queue, and they come back when it signs in again. Downloads are removed, as they belong to the other server.
 - **Same server, different address** (say, your home network instead of the internet): choose **Same Server, Keep Everything** when asked.
+- **Back up and restore:** Settings > Backup > **Back Up Bzide Data** saves your settings, Wishlist, stations saved on this iPhone and (with **Include Play History** on) your play history in one file, wherever you choose in Files. On a new iPhone or iPad, sign in, then tap **Restore from Backup** and pick the file: it replaces what's there with the backup. The file isn't encrypted, and never has your login or server address in it.
 - **Start over:** Settings > **Restore Default Settings** puts every setting back as it was, keeping your downloads, history and favorites.
 
 ## Privacy

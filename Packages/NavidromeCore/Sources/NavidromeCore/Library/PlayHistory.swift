@@ -197,6 +197,15 @@ public final class PlayHistory: PlayRecording {
         save()
     }
 
+    /// Reads the plays and settings again: a backup was restored.
+    public func reload() {
+        // The plays first: setting the retention prunes (and saves) them.
+        entries = Self.load(from: fileURL)
+        retention = defaults.object(forKey: Self.retentionKey).flatMap { $0 as? Int }.flatMap(HistoryRetention.init) ?? .month
+        combinesRepeats = defaults.object(forKey: Self.combineKey) as? Bool ?? true
+        prune()
+    }
+
     /// The plays in `period` that match `query`, grouped by day, newest first,
     /// with repeats combined if `combinesRepeats` is on.
     public func days(matching query: String, in period: HistoryPeriod) -> [HistoryDay] {

@@ -14,6 +14,7 @@ struct SettingsView: View {
     let account: AccountSummary?
     let signOut: () -> Void
     let restoreDefaults: () -> Void
+    let backup: BackupActions
     /// The bare player screen kept for exercising playback; `nil` outside
     /// Debug builds, so TestFlight and the App Store don't have it (#24).
     let debugPlayer: (() -> AnyView)?
@@ -265,6 +266,9 @@ struct SettingsView: View {
                 Text("Help: how to use everything in Bzide. Privacy: what Bzide sends, to whom, and what it keeps on this iPhone.")
             }
             .themedRows(grouped: true)
+            if account != nil {
+                BackupSection(actions: backup)
+            }
             Section {
                 Button("Restore Default Settings", role: .destructive) { isConfirmingRestoreDefaults = true }
             } footer: {
@@ -693,7 +697,7 @@ private struct LiveWeatherPlaceField: View {
 }
 
 /// Settings > Wishlist: whether entries found in the library leave the
-/// list, and when.
+/// list, and when; and the long-press menu's Buy menu and its stores.
 private struct WishlistSection: View {
     @Bindable var wishlist: Wishlist
 
@@ -711,5 +715,25 @@ private struct WishlistSection: View {
             Text("Songs, albums and artists on your Wishlist stay until you remove them. With this on, one that turns up in your library is removed from the list, counted from the day Bzide finds it there. Bzide checks your server when the app starts and when you open the list.")
         }
         .themedRows(grouped: true)
+        Section {
+            Toggle("Show Buy Menu", isOn: $wishlist.showsBuyMenu)
+            if wishlist.showsBuyMenu {
+                ForEach(Wishlist.stores, id: \.self) { store in
+                    Toggle(store, isOn: shown(store))
+                }
+            }
+        } footer: {
+            Text("Long-press something on your Wishlist to buy it: Buy opens a search for it at the store you pick, in Safari or the store's app. Nothing is sent to a store until you tap it. Turn off the stores you don't want; with all of them off, there's no Buy menu.")
+        }
+        .themedRows(grouped: true)
+    }
+
+    private func shown(_ store: String) -> Binding<Bool> {
+        Binding(
+            get: { !wishlist.hiddenStores.contains(store) },
+            set: { isOn in
+                if isOn { wishlist.hiddenStores.remove(store) } else { wishlist.hiddenStores.insert(store) }
+            }
+        )
     }
 }

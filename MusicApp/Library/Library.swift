@@ -390,6 +390,16 @@ final class Library {
         return OnAirInfoModel { song in try await musicBrainz.details(for: song) }
     }
 
+    /// A backup was restored: the Wishlist, history, what's known about
+    /// stations and Spin the Dial's log are read again. (Saved stations are
+    /// read each time Radio opens.)
+    func reloadAfterRestore() {
+        wishlist.reload()
+        history.reload()
+        stationDetails.reload()
+        spinTheDial = makeSpinTheDial()
+    }
+
     private func makeSpinTheDial() -> SpinTheDialModel {
         let support = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         let phone = PhoneStationStore(fileURL: support?.appending(path: PhoneStationStore.fileName))

@@ -45,6 +45,7 @@ Some things open a web page when you tap them: a release or artist on MusicBrain
 - **Your login** in the Keychain, readable only on this iPhone (it isn't synced to iCloud Keychain or put in backups).
 - **Your downloads**, cover art and caches (downloads aren't put in backups).
 - **Play history, the queue, the Wishlist, saved stations, your profile picture and your settings,** each kept per account. Like all app data, they're encrypted by iOS and included in your iPhone's backups.
+- **Backups you make** (Settings > Backup): your settings, Wishlist, saved stations and, if you choose, play history, in one file saved wherever you pick in Files. Bzide never uploads it; it isn't encrypted, so keep it somewhere you trust. It never contains your login or your server's address.
 - **What the widgets show** (the song playing and its cover, and the theme's colors), shared only with Bzide's own widgets.
 
 Bzide doesn't keep copies of your server's answers on disk: its connections use private sessions with no web cache or cookies.

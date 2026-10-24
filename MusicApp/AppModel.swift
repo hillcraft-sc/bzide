@@ -215,6 +215,37 @@ final class AppModel {
         library?.wishlist.reloadSettings()
     }
 
+    // MARK: - Back Up and Restore (Gitea #38)
+
+    /// The signed-in account's data, as a backup to save.
+    func makeBackup(includingHistory: Bool) throws(BackupError) -> AccountBackup {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        return try Self.accountSettings().backup(includingHistory: includingHistory, appVersion: version)
+    }
+
+    /// Whether a backup is from another server or user than this one.
+    func isFromAnotherAccount(_ backup: AccountBackup) -> Bool {
+        (try? Self.accountSettings().isFromAnotherAccount(backup)) ?? false
+    }
+
+    /// Replaces this account's settings and data with the backup's, then has
+    /// everything already loaded read them again.
+    func restore(_ backup: AccountBackup) throws(BackupError) {
+        try Self.accountSettings().restore(backup)
+        system.settings.reload()
+        appearance.reload()
+        libraryLayout.reload()
+        library?.reloadAfterRestore()
+    }
+
+    private static func accountSettings() throws(BackupError) -> AccountSettings {
+        do {
+            return try AccountSettings.standard()
+        } catch {
+            throw .io(String(describing: error))
+        }
+    }
+
     // MARK: - Sign out
 
     /// Removes the login and stops playback. The account's data stays on the
