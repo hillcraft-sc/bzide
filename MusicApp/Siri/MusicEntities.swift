@@ -133,6 +133,13 @@ struct PlaylistEntity {
     }
 }
 
+extension PlaylistEntity {
+    /// Random Mix, offered to Siri as a playlist: "play Random Mix in Bzide",
+    /// and what "play music in Bzide" starts when nothing is queued.
+    static let randomMixID = "bzide.random-mix"
+    static let randomMix = PlaylistEntity(Playlist(id: randomMixID, name: AudioRequestFinder.randomMixTitle))
+}
+
 /// Who a playlist belongs to, as the playlist schema expects. Navidrome
 /// gives only a username, so it's always a curator name here.
 @UnionValue
@@ -168,7 +175,18 @@ struct AlbumEntityQuery: EntityStringQuery {
 struct SongEntityQuery: EntityStringQuery {
     func entities(for identifiers: [String]) async throws -> [SongEntity] {
         let lookup = try await SiriAccess.lookup()
-        return await SiriAccess.each(identifiers, lookup.song).map(SongEntity.init)
+        // The current song (what "play music" resumes) may be a radio
+        // station, which the server can't look up.
+        let current = await MainActor.run { try? SiriAccess.library().engine.queue.current?.song }
+        var songs: [SongEntity] = []
+        for id in identifiers {
+            if let current, current.id == id {
+                songs.append(SongEntity(current))
+            } else if let song = try? await lookup.song(id) {
+                songs.append(SongEntity(song))
+            }
+        }
+        return songs
     }
 
     func entities(matching string: String) async throws -> [SongEntity] {
@@ -179,7 +197,9 @@ struct SongEntityQuery: EntityStringQuery {
 struct PlaylistEntityQuery: EntityStringQuery {
     func entities(for identifiers: [String]) async throws -> [PlaylistEntity] {
         let lookup = try await SiriAccess.lookup()
-        return await SiriAccess.each(identifiers, lookup.playlist).map(PlaylistEntity.init)
+        let real = identifiers.filter { $0 != PlaylistEntity.randomMixID }
+        let found = await SiriAccess.each(real, lookup.playlist).map(PlaylistEntity.init)
+        return identifiers.contains(PlaylistEntity.randomMixID) ? [.randomMix] + found : found
     }
 
     /// The server has no playlist search, so this filters the list by name.

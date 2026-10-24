@@ -18,6 +18,8 @@ final class Library {
     let addToPlaylist: AddToPlaylistRequest
     /// A playlist a menu asked to rename or delete (see `playlistPrompts`).
     let playlistPrompts = PlaylistPrompts()
+    /// Answers Siri's "play … in Bzide" (see `AudioRequestFinder`).
+    let audioFinder: AudioRequestFinder
     /// What the Info sheet is open for.
     let info = InfoRequest()
     let artwork: ArtworkCache
@@ -112,6 +114,13 @@ final class Library {
         self.playlistRefresher = playlistRefresher
         self.client = client
         self.features = ServerFeatures(client: client)
+        self.audioFinder = AudioRequestFinder(sources: .init(
+            search: { [client] query async throws(SubsonicError) in
+                try await client.search(query, artistCount: 10, albumCount: 10, songCount: 10)
+            },
+            playlists: { [client] () async throws(SubsonicError) in try await client.playlists() },
+            current: { [engine] in await MainActor.run { engine.queue.current?.song } }
+        ))
         self.username = username
         self.engine = engine
         self.sleepTimer = SleepTimer(target: engine)

@@ -167,7 +167,7 @@ An artist's page shows their picture, a short biography and their albums. Turn o
   - Both follow your Bzide theme.
 - **Favorite Song control:** add it to Control Center, or to the Lock Screen in place of the flashlight or camera (Lock Screen > Customize). It hearts the song playing.
 - **Quick actions:** long-press the Bzide icon for Continue, Random Mix, Mix My Cuts and Search.
-- **Siri** (with Apple Intelligence): say "Play [an artist, album or playlist] in Bzide", "Shuffle [something] in Bzide", "Add this to my [playlist] in Bzide", or "Favorite this song in Bzide".
+- **Siri** (with Apple Intelligence): say "Play [an artist, album or playlist] in Bzide", "Shuffle [something] in Bzide", "Add this to my [playlist] in Bzide", or "Favorite this song in Bzide". "Play music in Bzide" carries on with what you were listening to, or starts a Random Mix; "Play Random Mix in Bzide" works too. This works in CarPlay as well.
 
 ## CarPlay
 

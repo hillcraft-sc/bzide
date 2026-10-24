@@ -320,6 +320,11 @@ How the app behaves, written so the web and Android clients can be ported from t
 
 - **What Siri knows.** Songs, albums, artists and playlists are Siri entities using the system's audio schemas (ids are the server's). Every artist, album, playlist, song, download and queue row is annotated with its entity, as are the album, artist and playlist page headers; Now Playing publishes the current song. So "Ask Siri" from a long-press, or "play this" / "add this to …" while looking at something, refers to that item. iOS 27 adds Ask Siri to menus on its own; the app can't remove it (see `docs/ISSUES.md`).
 - **Finding things by name.** Siri looks entities up by id (`getArtist`, `getAlbum`, `getPlaylist`, `getSong`; ids the server no longer has are skipped) or by name (`search3`, 10 of each kind; playlists by filtering the user's list, since the server has no playlist search). For "play X", an exact (case- and accent-insensitive) name match comes first, then songs, albums, artists and playlists.
+- **"Play … in Bzide" (audio search).** On iOS 27, a spoken play request reaches the app's audio search (an `IntentValueQuery` over `MediaIntents.AudioSearch`); if its answer is empty, fails or is slow, Siri plays from Apple Music instead, without saying why (Gitea #34). So it answers fast and with something whenever it can:
+  - **Something named** ("play Creed in Bzide"): the search and the playlist-name match run at the same time; the playlist list is kept for 10 minutes rather than fetched each time; and after 4 seconds the answer is whatever has arrived (the playlists, if the search is still out). "Play Random Mix in Bzide" starts a Random Mix.
+  - **Nothing named** ("play music in Bzide", "play Bzide"): it carries on with the queue (the current song is offered, and playing it resumes rather than replacing the queue), or starts a Random Mix if nothing is queued.
+  - A web address finds nothing (no Navidrome item has one).
+  - Each answer is logged (category Siri: what kind of request, how many results, how long it took; the spoken words only as private data), to diagnose a request that went to Apple Music.
 - **Play** (`playAudio` schema): plays the item as the long-press Play does (an artist's albums oldest first). Shuffle plays it shuffled; Repeat also turns on repeat all; "next" and "last" put it after the current song or at the end of the queue instead of replacing it.
 - **Add to Playlist** (`addToPlaylist` schema): adds the item to the named playlist with the same rules as the sheet (only new songs; long lists chunked). Siri says the result, e.g. "Added 8 songs to “Morning”. 2 were already there."; a failure is spoken as the server's message.
 - An artist with more than 100 songs asks for confirmation first, as the menus do.
@@ -732,6 +737,8 @@ Run on a physical iPhone. Each line is one check; note failures in `docs/ISSUES.
 - [ ] Long-press a song > Ask Siri > "add this to my <playlist> playlist": it's added; Siri says so. Ask again: Siri says it's already there.
 - [ ] With Now Playing open, "add this to <playlist>": the current song is added.
 - [ ] Without the app open: "Play <album name> in Bzide", "Shuffle <artist> in Bzide", "Play <playlist> in Bzide".
+- [ ] Phone locked, Bzide not running (swipe it away first): "Play <artist> in Bzide" plays in Bzide within a few seconds, not in Apple Music. Same over CarPlay in the car, on cellular.
+- [ ] "Play music in Bzide" with something queued and paused: the queue carries on where it was. With the queue empty: a Random Mix starts. "Play Random Mix in Bzide" starts one too.
 - [ ] "Play <artist with more than 100 songs> in Bzide": Siri asks first; saying no plays nothing.
 - [ ] Signed out: a Siri request says to sign in first.
 - [ ] Play a song, lock the phone, "Favorite this song in Bzide": Siri confirms; the heart is filled in Now Playing and Navidrome. Say it again: still a favorite (not undone). "Unfavorite this song in Bzide": cleared. On a radio station: Siri says it can't be a favorite.

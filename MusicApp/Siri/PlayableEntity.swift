@@ -2,6 +2,7 @@ import AppIntents
 import Foundation
 import MediaIntents
 import NavidromeCore
+import os
 
 /// Anything Siri can play or add to a playlist.
 @UnionValue
@@ -31,27 +32,44 @@ enum PlayableEntity {
 }
 
 extension PlayableEntity {
-    /// Finds what a spoken request names ("play Kind of Blue in Bzide"): an
-    /// exact name match first, then songs, albums, artists and playlists.
+    /// Siri's audio search: "play Kind of Blue in Bzide", or just "play music
+    /// in Bzide". On iOS 27, Siri sends these here and falls back to Apple
+    /// Music if the answer is empty or slow (Gitea #34), so the work is done by
+    /// `AudioRequestFinder`, which answers within a few seconds.
     struct AudioSearchQuery: IntentValueQuery {
-        func values(for input: AudioSearch) async throws -> [PlayableEntity] {
-            guard case .searchQuery(let query) = input.criteria else { return [] }
-            let lookup = try await SiriAccess.lookup()
-            let found = try await lookup.search(query)
-            let playlists = (try? await lookup.playlists()) ?? []
-            let candidates: [PlayableEntity] =
-                found.songs.map { .song(SongEntity($0)) }
-                + found.albums.map { .album(AlbumEntity($0)) }
-                + found.artists.map { .artist(ArtistEntity($0)) }
-                + playlists.filter { $0.name.localizedStandardContains(query) }.map { .playlist(PlaylistEntity($0)) }
-            return Self.exactFirst(candidates, query: query)
-        }
+        private static let logger = Logger(subsystem: "MusicApp", category: "Siri")
 
-        static func exactFirst(_ candidates: [PlayableEntity], query: String) -> [PlayableEntity] {
-            let wanted = query.trimmingCharacters(in: .whitespaces)
-            let exact = candidates.filter { $0.title.compare(wanted, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame }
-            let rest = candidates.filter { $0.title.compare(wanted, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame }
-            return exact + rest
+        func values(for input: AudioSearch) async throws -> [PlayableEntity] {
+            let started = ContinuousClock.now
+            let finder = try await MainActor.run { try SiriAccess.library().audioFinder }
+            let matches: [AudioMatch]
+            let kind: String
+            switch input.criteria {
+            case .searchQuery(let query):
+                kind = "search"
+                Self.logger.notice("Audio search for \(query, privacy: .private)")
+                matches = await finder.find(query)
+            case .unspecified:
+                kind = "unspecified"
+                matches = await finder.unspecified()
+            default:
+                // A web address: nothing in a Navidrome library has one.
+                kind = "other"
+                matches = []
+            }
+            let elapsed = ContinuousClock.now - started
+            Self.logger.notice("Audio search (\(kind, privacy: .public)): \(matches.count) results in \(elapsed, privacy: .public)")
+            return await MainActor.run { matches.map(PlayableEntity.init) }
+        }
+    }
+
+    init(_ match: AudioMatch) {
+        switch match {
+        case .song(let song), .resume(let song): self = .song(SongEntity(song))
+        case .album(let album): self = .album(AlbumEntity(album))
+        case .artist(let artist): self = .artist(ArtistEntity(artist))
+        case .playlist(let playlist): self = .playlist(PlaylistEntity(playlist))
+        case .randomMix: self = .playlist(.randomMix)
         }
     }
 }

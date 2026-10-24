@@ -20,8 +20,19 @@ struct PlayAudioIntent: AudioPlaybackIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         let library = try SiriAccess.library()
-        let songs = try await SiriSongs.resolve(audioEntity, in: library, confirmingWith: self)
         let engine = library.engine
+        if case .playlist(let playlist) = audioEntity, playlist.id == PlaylistEntity.randomMixID {
+            await library.randomMix.start()
+            return .result()
+        }
+        // "Play music in Bzide" names the current song: carry on with the
+        // queue rather than replacing it with that one song.
+        if case .song(let song) = audioEntity, song.id == engine.queue.current?.song.id,
+           queueLocation == nil, playbackAttributes.isEmpty {
+            engine.play()
+            return .result()
+        }
+        let songs = try await SiriSongs.resolve(audioEntity, in: library, confirmingWith: self)
         switch queueLocation {
         case .next: engine.playNext(songs)
         case .tail: engine.append(songs)
@@ -70,6 +81,10 @@ struct AddToPlaylistIntent {
 enum SiriSongs {
     static func resolve(_ entity: PlayableEntity, in library: Library, confirmingWith intent: some AppIntent) async throws -> [Song] {
         let quick = library.quickActions
+        // Random Mix isn't songs to add; it's started by playing it.
+        if case .playlist(let playlist) = entity, playlist.id == PlaylistEntity.randomMixID {
+            throw SiriError.notFound
+        }
         do {
             if case .artist(let artist) = entity {
                 let (_, count) = try await quick.songCount(ofArtist: artist.id)
