@@ -48,6 +48,7 @@ public struct AccountSettings {
                 support.appending(path: ProfileModel.fileName),
                 support.appending(path: ProfileModel.picturesDirectoryName),
                 support.appending(path: FileQueueStore.fileName),
+                support.appending(path: QueueSync.fileName),
                 support.appending(path: FileScrobbleStore.fileName),
                 support.appending(path: PlayHistory.fileName),
                 support.appending(path: PhoneStationStore.fileName),

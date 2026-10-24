@@ -180,6 +180,12 @@ public final class PlaybackEngine {
         start(PlaybackQueue(songs: songs, startIndex: startIndex), shuffleOrigin: nil)
     }
 
+    /// The same, from `position` seconds into the starting song: a queue
+    /// continued from another device (see `QueueSync`).
+    public func play(songs: [Song], startIndex: Int, from position: TimeInterval) {
+        start(PlaybackQueue(songs: songs, startIndex: startIndex), shuffleOrigin: nil, startPosition: position)
+    }
+
     /// Plays the songs in a random order with shuffle on, so turning shuffle
     /// off carries on with the rest in their original order.
     public func playShuffled(_ songs: [Song]) {
@@ -219,7 +225,9 @@ public final class PlaybackEngine {
         append(songs)
     }
 
-    private func start(_ newQueue: PlaybackQueue, shuffleOrigin origin: [QueueEntry.ID]?, spinOff seed: SpinOffSeed? = nil) {
+    private func start(
+        _ newQueue: PlaybackQueue, shuffleOrigin origin: [QueueEntry.ID]?, spinOff seed: SpinOffSeed? = nil, startPosition: TimeInterval = 0
+    ) {
         defer { publishNowPlaying() }
         cancelRecovery()
         cancelPendingActivation()
@@ -228,6 +236,10 @@ public final class PlaybackEngine {
         spinOff = newQueue.isEmpty ? nil : seed
         shuffleOrigin = newQueue.isEmpty ? nil : origin
         resetForNewTrack()
+        if startPosition > 0, !queue.isEmpty, !isLive {
+            position = duration.map { min(startPosition, $0) } ?? startPosition
+            scrobbleTracker.seeked(to: position)
+        }
         saveSnapshot()
         guard !queue.isEmpty else {
             isPlayerLoaded = false
@@ -235,7 +247,7 @@ public final class PlaybackEngine {
             status = .idle
             return
         }
-        loadPlayer(startPosition: 0)
+        loadPlayer(startPosition: position)
         startPlayback()
     }
 

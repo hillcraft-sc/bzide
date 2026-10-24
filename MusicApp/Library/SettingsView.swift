@@ -88,6 +88,14 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Sync Queue with Server", isOn: $settings.settings.syncQueueWithServer)
+            } header: {
+                Text("Playback")
+            } footer: {
+                Text("Saves the queue on your server, so you can continue on another device or in another app that uses the server's queue. When a newer queue is there, Bzide asks before playing it. Radio stations aren't saved.")
+            }
+            .themedRows(grouped: true)
+            Section {
                 Toggle("Play When CarPlay Connects", isOn: $settings.settings.playWhenCarPlayConnects)
             } header: {
                 Text("CarPlay")

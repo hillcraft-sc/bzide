@@ -16,7 +16,7 @@ This page is also in the app, under Settings > Privacy.
 
 ### Your server
 
-Bzide talks to the server you sign in to: to browse and search your library, play and download music, and save favorites, ratings and playlists.
+Bzide talks to the server you sign in to: to browse and search your library, play and download music, and save favorites, ratings and playlists. It also saves your queue there (its songs, the one playing and how far in), so you can continue on another device; **Settings > Playback > Sync Queue with Server** turns that off.
 
 It also reports what you play (scrobbling), so your server can keep play counts and lists such as Recently Played, and pass your plays to Last.fm or ListenBrainz *if you've linked them on your server*. Bzide itself never contacts Last.fm or ListenBrainz. **Settings > Scrobbling > Send Plays to Server** turns this off entirely.
 

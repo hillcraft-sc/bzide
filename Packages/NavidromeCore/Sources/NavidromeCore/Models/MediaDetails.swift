@@ -142,7 +142,11 @@ public struct AlbumDetails: Sendable, Equatable {
 enum MediaDates {
     static func date(_ text: String) -> Date? {
         let withFraction = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
-        return (try? withFraction.parse(text)) ?? (try? Date.ISO8601FormatStyle().parse(text))
+        if let date = (try? withFraction.parse(text)) ?? (try? Date.ISO8601FormatStyle().parse(text)) { return date }
+        // Navidrome writes nanoseconds ("…:35.784818075Z"); keep milliseconds.
+        guard let match = text.firstMatch(of: /\.(\d{4,})/) else { return nil }
+        let trimmed = text.replacingCharacters(in: match.range, with: "." + match.1.prefix(3))
+        return try? withFraction.parse(trimmed)
     }
 
     static func string(_ date: Date) -> String {

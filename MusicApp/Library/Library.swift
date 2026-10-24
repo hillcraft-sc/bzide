@@ -115,6 +115,8 @@ final class Library {
     private var onAirTracker: OnAirTracker?
     /// Shares what's playing with the Now Playing widget and the Favorite Song control.
     private var widgetFeed: WidgetFeed?
+    /// The queue on the server too, to continue on another device (Gitea #37).
+    private(set) var queueSync: QueueSync?
     /// Spin the Dial, shared by the Library button and Next on a dialed station.
     private(set) lazy var spinTheDial: SpinTheDialModel = makeSpinTheDial()
     /// Radio Browser is on the open internet: no shared cache or cookies.
@@ -251,6 +253,32 @@ final class Library {
         let feed = WidgetBridge.makeFeed(engine: engine, stars: stars, artwork: artwork)
         widgetFeed = feed
         feed.start()
+        let sync = Self.makeQueueSync(client: client, features: features, engine: engine, settings: settings)
+        queueSync = sync
+        sync.start()
+    }
+
+    /// Saved by position where the server can (a song in the queue twice
+    /// keeps its place), and as a form POST where it can (a longer queue fits).
+    private static func makeQueueSync(
+        client: SubsonicClient, features: ServerFeatures, engine: PlaybackEngine, settings: StreamingSettingsModel
+    ) -> QueueSync {
+        let support = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        return QueueSync(
+            engine: engine,
+            sources: .init(
+                save: { queue in
+                    try await client.savePlayQueue(
+                        songIDs: queue.songs.map(\.id), currentIndex: queue.currentIndex, position: queue.position,
+                        byIndex: await features.supportsIndexBasedQueue(), post: await features.supportsFormPost()
+                    )
+                },
+                load: { try await client.playQueue(byIndex: await features.supportsIndexBasedQueue()) },
+                songLimit: { await features.supportsFormPost() ? QueueSync.postSongLimit : QueueSync.urlSongLimit }
+            ),
+            isOn: { [settings] in settings.settings.syncQueueWithServer },
+            fileURL: support?.appending(path: QueueSync.fileName)
+        )
     }
 
     /// The profile picture settings, saved with the account's other data.

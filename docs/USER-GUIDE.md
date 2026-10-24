@@ -63,6 +63,8 @@ The list under the controls in Now Playing is your **queue**: the current song, 
 
 Your queue is saved, so after closing Bzide it's waiting where you left off, paused.
 
+**Continue on another device.** Bzide also saves your queue on your server. When you open Bzide on another iPhone or iPad, or come back after listening in another app that uses your server's queue (such as Feishin), a banner asks **Continue “<song>”?**: tap **Continue** to pick up from that song and spot, or **Not Now** to keep what's here. Radio stations aren't saved. To turn it off: **Settings > Playback > Sync Queue with Server**.
+
 ### Keep the music going
 
 Turn on **Settings > Playback > Keep Spinning**, and when a queue reaches its last song, Bzide carries on with similar music instead of stopping.

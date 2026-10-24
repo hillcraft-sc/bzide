@@ -86,6 +86,9 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
     /// On by default: artist and album pages mark albums missing tracks
     /// (see `AlbumCompleteness`), which reads each of an artist's albums.
     public var markIncompleteAlbums: Bool
+    /// On by default: the queue is saved on the server, and a newer one saved
+    /// there (another device or app) is offered (see `QueueSync`).
+    public var syncQueueWithServer: Bool
 
     public init(
         wifiQuality: StreamQuality = .original, cellularQuality: StreamQuality = .kbps192,
@@ -93,7 +96,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         findLyricsOnline: Bool = false, wrongLyricsButton: Bool = false, sendPlaysToServer: Bool = true, showsVisualizer: Bool = true, findStationsOnline: Bool = false, lookUpSongsOnline: Bool = false, lookUpArtistsOnline: Bool = false,
         liveWeather: Bool = false, liveWeatherUsesLocation: Bool = true, liveWeatherCity: String = "", liveWeatherPlace: LiveWeatherPlace? = nil, liveWeatherSource: LiveWeatherProvider = .apple, spinTheDial: DialSettings = DialSettings(), volumeNormalization: VolumeNormalization = .off, keepSpinning: Bool = false,
         includeMehInMixes: Bool = false, myCutsIncludeFavorites: Bool = true, useSimplifiedRating: Bool = true,
-        playWhenCarPlayConnects: Bool = false, markIncompleteAlbums: Bool = true
+        playWhenCarPlayConnects: Bool = false, markIncompleteAlbums: Bool = true, syncQueueWithServer: Bool = true
     ) {
         self.wifiQuality = wifiQuality
         self.cellularQuality = cellularQuality
@@ -119,10 +122,11 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         self.useSimplifiedRating = useSimplifiedRating
         self.playWhenCarPlayConnects = playWhenCarPlayConnects
         self.markIncompleteAlbums = markIncompleteAlbums
+        self.syncQueueWithServer = syncQueueWithServer
     }
 
     private enum CodingKeys: String, CodingKey {
-        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, wrongLyricsButton, sendPlaysToServer, showsVisualizer, findStationsOnline, lookUpSongsOnline, lookUpArtistsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, liveWeatherSource, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites, useSimplifiedRating, playWhenCarPlayConnects, markIncompleteAlbums
+        case wifiQuality, cellularQuality, downloadOverCellular, downloadQuality, findLyricsOnline, wrongLyricsButton, sendPlaysToServer, showsVisualizer, findStationsOnline, lookUpSongsOnline, lookUpArtistsOnline, liveWeather, liveWeatherUsesLocation, liveWeatherCity, liveWeatherPlace, liveWeatherSource, spinTheDial, volumeNormalization, keepSpinning, includeMehInMixes, myCutsIncludeFavorites, useSimplifiedRating, playWhenCarPlayConnects, markIncompleteAlbums, syncQueueWithServer
     }
 
     /// A setting missing from what was saved (added in a later version) takes its
@@ -154,6 +158,7 @@ public struct StreamingSettings: Codable, Sendable, Equatable {
         useSimplifiedRating = (try? c.decodeIfPresent(Bool.self, forKey: .useSimplifiedRating)) ?? defaults.useSimplifiedRating
         playWhenCarPlayConnects = (try? c.decodeIfPresent(Bool.self, forKey: .playWhenCarPlayConnects)) ?? defaults.playWhenCarPlayConnects
         markIncompleteAlbums = (try? c.decodeIfPresent(Bool.self, forKey: .markIncompleteAlbums)) ?? defaults.markIncompleteAlbums
+        syncQueueWithServer = (try? c.decodeIfPresent(Bool.self, forKey: .syncQueueWithServer)) ?? defaults.syncQueueWithServer
     }
 }
 

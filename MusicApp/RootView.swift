@@ -21,12 +21,14 @@ struct RootView: View {
                     LibraryView(model: model, library: library)
                         .libraryDestinations(library)
                 }
+                .queueOffer(library.queueSync)
             }
             Tab(value: RootTab.search, role: .search) {
                 NavigationStack {
                     SearchView(library: library, focusRequest: searchFocusRequest)
                         .libraryDestinations(library)
                 }
+                .queueOffer(library.queueSync)
             }
         }
         // iPad: tabs that open into a sidebar (Gitea #22); iPhone keeps its tab bar.
@@ -49,8 +51,14 @@ struct RootView: View {
         .onChange(of: scenePhase, initial: true) { _, phase in
             // The icon's quick actions follow the queue (Continue names it).
             if phase != .active { HomeScreenActions.update(current: library.engine.queue.current?.song) }
+            if phase == .background { saveQueueToServer() }
             guard phase == .active else { return }
             Task { await library.playlistRefresher.refreshAllIfDue() }
+            // A queue saved since on another device or app is offered.
+            Task { await library.queueSync?.checkServer() }
+        }
+        .onChange(of: library.settings.settings.syncQueueWithServer) { _, isOn in
+            if !isOn { library.queueSync?.turnedOff() }
         }
         .onChange(of: model.pendingHomeScreenAction, initial: true) { _, action in
             guard let action else { return }
@@ -67,6 +75,17 @@ struct RootView: View {
         .appMessages(library, isEnabled: !isNowPlayingOpen)
         // Meh, Like and Love, or stars, everywhere a rating shows or is chosen.
         .environment(\.simplifiedRating, library.settings.settings.useSimplifiedRating)
+    }
+
+    /// With the position, before the app is suspended: the system allows a
+    /// few seconds for it.
+    private func saveQueueToServer() {
+        guard let sync = library.queueSync else { return }
+        let task = UIApplication.shared.beginBackgroundTask(withName: "Save Queue")
+        Task {
+            await sync.saveNow()
+            UIApplication.shared.endBackgroundTask(task)
+        }
     }
 
     private func run(_ action: HomeScreenAction) {

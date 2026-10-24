@@ -20,6 +20,11 @@ public actor ServerFeatures {
         await supports("formPost")
     }
 
+    /// OpenSubsonic `indexBasedQueue`: the play queue saved by position.
+    public func supportsIndexBasedQueue() async -> Bool {
+        await supports("indexBasedQueue")
+    }
+
     private func supports(_ name: String) async -> Bool {
         if let extensions { return extensions.contains(name) }
         guard let found = try? await client.openSubsonicExtensions() else { return false }
