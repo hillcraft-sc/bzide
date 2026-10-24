@@ -132,11 +132,12 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
+                Toggle("Mark Incomplete Albums", isOn: $settings.settings.markIncompleteAlbums)
                 Toggle("Look Up Artists Online", isOn: $settings.settings.lookUpArtistsOnline)
             } header: {
                 Text("Artists")
             } footer: {
-                Text("An artist's page adds their biography from Wikipedia and lists the releases you don't have, from MusicBrainz (musicbrainz.org), with covers from the Cover Art Archive. They get only the artist's name or MusicBrainz ID. Answers are kept on this iPhone for two weeks.")
+                Text("Mark Incomplete Albums: an artist's page marks the albums you don't have all of, and an album's page says which tracks are missing. To do this, Bzide reads each of the artist's albums from your server the first time you open them.\n\nLook Up Artists Online: an artist's page adds their biography from Wikipedia and lists the releases you don't have, from MusicBrainz (musicbrainz.org), with covers from the Cover Art Archive; with Mark Incomplete Albums, MusicBrainz also gives each album's full track count. They get only the artist's name or MusicBrainz ID. Answers are kept on this iPhone for two weeks.")
             }
             .themedRows(grouped: true)
             Section {

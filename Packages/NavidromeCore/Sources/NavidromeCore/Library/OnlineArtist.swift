@@ -82,6 +82,27 @@ public protocol ArtistLookup: Sendable {
     func biography(for artist: ArtistReference) async throws -> ArtistBiography?
     /// Empty when the artist can't be found.
     func discography(for artist: ArtistReference) async throws -> [DiscographyRelease]
+    /// Every official release with its track count; empty when the artist
+    /// can't be found. For `AlbumCompleteness`.
+    func releaseTracks(for artist: ArtistReference) async throws -> [ReleaseTracks]
+}
+
+extension ArtistLookup {
+    public func releaseTracks(for artist: ArtistReference) async throws -> [ReleaseTracks] { [] }
+}
+
+/// One release (an edition of an album) and how many audio tracks it has.
+public struct ReleaseTracks: Codable, Equatable, Sendable {
+    /// MusicBrainz's release id, as tagged in files by Picard.
+    public var id: String
+    public var title: String
+    public var trackCount: Int
+
+    public init(id: String, title: String, trackCount: Int) {
+        self.id = id
+        self.title = title
+        self.trackCount = trackCount
+    }
 }
 
 public enum Discography {

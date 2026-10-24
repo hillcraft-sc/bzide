@@ -26,7 +26,7 @@ It also reports what you play (scrobbling), so your server can keep play counts 
 |---|---|---|---|
 | **LRCLIB** (lrclib.net) | Lyrics your server doesn't have | Settings > Lyrics > Find Lyrics Online | A song's title, artist, album and length |
 | **Radio Browser** (radio-browser.info) | Finding radio stations, Spin the Dial | Settings > Radio > Find Stations Online | Your search and filters; the addresses of your saved stations (to find their logos and details); the id of a station found there when you play it (Radio Browser counts plays this way). Never your listening history. |
-| **MusicBrainz** and the **Cover Art Archive** | What song a station is playing; an artist's albums | Settings > Radio > Look Up Songs Online; Settings > Artists > Look Up Artists Online | An artist's name and a song title, or an artist's name or MusicBrainz id |
+| **MusicBrainz** and the **Cover Art Archive** | What song a station is playing; an artist's albums, and how many tracks each has | Settings > Radio > Look Up Songs Online; Settings > Artists > Look Up Artists Online | An artist's name and a song title, or an artist's name or MusicBrainz id |
 | **Wikipedia** and **Wikidata** | Artist biographies | Settings > Artists > Look Up Artists Online | Which artist's article to show |
 | **Apple Weather** or **MET Norway** | The Weather (Live) visualizer | Settings > Weather (Live) > Live Weather | Your location, rounded to about a kilometer, only while the visualizer is open |
 | **Apple Maps** | Finding the city you type for Weather (Live) | Typing a place in Settings > Weather (Live) | What you typed |

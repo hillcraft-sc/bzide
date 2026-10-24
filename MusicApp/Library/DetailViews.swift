@@ -58,7 +58,9 @@ struct AlbumView: View {
                     coverArtID: album.coverArtID,
                     title: album.name,
                     subtitle: [album.artist, album.year.map(String.init)].compactMap { $0 }.joined(separator: " · "),
-                    detail: MediaInfo.albumDetailsLine(album)
+                    detail: MediaInfo.albumDetailsLine(album),
+                    note: marksIncomplete ? library.albumCompleteness.completeness(of: album.id)?.detail : nil,
+                    noteLink: MusicBrainzClient.albumPage(album)
                 )
                 .siriEntity(albumID: album.id)
             }
@@ -82,8 +84,18 @@ struct AlbumView: View {
         }
         .navigationTitle(model.value?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await model.load() }
-        .refreshable { await model.load() }
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    private var marksIncomplete: Bool { library.settings.settings.markIncompleteAlbums }
+
+    /// The album, then whether it's missing tracks (after, so it never holds it up).
+    private func load() async {
+        await model.load()
+        if marksIncomplete, let album = model.value {
+            await library.albumCompleteness.load(album, online: library.settings.settings.lookUpArtistsOnline)
+        }
     }
 }
 
@@ -202,7 +214,7 @@ struct ArtistView: View {
                 Section {
                     ForEach(artist.albums) { album in
                         NavigationLink(value: LibraryRoute.album(id: album.id)) {
-                            AlbumRow(library: library, album: album)
+                            AlbumRow(library: library, album: album, badge: marksIncomplete ? library.albumCompleteness.completeness(of: album.id)?.badge : nil)
                         }
                         .contextMenu { AlbumRowMenu(library: library, album: album, showsGoToArtist: false) }
                         .siriEntity(albumID: album.id)
@@ -234,12 +246,19 @@ struct ArtistView: View {
         .refreshable { await load() }
     }
 
+    private var marksIncomplete: Bool { library.settings.settings.markIncompleteAlbums }
+
     private func load() async {
         async let albums: Void = model.load()
         async let biography: Void = info.load()
         _ = await (albums, biography)
         if let artist = model.value {
-            await online.load(artist, info: info.value, enabled: library.settings.settings.lookUpArtistsOnline)
+            let online = library.settings.settings.lookUpArtistsOnline
+            async let extras: Void = self.online.load(artist, info: info.value, enabled: online)
+            if marksIncomplete {
+                await library.albumCompleteness.load(artist, info: info.value, online: online)
+            }
+            await extras
         }
     }
 }

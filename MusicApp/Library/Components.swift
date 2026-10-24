@@ -149,13 +149,15 @@ extension Library {
 struct AlbumRow: View {
     let library: Library
     let album: Album
+    /// What's missing, e.g. "9 of 12 tracks" (see `AlbumCompleteness`).
+    var badge: String? = nil
 
     var body: some View {
         HStack(spacing: 12) {
             ArtworkView(library: library, coverArtID: album.coverArtID, side: 48)
             VStack(alignment: .leading, spacing: 2) {
                 Text(album.name.isEmpty ? "Untitled" : album.name).lineLimit(1)
-                Text([album.artist, album.year.map(String.init)].compactMap { $0 }.joined(separator: " · "))
+                Text([album.artist, album.year.map(String.init), badge].compactMap { $0 }.joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

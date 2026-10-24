@@ -91,6 +91,10 @@ struct SongListHeader: View {
     let subtitle: String?
     /// A smaller line of details, e.g. an album's genre, songs and length.
     var detail: String?
+    /// What's missing from an album, e.g. "You have 9 of 12 tracks."
+    var note: String?
+    /// Where tapping the note goes: the album on MusicBrainz.
+    var noteLink: URL?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -104,7 +108,27 @@ struct SongListHeader: View {
             if let detail {
                 Text(detail).font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
             }
+            if let note {
+                noteView(note)
+            }
         }
         .padding(.vertical, 8)
+    }
+
+    /// The icon close to the text (a label spaces them too far apart), and
+    /// a link when there's somewhere to go, in the accent so it looks tappable.
+    @ViewBuilder
+    private func noteView(_ note: String) -> some View {
+        let line = HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Image(systemName: "exclamationmark.circle")
+            Text(note).multilineTextAlignment(.leading)
+        }
+        .font(.footnote)
+        if let noteLink {
+            Link(destination: noteLink) { line }
+                .accessibilityHint("Opens the album on MusicBrainz")
+        } else {
+            line.foregroundStyle(.secondary)
+        }
     }
 }

@@ -81,6 +81,17 @@ final class Library {
         )
         return OnlineArtistLookup(musicBrainz: musicBrainz, wikipedia: wikipedia, directory: caches?.appending(path: OnlineArtistLookup.directoryName))
     }()
+    /// Which albums are missing tracks (artist and album pages; Gitea #31).
+    /// Shared, so it's worked out once per album in a session.
+    private(set) lazy var albumCompleteness: AlbumCompletenessModel = makeAlbumCompleteness()
+
+    private func makeAlbumCompleteness() -> AlbumCompletenessModel {
+        let lookup = artistLookup
+        return AlbumCompletenessModel(sources: .init(
+            album: { [client] id async throws(SubsonicError) in try await client.album(id: id) },
+            releases: { artist in try await lookup.releaseTracks(for: artist) }
+        ))
+    }
     private static var musicBrainzContact: String {
         Bundle.main.object(forInfoDictionaryKey: "MusicBrainzContact") as? String ?? ""
     }

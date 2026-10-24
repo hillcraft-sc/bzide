@@ -20,6 +20,8 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
     public var songs: [Song]
     /// Everything else the server said, for the Info screen and header.
     public var details = AlbumDetails()
+    /// The MusicBrainz release this is (OpenSubsonic), if the files are tagged.
+    public var musicBrainzID: String?
 
     public init(
         id: String, name: String, artist: String? = nil, artistID: String? = nil,
@@ -41,7 +43,7 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
     }
 
     private enum ServerKeys: String, CodingKey {
-        case id, name, title, artist, artistId, coverArt, songCount, duration, year, genre, starred, userRating, song
+        case id, name, title, artist, artistId, coverArt, songCount, duration, year, genre, starred, userRating, song, musicBrainzId
     }
 
     public init(from decoder: any Decoder) throws {
@@ -63,5 +65,6 @@ public struct Album: Sendable, Equatable, Identifiable, Decodable {
         )
         starredAt = c.lenientDate(.starred)
         details = AlbumDetails(from: decoder)
+        musicBrainzID = c.lenientString(.musicBrainzId).flatMap { $0.isEmpty ? nil : $0 }
     }
 }

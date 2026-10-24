@@ -119,7 +119,8 @@ private struct AlbumInfoView: View {
                 InfoList(
                     library: library, title: "Album Info", coverArtID: album.coverArtID,
                     heading: album.name, subheading: album.artist,
-                    sections: MediaInfo.sections(for: album, simplifiedRating: simplifiedRating)
+                    sections: MediaInfo.sections(for: album, simplifiedRating: simplifiedRating),
+                    link: MusicBrainzClient.albumPage(album).map { ("View on MusicBrainz", $0) }
                 )
             } else {
                 NavigationStack {
@@ -167,6 +168,8 @@ struct InfoList: View {
     let heading: String
     let subheading: String?
     let sections: [InfoSection]
+    /// A page about it elsewhere, e.g. the album on MusicBrainz.
+    var link: (title: String, url: URL)? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -186,6 +189,14 @@ struct InfoList: View {
                     .accessibilityElement(children: .combine)
                 }
                 .themedRows(grouped: true)
+                if let link {
+                    Section {
+                        Link(destination: link.url) {
+                            Label(link.title, systemImage: "safari")
+                        }
+                    }
+                    .themedRows(grouped: true)
+                }
                 ForEach(sections, id: \.title) { section in
                     Section(section.title) {
                         ForEach(section.rows, id: \.label) { row in

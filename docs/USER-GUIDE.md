@@ -153,6 +153,8 @@ Tap the **waveform** in Now Playing for a full-screen visualizer that moves with
 
 An artist's page shows their picture, a short biography and their albums. Turn on **Settings > Artists > Look Up Artists Online** for a longer biography from Wikipedia, and the albums, singles and live releases you don't have yet (under **Not Owned**; tap one to see it on MusicBrainz).
 
+- **Albums you don't have all of** are marked in the artist's album list: **Missing tracks** when there's a gap in the track numbers, or **9 of 12 tracks** when the full count is known. The album's page says how many you have, and its **Album Info** has **View on MusicBrainz** to see the full track list. Bzide can always spot gaps; to catch tracks missing from the end, turn on Look Up Artists Online, which gets each album's full track count from MusicBrainz. Deluxe editions don't count against a standard album. To do this, Bzide reads each of an artist's albums from your server the first time you open them; to save data, turn off **Settings > Artists > Mark Incomplete Albums**.
+
 ## Make it yours
 
 - **Themes:** Settings > Appearance > **Theme**. Pick System (follows your iPhone), Light, Dark, or a color theme: Catppuccin, Gruvbox, Nord, Dracula or Tokyo Night. Then choose an **Accent** color. Each theme family remembers its own accent.

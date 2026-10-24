@@ -81,6 +81,72 @@ extension MusicBrainzClient {
         return releases
     }
 
+    /// The album on MusicBrainz's website: the exact release its files are
+    /// tagged with, else a search for its title and artist. Only a link,
+    /// opened by the user; nothing is sent until then.
+    public static func albumPage(_ album: Album) -> URL? {
+        if let id = album.musicBrainzID {
+            return URL(string: "https://musicbrainz.org/release/\(id)")
+        }
+        var query = "release:\"\(escaped(album.name))\""
+        if let artist = album.artist, !artist.isEmpty { query += " AND artist:\"\(escaped(artist))\"" }
+        var components = URLComponents(string: "https://musicbrainz.org/search")
+        components?.queryItems = [
+            .init(name: "query", value: query), .init(name: "type", value: "release"), .init(name: "method", value: "advanced"),
+        ]
+        return components?.url
+    }
+
+    /// The artist's official releases (every edition of every album) with how
+    /// many audio tracks each has, to tell whether an album the user owns is
+    /// complete (`AlbumCompleteness`). Up to `releaseGroupPages` pages.
+    public func releaseTracks(artistID: String) async throws -> [ReleaseTracks] {
+        guard !contact.isEmpty else { throw Failure.noContact }
+        var releases: [ReleaseTracks] = []
+        for page in 0..<Self.releaseGroupPages {
+            let url = try Self.url("release", [
+                .init(name: "artist", value: artistID),
+                .init(name: "status", value: "official"),
+                .init(name: "inc", value: "media"),
+                .init(name: "limit", value: String(Self.releaseGroupPageSize)),
+                .init(name: "offset", value: String(page * Self.releaseGroupPageSize)),
+            ])
+            let browse = try JSONDecoder().decode(ReleaseBrowse.self, from: try await get(url, paced: true))
+            let found = browse.releases ?? []
+            releases += found.compactMap(\.tracks)
+            let total = browse.count ?? 0
+            if found.count < Self.releaseGroupPageSize || (page + 1) * Self.releaseGroupPageSize >= total { break }
+        }
+        return releases
+    }
+
+    struct ReleaseBrowse: Decodable {
+        struct Release: Decodable {
+            struct Medium: Decodable {
+                let format: String?
+                let trackCount: Int?
+                private enum CodingKeys: String, CodingKey { case format, trackCount = "track-count" }
+            }
+            let id: String
+            let title: String?
+            let media: [Medium]?
+
+            /// Audio tracks only: a deluxe edition's DVD isn't missing songs.
+            var tracks: ReleaseTracks? {
+                guard let title, !title.isEmpty else { return nil }
+                let audio = (media ?? []).filter { medium in
+                    let format = (medium.format ?? "").lowercased()
+                    return !["dvd", "blu-ray", "vhs", "hd-dvd"].contains { format.contains($0) }
+                }
+                let count = audio.reduce(0) { $0 + ($1.trackCount ?? 0) }
+                return count > 0 ? ReleaseTracks(id: id, title: title, trackCount: count) : nil
+            }
+        }
+        let count: Int?
+        let releases: [Release]?
+        private enum CodingKeys: String, CodingKey { case count = "release-count", releases }
+    }
+
     struct ReleaseGroupBrowse: Decodable {
         struct Group: Decodable {
             let id: String
