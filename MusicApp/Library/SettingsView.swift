@@ -279,6 +279,7 @@ struct SettingsView: View {
             }
         }
         .themedList(grouped: true)
+        .readableWidth()
         .navigationTitle("Settings")
         .confirmationDialog("Sign out?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
             Button("Sign Out", role: .destructive) { signOut() }

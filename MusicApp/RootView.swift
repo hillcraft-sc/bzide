@@ -29,10 +29,12 @@ struct RootView: View {
                 }
             }
         }
+        // iPad: tabs that open into a sidebar (Gitea #22); iPhone keeps its tab bar.
+        .tabViewStyle(.sidebarAdaptable)
         .tabViewBottomAccessory {
             MiniPlayer(library: library) { isNowPlayingOpen = true }
         }
-        .sheet(isPresented: $isNowPlayingOpen) {
+        .nowPlaying(isPresented: $isNowPlayingOpen) {
             NowPlayingView(model: model, library: library)
         }
         .addToPlaylistSheet(library, isEnabled: !isNowPlayingOpen)
@@ -82,6 +84,32 @@ struct RootView: View {
             isNowPlayingOpen = false
             tab = .search
             searchFocusRequest += 1
+        }
+    }
+}
+
+extension View {
+    /// Now Playing: a sheet in a compact window (every iPhone: swipe down to
+    /// close), full screen in a window regular both ways (iPad, Gitea #22),
+    /// where a sheet would be a card in the middle; there it closes with its
+    /// chevron. By the space, not the device, as all layouts here. Full screen
+    /// and wider than tall, it shows the queue beside the controls.
+    func nowPlaying(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> some View) -> some View {
+        modifier(NowPlayingPresentation(isPresented: isPresented, screen: content))
+    }
+}
+
+private struct NowPlayingPresentation<Screen: View>: ViewModifier {
+    @Binding var isPresented: Bool
+    let screen: () -> Screen
+    @Environment(\.horizontalSizeClass) private var horizontal
+    @Environment(\.verticalSizeClass) private var vertical
+
+    func body(content: Content) -> some View {
+        if horizontal == .regular && vertical == .regular {
+            content.fullScreenCover(isPresented: $isPresented, content: screen)
+        } else {
+            content.sheet(isPresented: $isPresented, content: screen)
         }
     }
 }

@@ -82,6 +82,7 @@ struct SignInView: View {
                 .themedRows(grouped: true)
             }
             .themedList(grouped: true)
+            .readableWidth()
             .navigationTitle("Sign in")
             .confirmationDialog(
                 "Sign In as a Different Account?",
