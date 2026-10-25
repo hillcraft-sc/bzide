@@ -3,11 +3,16 @@ import Foundation
 /// Fetches a whole list a page at a time, a few pages at once, until a page
 /// comes back short (the end). Shared by everything that has to look through
 /// the library (Mix My Cuts, browsing Search by filter).
+///
+/// A server that ignores `offset` sends the same full page every time, which
+/// would never end; so it stops at `maxItems`, far beyond any real library.
 enum PagedListing {
     static let pageSize = 500
     static let parallelPages = 4
+    static let maxItems = 500_000
 
     static func all<Item: Sendable>(
+        limit: Int = maxItems,
         _ fetchPage: @escaping @Sendable (_ count: Int, _ offset: Int) async throws -> [Item]
     ) async throws -> [Item] {
         var items: [Item] = []
@@ -23,7 +28,7 @@ enum PagedListing {
                 return results.sorted { $0.0 < $1.0 }.map(\.1)
             }
             items += pages.flatMap { $0 }
-            if pages.contains(where: { $0.count < pageSize }) { return items }
+            if pages.contains(where: { $0.count < pageSize }) || items.count >= limit { return items }
             offset += parallelPages * pageSize
         }
     }

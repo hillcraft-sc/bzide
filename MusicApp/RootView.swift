@@ -78,13 +78,15 @@ struct RootView: View {
     }
 
     /// With the position, before the app is suspended: the system allows a
-    /// few seconds for it.
+    /// few seconds for it. If they run out first, the task is ended there
+    /// (iOS ends an app that leaves one running); the save is tried again
+    /// next time.
     private func saveQueueToServer() {
         guard let sync = library.queueSync else { return }
-        let task = UIApplication.shared.beginBackgroundTask(withName: "Save Queue")
+        let task = BackgroundTask(name: "Save Queue")
         Task {
             await sync.saveNow()
-            UIApplication.shared.endBackgroundTask(task)
+            task.end()
         }
     }
 

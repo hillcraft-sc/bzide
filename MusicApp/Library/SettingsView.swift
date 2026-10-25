@@ -89,14 +89,6 @@ struct SettingsView: View {
             }
             .themedRows(grouped: true)
             Section {
-                Toggle("Sync Queue with Server", isOn: $settings.settings.syncQueueWithServer)
-            } header: {
-                Text("Playback")
-            } footer: {
-                Text("Saves the queue on your server, so you can continue on another device or in another app that uses the server's queue. When a newer queue is there, Bzide asks before playing it. Radio stations aren't saved.")
-            }
-            .themedRows(grouped: true)
-            Section {
                 Toggle("Play When CarPlay Connects", isOn: $settings.settings.playWhenCarPlayConnects)
             } header: {
                 Text("CarPlay")
@@ -123,10 +115,11 @@ struct SettingsView: View {
                 Toggle("Keep Spinning", isOn: $settings.settings.keepSpinning)
                 Toggle(settings.settings.useSimplifiedRating ? "Include Meh Songs" : "Include 1–2 Star Songs", isOn: $settings.settings.includeMehInMixes)
                 Toggle("Include Favorites in My Cuts", isOn: $settings.settings.myCutsIncludeFavorites)
+                Toggle("Sync Queue with Server", isOn: $settings.settings.syncQueueWithServer)
             } header: {
                 Text("Playback")
             } footer: {
-                Text("Volume Normalization evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume; By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged, and Now Playing shows the adjustment beside the quality.\n\nKeep Spinning: when the queue reaches its last song, Bzide spins off from it so the music keeps going, with similar songs if your server has them (Navidrome with Last.fm), otherwise a mix from your library. Repeat turns it off.\n\n\(mixesFooter)")
+                Text("Volume Normalization evens out loudness between songs using ReplayGain, so quiet older recordings and loud modern ones play at a similar volume; By Album keeps the differences within an album. It needs ReplayGain tags in your music files; songs without them play unchanged, and Now Playing shows the adjustment beside the quality.\n\nKeep Spinning: when the queue reaches its last song, Bzide spins off from it so the music keeps going, with similar songs if your server has them (Navidrome with Last.fm), otherwise a mix from your library. Repeat turns it off.\n\n\(mixesFooter)\n\nSync Queue with Server saves the queue on your server, so you can continue on another device or in another app that uses the server's queue. When a newer queue is there, Bzide asks before playing it. Radio stations aren't saved.")
             }
             .themedRows(grouped: true)
             Section {

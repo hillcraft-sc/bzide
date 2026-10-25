@@ -68,7 +68,7 @@ Bzide runs on Apple's platform, so some things go through Apple as they do for e
 - **Signing in:** with a password, each request carries a salted token (Subsonic's token authentication) rather than the password. Because that token is derived from the password, Bzide warns when you sign in over plain http to an address outside your own network, where it could be read on the way. With an **API key** (servers supporting OpenSubsonic's `apiKeyAuthentication`), the key is sent instead and no password is stored at all.
 - **Network sessions:** private (ephemeral) sessions with no disk cache, cookies or stored credentials, for your server and every outside service. Background downloads keep no cache either. iOS's shared web cache is emptied at each launch.
 - **Storage:** the Keychain item is `AfterFirstUnlockThisDeviceOnly` (readable while the phone is locked, so music can keep playing, but never synced or backed up). App files use iOS's standard data protection.
-- **Privacy manifest:** the app and its widgets extension declare no tracking, no tracking domains and no collected data, and the two "required reason" APIs they use: app settings (`UserDefaults`, CA92.1) and the dates of the app's own cache files (C617.1).
+- **Privacy manifest:** the app and its widgets extension declare no tracking, no tracking domains and no collected data, and the "required reason" APIs they use: app settings (`UserDefaults`, CA92.1), the dates of the app's own cache files (C617.1), and a clock for timing things inside the app (system boot time, 35F9.1; nothing is sent).
 - **App Store privacy label:** Data Not Collected.
 
 *Kept up to date with the app: when what Bzide sends or stores changes, this page changes with it.*

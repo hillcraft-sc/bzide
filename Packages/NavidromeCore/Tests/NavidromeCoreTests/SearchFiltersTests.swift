@@ -231,3 +231,17 @@ struct SearchFiltersTests {
         #expect(albumPages.withLock { $0 } == pages)
     }
 }
+
+struct PagedListingTests {
+    @Test func aServerThatIgnoresTheOffsetDoesntLoopForever() async throws {
+        // Every page full, whatever the offset: the end never comes.
+        let items = try await PagedListing.all(limit: 3_000) { count, _ in Array(repeating: 0, count: count) }
+        #expect(items.count >= 3_000)
+        #expect(items.count < 3_000 + PagedListing.pageSize * PagedListing.parallelPages)
+    }
+
+    @Test func aShortPageIsTheEnd() async throws {
+        let items = try await PagedListing.all { count, offset in offset < 700 ? Array(repeating: 0, count: min(count, 700 - offset)) : [] }
+        #expect(items.count == 700)
+    }
+}

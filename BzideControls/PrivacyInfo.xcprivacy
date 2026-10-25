@@ -31,6 +31,18 @@
 				<string>C617.1</string>
 			</array>
 		</dict>
+		<!-- Measuring how long something took inside the app (Swift's
+		     ContinuousClock, e.g. how long the audio session took to start);
+		     declared to be safe, as it may count as a boot-time API. Never
+		     sent anywhere. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>35F9.1</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

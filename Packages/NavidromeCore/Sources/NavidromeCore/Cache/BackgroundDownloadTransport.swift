@@ -21,19 +21,24 @@ public final class BackgroundDownloadTransport: NSObject, DownloadTransport {
     /// Where finished files go before the manager takes them; iOS deletes its
     /// own temporary file as soon as the delegate call returns.
     private let stagingDirectory: URL
-    private var session: URLSession!
-    private var tasks: [String: URLSessionDownloadTask] = [:]
-
-    public init(stagingDirectory: URL) {
-        self.stagingDirectory = stagingDirectory
-        super.init()
+    /// Made on first use, which `init` does at once: the session's delegate
+    /// is `self`, which can't be used before `super.init()`.
+    private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
         // Download URLs carry the login token: nothing kept beyond the files.
         configuration.urlCache = nil
         configuration.httpCookieStorage = nil
         configuration.sessionSendsLaunchEvents = true
         configuration.isDiscretionary = false
-        session = URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
+        return URLSession(configuration: configuration, delegate: self, delegateQueue: nil)
+    }()
+    private var tasks: [String: URLSessionDownloadTask] = [:]
+
+    public init(stagingDirectory: URL) {
+        self.stagingDirectory = stagingDirectory
+        super.init()
+        // Now, so iOS reconnects running downloads at launch.
+        _ = session
     }
 
     /// Call from `application(_:handleEventsForBackgroundURLSession:completionHandler:)`.

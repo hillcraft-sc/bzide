@@ -74,10 +74,10 @@
 	<false/>
 	<!-- MET Norway's terms ask every app to give a contact in its User-Agent. -->
 	<key>METNorwayContact</key>
-	<string>https://git.hillcraft-sc.com</string>
+	<string>https://bzide.hillcraft-sc.com</string>
 	<!-- MusicBrainz's terms likewise ask for a contact in the User-Agent. -->
 	<key>MusicBrainzContact</key>
-	<string>https://git.hillcraft-sc.com</string>
+	<string>https://bzide.hillcraft-sc.com</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

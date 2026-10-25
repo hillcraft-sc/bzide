@@ -12,7 +12,14 @@ import UIKit
 final class ArtworkCache: ArtworkPinning {
     private let client: SubsonicClient
     private let store: CoverArtStore
-    private let images = NSCache<NSString, UIImage>()
+    /// Decoded images, by their memory (width × height × 4 bytes), so a
+    /// long scroll can't grow it without bound; iOS also empties it under
+    /// memory pressure.
+    private let images: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.totalCostLimit = 80 * 1024 * 1024
+        return cache
+    }()
     /// One load per image, however many rows ask for it at once.
     private var inFlight: [NSString: Task<UIImage?, Never>] = [:]
     /// Covers being fetched for pinning, so a second request doesn't fetch twice.
@@ -40,7 +47,7 @@ final class ArtworkCache: ArtworkPinning {
         inFlight[key] = task
         let image = await task.value
         inFlight[key] = nil
-        if let image { images.setObject(image, forKey: key) }
+        if let image { images.setObject(image, forKey: key, cost: Self.cost(of: image)) }
         return image
     }
 
@@ -59,13 +66,23 @@ final class ArtworkCache: ArtworkPinning {
     @concurrent
     private static func load(_ id: String, pixels: Int, client: SubsonicClient, store: CoverArtStore) async -> UIImage? {
         if let data = store.image(id: id, pixels: pixels), let image = UIImage(data: data) {
-            return image
+            return prepared(image)
         }
         if let data = await fetch(id, pixels: pixels, client: client), let image = UIImage(data: data) {
             store.save(data, id: id, pixels: pixels)
-            return image
+            return prepared(image)
         }
-        return store.anyImage(id: id).flatMap(UIImage.init(data:))
+        return store.anyImage(id: id).flatMap(UIImage.init(data:)).map(prepared)
+    }
+
+    /// Decoded here, off the main thread, rather than on it the first time
+    /// it's drawn, which would hitch scrolling.
+    nonisolated private static func prepared(_ image: UIImage) -> UIImage {
+        image.preparingForDisplay() ?? image
+    }
+
+    nonisolated private static func cost(of image: UIImage) -> Int {
+        Int(image.size.width * image.scale * image.size.height * image.scale) * 4
     }
 
     @concurrent
