@@ -1,8 +1,9 @@
 import NavidromeCore
 import SwiftUI
 
-/// The Weather visualizer: a small landscape under a sky that follows the
-/// music (`WeatherSky` decides the weather). Calm passages are clear with the
+/// The Storm visualizer (saved as `weather`, its earlier name): a small
+/// landscape under a sky that follows the music (`WeatherSky` decides the
+/// weather). Calm passages are clear with the
 /// sun out; busy ones cloud over; the bass blows the wind, bending the trees;
 /// treble rains in a storm; drum hits in a storm strike lightning, as a bolt,
 /// never a flash of the whole screen. Fills the screen behind the controls.

@@ -34,8 +34,9 @@ struct VisualizerView: View {
     /// Debug builds: a weather and time forced for Weather (Live).
     @State private var liveWeatherDebug = LiveWeatherDebug()
     @State private var chromeState = ChromeState()
-    @State private var typesetState = TypesetState()
     @State private var polygraphState = PolygraphState()
+    @State private var spectrumState = SpectrumState()
+    @State private var violentSphereState = ViolentSphereState()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// With Reduce Motion on, the visualizer waits for "Start Anyway".
     @State private var startedAnyway = false
@@ -181,13 +182,17 @@ struct VisualizerView: View {
                     levels: levels, beat: feed.beat, date: timeline.date, colors: fourColors, state: chromeState
                 )
                 .padding(drawingInsets(landscape: landscape))
-            case .typeset:
-                TypesetView(
-                    title: engine.currentTitle ?? "", artist: engine.currentSubtitle,
-                    levels: levels, energy: feed.energy, beat: feed.beat, date: timeline.date,
-                    colors: effectiveMode == .accent ? [accent] : colors(24),
-                    insets: drawingInsets(landscape: landscape), state: typesetState
+            case .spectrum:
+                SpectrumView(
+                    levels: levels, date: timeline.date, colors: spectrumColors, landscape: landscape, state: spectrumState
                 )
+                .padding(drawingInsets(landscape: landscape))
+            case .violentSphere:
+                ViolentSphereView(
+                    levels: levels, beat: feed.beat, date: timeline.date, colors: sphereColors,
+                    insets: drawingInsets(landscape: landscape), state: violentSphereState
+                )
+                .ignoresSafeArea()
             case .polygraph:
                 PolygraphView(
                     engine: engine, feed: feed, levels: levels, date: timeline.date,
@@ -249,7 +254,7 @@ struct VisualizerView: View {
         .ignoresSafeArea()
     }
 
-    /// Four colors for Plasma's palette loop, Weather's sky and hills, and
+    /// Four colors for Plasma's palette loop, Storm's sky and hills, and
     /// the light on Chrome's edges:
     /// shades of the accent, or four from the multicolor sweep.
     private var fourColors: [Color] {
@@ -263,6 +268,39 @@ struct VisualizerView: View {
                 accent,
                 Color(base.mixed(with: .white, amount: 0.55)),
                 Color(base.mixed(with: .black, amount: 0.35)),
+            ]
+        }
+    }
+
+    /// Spectrum's segments from bottom to top: the classic LED meter in
+    /// Multicolor, the chosen colors in Custom, the accent brightening upward.
+    private var spectrumColors: [Color] {
+        switch effectiveMode {
+        case .multicolor: return SpectrumView.classic
+        case .custom: return colors(8)
+        case .accent:
+            let base = UIColor(accent)
+            return [Color(base.mixed(with: .black, amount: 0.35)), accent, Color(base.mixed(with: .white, amount: 0.3))]
+        }
+    }
+
+    /// Violent Sphere's five colors from top to bottom: a rainbow from red
+    /// to blue in Multicolor, the chosen colors in Custom, light to deep
+    /// shades of the accent.
+    private var sphereColors: [Color] {
+        switch effectiveMode {
+        case .multicolor:
+            return [
+                Color(red: 1, green: 0.3, blue: 0.15), Color(red: 1, green: 0.85, blue: 0.2),
+                Color(red: 0.35, green: 0.95, blue: 0.3), Color(red: 0.25, green: 0.85, blue: 0.95),
+                Color(red: 0.2, green: 0.3, blue: 1),
+            ]
+        case .custom: return colors(5)
+        case .accent:
+            let base = UIColor(accent)
+            return [
+                Color(base.mixed(with: .white, amount: 0.5)), Color(base.mixed(with: .white, amount: 0.25)), accent,
+                Color(base.mixed(with: .black, amount: 0.25)), Color(base.mixed(with: .black, amount: 0.45)),
             ]
         }
     }
@@ -417,12 +455,8 @@ struct VisualizerView: View {
         .shadow(color: isOnPaper ? PolygraphView.paper : .clear, radius: 6)
     }
 
-    /// Not on Typeset, which is the title already.
-    @ViewBuilder
     private var nowPlayingTitle: some View {
-        if style != .typeset {
-            OverlayTitle(engine: engine, ink: ink)
-        }
+        OverlayTitle(engine: engine, ink: ink)
     }
 
     /// The current style's icon and name; opens the choice of style and colors.
@@ -494,7 +528,7 @@ struct VisualizerView: View {
 }
 
 enum VisualizerStyle: String, CaseIterable {
-    case bars, waveform, plasma, polygraph, groove, livingCover, tapestry, weather, liveWeather, chrome, typeset
+    case bars, waveform, plasma, polygraph, groove, livingCover, tapestry, weather, liveWeather, chrome, spectrum, violentSphere
 
     var title: String {
         switch self {
@@ -505,10 +539,11 @@ enum VisualizerStyle: String, CaseIterable {
         case .groove: "Groove"
         case .livingCover: "Living Cover"
         case .tapestry: "Tapestry"
-        case .weather: "Weather"
+        case .weather: "Storm"
         case .liveWeather: "Weather (Live)"
         case .chrome: "Chrome"
-        case .typeset: "Typeset"
+        case .spectrum: "Spectrum"
+        case .violentSphere: "Violent Sphere"
         }
     }
 
@@ -524,7 +559,8 @@ enum VisualizerStyle: String, CaseIterable {
         case .weather: "cloud.bolt.rain.fill"
         case .liveWeather: "cloud.sun.fill"
         case .chrome: "drop.fill"
-        case .typeset: "textformat.size"
+        case .spectrum: "chart.bar.xaxis"
+        case .violentSphere: "sparkle"
         }
     }
 

@@ -137,7 +137,7 @@ Tap the **speech bubble** in Now Playing.
 
 ## The visualizer
 
-Tap the **waveform** in Now Playing for a full-screen visualizer that moves with the music. **Swipe** left or right, or tap its name at the top, to change the style: Bars, Waveform, Plasma, Polygraph, Groove, Living Cover, Tapestry, Weather, Weather (Live), Chrome and Typeset. Choose colors from the same menu.
+Tap the **waveform** in Now Playing for a full-screen visualizer that moves with the music. **Swipe** left or right, or tap its name at the top, to change the style: Bars, Waveform, Plasma, Polygraph, Groove, Living Cover, Tapestry, Storm, Weather (Live), Chrome, Spectrum and Violent Sphere. Choose colors from the same menu.
 
 - **Weather (Live)** can show the real weather where you are. Turn on **Settings > Weather (Live) > Live Weather**.
 - The visualizer works for songs on this iPhone. It isn't available for radio stations or over AirPlay.

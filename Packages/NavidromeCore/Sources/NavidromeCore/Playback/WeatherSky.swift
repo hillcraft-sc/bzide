@@ -1,6 +1,6 @@
 import Foundation
 
-/// The Weather visualizer's sky: the music sets the weather, and the weather
+/// The Storm visualizer's sky: the music sets the weather, and the weather
 /// changes gradually, as real weather does. Calm passages clear the sky, busy
 /// ones bring clouds; the bass sets the wind; the treble brings rain once it's
 /// cloudy; drum hits in a storm strike lightning. Nothing flashes the whole
