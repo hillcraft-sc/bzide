@@ -289,6 +289,12 @@ struct NowPlayingView: View {
             // The app's messages here while Now Playing is on top (not
             // while the visualizer or Lyrics covers it: they show them).
             .appMessages(library, isEnabled: !isVisualizerOpen && !isLyricsOpen)
+            #if DEBUG
+            .task {
+                isVisualizerOpen = ScreenshotScript.screen == .visualizer
+                isLyricsOpen = ScreenshotScript.screen == .lyrics
+            }
+            #endif
             .fullScreenCover(isPresented: $isVisualizerOpen) {
                 VisualizerView(model: model, engine: engine)
             }

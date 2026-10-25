@@ -13,6 +13,9 @@ struct ContentView: View {
                 SignInView(model: model)
             }
         }
+        #if DEBUG
+        .task { await ScreenshotScript.signInIfNeeded(model) }
+        #endif
         // The widgets draw in the app's theme.
         .onChange(of: model.appearance.settings, initial: true) { _, settings in
             WidgetBridge.shareTheme(settings)

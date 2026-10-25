@@ -8,6 +8,7 @@ struct RootView: View {
     @State private var isNowPlayingOpen = false
     @State private var tab = RootTab.library
     @State private var searchFocusRequest = 0
+    @State private var libraryPath = NavigationPath()
     @Environment(\.scenePhase) private var scenePhase
 
     private enum RootTab: Hashable {
@@ -17,7 +18,7 @@ struct RootView: View {
     var body: some View {
         TabView(selection: $tab) {
             Tab("Library", systemImage: "music.note.house", value: RootTab.library) {
-                NavigationStack {
+                NavigationStack(path: $libraryPath) {
                     LibraryView(model: model, library: library)
                         .libraryDestinations(library)
                 }
@@ -70,6 +71,9 @@ struct RootView: View {
             if url == WidgetLinks.nowPlaying { isNowPlayingOpen = library.engine.queue.current != nil }
         }
         .onAppear { HomeScreenActions.update(current: library.engine.queue.current?.song) }
+        #if DEBUG
+        .task { await runScreenshotScript() }
+        #endif
         .onDisappear { HomeScreenActions.clear() }
         // Messages from anywhere in the app, shown here unless Now Playing is open.
         .appMessages(library, isEnabled: !isNowPlayingOpen)
@@ -89,6 +93,22 @@ struct RootView: View {
             task.end()
         }
     }
+
+    #if DEBUG
+    private func runScreenshotScript() async {
+        guard let screen = ScreenshotScript.screen,
+              let album = await ScreenshotScript.playAlbum(library)
+        else { return }
+        switch screen {
+        case .library: break
+        case .albums: libraryPath.append(LibraryRoute.albums)
+        case .album: libraryPath.append(LibraryRoute.album(id: album.id))
+        case .artist:
+            if let artistID = album.artistID { libraryPath.append(LibraryRoute.artist(id: artistID)) }
+        case .nowPlaying, .visualizer, .lyrics: isNowPlayingOpen = true
+        }
+    }
+    #endif
 
     private func run(_ action: HomeScreenAction) {
         switch action {
