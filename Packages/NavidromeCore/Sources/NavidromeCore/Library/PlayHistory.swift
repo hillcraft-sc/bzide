@@ -153,6 +153,8 @@ public final class PlayHistory: PlayRecording {
     }
 
     @ObservationIgnored private let fileURL: URL
+    /// A year of plays can be megabytes: saved off the main thread.
+    @ObservationIgnored private let writer: BackgroundFileWriter<[PlayHistoryEntry]>
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored private let calendar: Calendar
@@ -169,6 +171,7 @@ public final class PlayHistory: PlayRecording {
         now: @escaping () -> Date = { Date() }
     ) {
         self.fileURL = fileURL
+        writer = BackgroundFileWriter(fileURL: fileURL)
         self.defaults = defaults
         self.calendar = calendar
         self.now = now
@@ -246,13 +249,7 @@ public final class PlayHistory: PlayRecording {
     }
 
     private func save() {
-        do {
-            let data = try JSONEncoder().encode(entries)
-            // Plays are recorded during locked-screen playback.
-            try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-        } catch {
-            Self.logger.error("Couldn't save play history: \(String(describing: error), privacy: .public)")
-        }
+        writer.save(entries)
     }
 
     private static func load(from url: URL) -> [PlayHistoryEntry] {

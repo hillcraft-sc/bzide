@@ -54,13 +54,17 @@ public enum QueueStoreError: Error, Equatable, Sendable {
 }
 
 /// Saves the queue as JSON in one file, replaced atomically on each save so a crash
-/// mid-write never leaves a half-written queue behind.
+/// mid-write never leaves a half-written queue behind. Written off the main
+/// thread (a long spin-off can hold thousands of songs); reading it back
+/// gives the latest save even before it's on disk.
 public struct FileQueueStore: QueueStore {
     private let fileURL: URL
+    private let writer: BackgroundFileWriter<QueueSnapshot>
     static let fileName = "PlaybackQueue.json"
 
     public init(fileURL: URL) {
         self.fileURL = fileURL
+        writer = BackgroundFileWriter(fileURL: fileURL)
     }
 
     /// `Application Support/PlaybackQueue.json` in the app's container.
@@ -76,6 +80,7 @@ public struct FileQueueStore: QueueStore {
     }
 
     public func load() throws(QueueStoreError) -> QueueSnapshot? {
+        if let unwritten = writer.unwritten { return unwritten }
         guard FileManager.default.fileExists(atPath: fileURL.path(percentEncoded: false)) else { return nil }
         let data: Data
         do {
@@ -89,15 +94,9 @@ public struct FileQueueStore: QueueStore {
         return snapshot
     }
 
+    /// Failures are logged by the writer: a lost save is retried by the next.
     public func save(_ snapshot: QueueSnapshot) throws(QueueStoreError) {
-        do {
-            let data = try JSONEncoder().encode(snapshot)
-            // Saves happen during locked-screen playback, so the file must stay writable
-            // while the device is locked (after the first unlock since boot).
-            try data.write(to: fileURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-        } catch {
-            throw .io(String(describing: error))
-        }
+        writer.save(snapshot)
     }
 }
 

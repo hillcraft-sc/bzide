@@ -106,6 +106,8 @@ extension AccountBackup {
 extension AccountSettings {
     /// What's here now, as a backup.
     public func backup(includingHistory: Bool, appVersion: String, now: Date = .now) throws(BackupError) -> AccountBackup {
+        // The latest plays, not just what's on disk yet.
+        FileWriters.drainAll()
         let settings: Data
         do {
             settings = try PropertyListSerialization.data(fromPropertyList: backedUpSettings, format: .binary, options: 0)
@@ -140,6 +142,8 @@ extension AccountSettings {
         guard let saved = try? PropertyListSerialization.propertyList(from: backup.settings, format: nil) as? [String: Any] else {
             throw .unreadable
         }
+        // A save still on its way would land over the restored file.
+        FileWriters.drainAll()
         var names = AccountBackup.dataFiles
         if backup.hasHistory { names.append(PlayHistory.fileName) }
         for name in names {

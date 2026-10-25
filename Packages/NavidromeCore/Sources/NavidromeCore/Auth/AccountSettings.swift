@@ -76,6 +76,8 @@ public struct AccountSettings {
 
     /// Sets aside `old`'s settings and files and brings back `new`'s (or the defaults).
     func switchAccount(from old: String, to new: String) {
+        // A save still on its way would land after the move, in the wrong account.
+        FileWriters.drainAll()
         stash(old)
         clear()
         restore(new)
