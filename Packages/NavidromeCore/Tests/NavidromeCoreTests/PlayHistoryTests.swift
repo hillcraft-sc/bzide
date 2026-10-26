@@ -27,6 +27,14 @@ struct PlayHistoryTests {
         return history
     }
 
+    /// The history as the next launch reads it. Saves are written in the
+    /// background, so they're waited for first, as the app does before
+    /// moving the files; a real relaunch comes long after them.
+    private func relaunch() -> PlayHistory {
+        FileWriters.drainAll()
+        return makeHistory()
+    }
+
     private func song(_ id: String, title: String = "Song", artist: String? = "Artist", album: String? = "Album") -> Song {
         Song(id: id, title: title, album: album, artist: artist)
     }
@@ -45,7 +53,7 @@ struct PlayHistoryTests {
 
     @Test func historySurvivesARelaunch() {
         makeHistory().record(song("so-1"), playedAt: daysAgo(1))
-        #expect(makeHistory().entries.map(\.song.id) == ["so-1"])
+        #expect(relaunch().entries.map(\.song.id) == ["so-1"])
     }
 
     @Test func playsOlderThanTheRetentionAreDropped() {
@@ -65,7 +73,7 @@ struct PlayHistoryTests {
         history.record(song("old"), playedAt: daysAgo(40))
 
         defaults.set(HistoryRetention.month.rawValue, forKey: PlayHistory.retentionKey)
-        #expect(makeHistory().entries.isEmpty)
+        #expect(relaunch().entries.isEmpty)
     }
 
     @Test func retentionIsRemembered() {
@@ -78,7 +86,7 @@ struct PlayHistoryTests {
         history.record(song("so-1"), playedAt: daysAgo(0, hours: 1))
         history.clear()
         #expect(history.entries.isEmpty)
-        #expect(makeHistory().entries.isEmpty)
+        #expect(relaunch().entries.isEmpty)
     }
 
     @Test func filtersByTrackArtistAndAlbum() {

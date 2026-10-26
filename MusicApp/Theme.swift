@@ -61,13 +61,7 @@ private struct AppTheme: ViewModifier {
 extension SystemAccent {
     var color: Color {
         switch self {
-        // The deep oxblood of the icon's leather (about #4F2F33), lifted so it
-        // reads as an accent: richer in light mode, brighter in dark mode.
-        case .bzide: Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(red: 0xE0 / 255, green: 0x60 / 255, blue: 0x6F / 255, alpha: 1)
-                : UIColor(red: 0x9B / 255, green: 0x2D / 255, blue: 0x3F / 255, alpha: 1)
-        })
+        case .bzide: Color(uiColor: Self.bzideRed)
         case .red: .red
         case .orange: .orange
         case .yellow: .yellow
@@ -81,6 +75,18 @@ extension SystemAccent {
         case .pink: .pink
         case .brown: .brown
         }
+    }
+
+    /// The deep oxblood of the icon's leather (about #4F2F33), lifted so it
+    /// reads as an accent: richer in light mode, brighter in dark mode.
+    ///
+    /// Built outside the main actor: SwiftUI also resolves colors on its
+    /// background render thread (during animations), and a main-actor
+    /// closure called there stops the app (seen on device, 2026-10-26).
+    nonisolated private static let bzideRed = UIColor { @Sendable traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0xE0 / 255, green: 0x60 / 255, blue: 0x6F / 255, alpha: 1)
+            : UIColor(red: 0x9B / 255, green: 0x2D / 255, blue: 0x3F / 255, alpha: 1)
     }
 }
 
