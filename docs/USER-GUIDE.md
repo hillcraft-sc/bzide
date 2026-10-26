@@ -196,7 +196,7 @@ Connect to CarPlay and open Bzide. The tabs are **Recents** (albums you've playe
 
 ## Your account
 
-- **Sign out:** Settings > Sign Out. Everything stays on the phone for when you sign back in.
+- **Sign out:** Settings > Sign Out. Bzide goes back to its default settings (including the System theme) until you sign in again. When you sign back in, your settings, history, queue and downloads are all as you left them.
 - **Switching to another account:** Bzide asks first. Each account keeps its own settings, history and queue, and they come back when it signs in again. Downloads are removed, as they belong to the other server.
 - **Same server, different address** (say, your home network instead of the internet): choose **Same Server, Keep Everything** when asked.
 - **Back up and restore:** Settings > Backup > **Back Up Bzide Data** saves your settings, Wishlist, stations saved on this iPhone and (with **Include Play History** on) your play history in one file, wherever you choose in Files. On a new iPhone or iPad, sign in, then tap **Restore from Backup** and pick the file: it replaces what's there with the backup. The file isn't encrypted, and never has your login or server address in it.

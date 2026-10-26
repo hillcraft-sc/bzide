@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Keeps each account's settings and small data, so every user on a shared
 /// iPhone has their own: theme, Library layout, playback options, the
@@ -12,7 +13,9 @@ import Foundation
 /// outgoing account's settings and files are set aside in a folder named by
 /// its fingerprint, the settings are cleared, and the incoming account's are
 /// put back if it has been here before (otherwise it starts with the
-/// defaults). Nothing readable about the account is stored.
+/// defaults). Signing out sets them aside the same way, so the sign-in screen
+/// shows the defaults, and signing back in puts them back. Nothing readable
+/// about the account is stored.
 public struct AccountSettings {
     let defaults: UserDefaults
     /// The UserDefaults domain the app's settings are in.
@@ -23,12 +26,13 @@ public struct AccountSettings {
     let files: [URL]
 
     public static let directoryName = "AccountSettings"
+    private static var logger: Logger { Logger(subsystem: "MusicApp", category: "AccountSettings") }
     static let settingsFileName = "Settings.plist"
 
     public init(defaults: UserDefaults, domain: String, deviceKeys: Set<String> = [], directory: URL, files: [URL]) {
         self.defaults = defaults
         self.domain = domain
-        self.deviceKeys = deviceKeys.union([AccountScope.fingerprintKey])
+        self.deviceKeys = deviceKeys.union([AccountScope.fingerprintKey, AccountScope.setAsideKey])
         self.directory = directory
         self.files = files
     }
@@ -74,13 +78,30 @@ public struct AccountSettings {
         }
     }
 
-    /// Sets aside `old`'s settings and files and brings back `new`'s (or the defaults).
-    func switchAccount(from old: String, to new: String) {
+    /// Sets aside `old`'s settings and files and brings back `new`'s (or the
+    /// defaults). `old` is nil when they were already set aside at sign-out.
+    func switchAccount(from old: String?, to new: String) {
         // A save still on its way would land after the move, in the wrong account.
         FileWriters.drainAll()
-        stash(old)
+        if let old { stash(old) }
         clear()
         restore(new)
+    }
+
+    /// Signing out: sets `owner`'s settings and files aside and clears them,
+    /// so everything reads its default.
+    func setAside(_ owner: String) {
+        FileWriters.drainAll()
+        stash(owner)
+        clear()
+    }
+
+    /// Signing back in to the account that signed out: drops whatever was
+    /// saved meanwhile (the defaults) and puts its settings and files back.
+    func bringBack(_ owner: String) {
+        FileWriters.drainAll()
+        clear()
+        restore(owner)
     }
 
     var accountSettings: [String: Any] {
@@ -96,12 +117,16 @@ public struct AccountSettings {
         let folder = folder(fingerprint)
         try? fileManager.removeItem(at: folder)
         try? fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
-        if let data = try? PropertyListSerialization.data(fromPropertyList: accountSettings, format: .binary, options: 0) {
+        let settings = accountSettings
+        if let data = try? PropertyListSerialization.data(fromPropertyList: settings, format: .binary, options: 0) {
             try? data.write(to: folder.appending(path: Self.settingsFileName), options: .atomic)
         }
+        var moved = 0
         for file in files where fileManager.fileExists(atPath: file.path(percentEncoded: false)) {
-            try? fileManager.moveItem(at: file, to: folder.appending(path: file.lastPathComponent))
+            if (try? fileManager.moveItem(at: file, to: folder.appending(path: file.lastPathComponent))) != nil { moved += 1 }
         }
+        // Counts only, to see on a device that a switch or sign-out did its job.
+        Self.logger.notice("Set aside \(settings.count, privacy: .public) settings and \(moved, privacy: .public) files")
     }
 
     private func clear() {
@@ -113,13 +138,19 @@ public struct AccountSettings {
         let fileManager = FileManager.default
         let folder = folder(fingerprint)
         guard fileManager.fileExists(atPath: folder.path(percentEncoded: false)) else { return }
+        var restored = 0
         if let data = try? Data(contentsOf: folder.appending(path: Self.settingsFileName)),
            let saved = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] {
-            for (key, value) in saved where !deviceKeys.contains(key) { defaults.set(value, forKey: key) }
+            for (key, value) in saved where !deviceKeys.contains(key) {
+                defaults.set(value, forKey: key)
+                restored += 1
+            }
         }
+        var moved = 0
         for file in files {
-            try? fileManager.moveItem(at: folder.appending(path: file.lastPathComponent), to: file)
+            if (try? fileManager.moveItem(at: folder.appending(path: file.lastPathComponent), to: file)) != nil { moved += 1 }
         }
         try? fileManager.removeItem(at: folder)
+        Self.logger.notice("Brought back \(restored, privacy: .public) settings and \(moved, privacy: .public) files")
     }
 }

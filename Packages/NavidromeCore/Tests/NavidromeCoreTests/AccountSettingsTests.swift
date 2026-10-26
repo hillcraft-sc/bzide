@@ -105,6 +105,101 @@ struct AccountSettingsTests {
         #expect(streaming.settings.findLyricsOnline)
     }
 
+    // MARK: - Signing out
+
+    @Test func signingOutShowsTheDefaultsAndSigningBackInRestores() throws {
+        scope.prepare(for: account("ann"))
+        defaults.set("mocha", forKey: "theme")
+        defaults.set(true, forKey: "findLyricsOnline")
+        try writeTagged("ann's songs")
+
+        scope.setAside()
+        #expect(defaults.object(forKey: "theme") == nil)
+        #expect(defaults.object(forKey: "findLyricsOnline") == nil)
+        #expect(taggedText == nil)
+        // Still the owner of the downloads, so another account's sign-in warns.
+        #expect(scope.isDifferentAccount(account("bob")))
+        #expect(!scope.isDifferentAccount(account("ann")))
+
+        // The models save their defaults while signed out; those go.
+        defaults.set("system", forKey: "theme")
+        #expect(scope.prepare(for: account("ann")))
+        #expect(defaults.string(forKey: "theme") == "mocha")
+        #expect(defaults.bool(forKey: "findLyricsOnline"))
+        #expect(taggedText == "ann's songs")
+        // Back to normal: signing in again changes nothing.
+        #expect(!scope.prepare(for: account("ann")))
+    }
+
+    @Test func anotherAccountAfterSigningOutStartsFromTheDefaults() throws {
+        scope.prepare(for: account("ann"))
+        defaults.set("mocha", forKey: "theme")
+        try writeTagged("ann's songs")
+        scope.setAside()
+        defaults.set("system", forKey: "theme")
+
+        #expect(scope.prepare(for: account("bob")))
+        #expect(defaults.object(forKey: "theme") == nil)
+        #expect(taggedText == nil)
+        // Ann's were kept, not overwritten by the defaults shown while signed out.
+        scope.prepare(for: account("ann"))
+        #expect(defaults.string(forKey: "theme") == "mocha")
+        #expect(taggedText == "ann's songs")
+    }
+
+    @Test func signingOutTwiceKeepsWhatWasSetAside() throws {
+        scope.prepare(for: account("ann"))
+        defaults.set("mocha", forKey: "theme")
+        scope.setAside()
+        defaults.set("system", forKey: "theme")
+        scope.setAside()
+        scope.prepare(for: account("ann"))
+        #expect(defaults.string(forKey: "theme") == "mocha")
+    }
+
+    @Test func theSameServerAtAnotherAddressGetsItsSettingsBack() throws {
+        scope.prepare(for: account("ann"))
+        defaults.set("mocha", forKey: "theme")
+        try writeTagged("ann's songs")
+        scope.setAside()
+
+        let elsewhere = ServerCredentials(baseURL: URL(string: "http://192.168.1.20:4533")!, username: "ann", password: "sesame")
+        scope.adopt(elsewhere)
+        #expect(defaults.string(forKey: "theme") == "mocha")
+        #expect(taggedText == "ann's songs")
+        #expect(!scope.prepare(for: elsewhere))
+    }
+
+    @Test func signingOutKeepsTheDownloads() throws {
+        scope.prepare(for: account("ann"))
+        let downloads = root.appending(path: "Downloads")
+        try FileManager.default.createDirectory(at: downloads, withIntermediateDirectories: true)
+        scope.setAside()
+        scope.prepare(for: account("ann"))
+        #expect(FileManager.default.fileExists(atPath: downloads.path(percentEncoded: false)))
+    }
+
+    @MainActor
+    @Test func theModelsShowTheDefaultsWhileSignedOut() {
+        let appearance = AppearanceModel(defaults: defaults)
+        let streaming = StreamingSettingsModel(defaults: defaults)
+        scope.prepare(for: account("ann"))
+        appearance.settings.theme = .mocha
+        streaming.settings.findLyricsOnline = true
+
+        scope.setAside()
+        appearance.reload()
+        streaming.reload()
+        #expect(appearance.settings == AppearanceSettings())
+        #expect(!streaming.settings.findLyricsOnline)
+
+        scope.prepare(for: account("ann"))
+        appearance.reload()
+        streaming.reload()
+        #expect(appearance.settings.theme == .mocha)
+        #expect(streaming.settings.findLyricsOnline)
+    }
+
     @Test func foldersGoWithTheirAccountToo() throws {
         scope.prepare(for: account("ann"))
         try FileManager.default.createDirectory(at: pictures, withIntermediateDirectories: true)

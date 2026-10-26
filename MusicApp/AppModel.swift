@@ -37,7 +37,8 @@ final class AppModel {
         set { system.player.isMetering = newValue }
     }
 
-    /// Device-wide, so the theme also applies to the sign-in screen and survives sign-out.
+    /// Kept for the app's lifetime, so the theme also applies to the sign-in
+    /// screen (the defaults there: signing out sets the account's aside).
     let appearance = AppearanceModel()
     /// What the Library screen shows, and in what order.
     let libraryLayout = LibraryLayoutModel()
@@ -183,18 +184,25 @@ final class AppModel {
     private func removeOtherAccountsData(for credentials: ServerCredentials) {
         do {
             if try Self.accountScope().prepare(for: credentials) {
-                Self.logger.notice("Signed in to a different account; switched settings and removed the previous account's data")
-                // These stay loaded between sign-ins; read this account's.
-                system.settings.reload()
-                appearance.reload()
-                libraryLayout.reload()
-                // Recreated with its backup exclusion, which went with the old folder.
+                Self.logger.notice("Put this account's settings in place (a different account, or back after signing out)")
+                // Recreated with its backup exclusion, if it went with another account's data.
                 _ = try DownloadManager.applicationSupportDirectory()
             }
+            // These stay loaded between sign-ins; read this account's. Always,
+            // as Same Server, Keep Everything brings back settings in `adopt`.
+            reloadSettings()
         } catch {
             // Leaves the owner unchanged, so the check runs again next sign-in.
             Self.logger.error("Couldn't check which account owns the data: \(String(describing: error), privacy: .public)")
         }
+    }
+
+    /// The settings models that stay loaded between sign-ins read their
+    /// values again, after another account's (or the defaults) were put in place.
+    private func reloadSettings() {
+        system.settings.reload()
+        appearance.reload()
+        libraryLayout.reload()
     }
 
     // MARK: - Restore Default Settings
@@ -209,9 +217,7 @@ final class AppModel {
             Self.logger.error("Couldn't restore the default settings: \(String(describing: error), privacy: .public)")
             return
         }
-        system.settings.reload()
-        appearance.reload()
-        libraryLayout.reload()
+        reloadSettings()
         library?.wishlist.reloadSettings()
     }
 
@@ -232,9 +238,7 @@ final class AppModel {
     /// everything already loaded read them again.
     func restore(_ backup: AccountBackup) throws(BackupError) {
         try Self.accountSettings().restore(backup)
-        system.settings.reload()
-        appearance.reload()
-        libraryLayout.reload()
+        reloadSettings()
         library?.reloadAfterRestore()
     }
 
@@ -258,14 +262,22 @@ final class AppModel {
         // The lock screen would otherwise keep controls for an engine that's gone.
         system.nowPlaying.update(nil)
         WidgetBridge.clear()
-        if let scrobbler {
-            Task { await scrobbler.flush() }
-        }
+        // Plays not yet sent stay with the account and go at its next sign-in
+        // (`start` sends them). Sending now could finish after they're set
+        // aside below, and send them twice.
         do {
             try credentialStore.delete()
         } catch {
             Self.logger.error("Couldn't remove the saved login: \(error.localizedDescription, privacy: .public)")
         }
+        // The sign-in screen, and whoever signs in next, start from the
+        // defaults; this account's settings come back when it signs in again.
+        do {
+            try Self.accountScope().setAside()
+        } catch {
+            Self.logger.error("Couldn't set the account's settings aside: \(String(describing: error), privacy: .public)")
+        }
+        reloadSettings()
         library = nil
         engine = nil
         client = nil

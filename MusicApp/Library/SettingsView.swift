@@ -73,7 +73,7 @@ struct SettingsView: View {
                     if case .failed(let message) = refreshState {
                         Text("Couldn't refresh: \(message)")
                     } else {
-                        Text("Refresh Library fetches your library again now, so new music, ratings and favorites show at once in Search's filters, Spin It Back and Mix My Cuts, which otherwise keep their copy for 30 minutes. Downloads, history and the queue stay on this iPhone for when you sign back in. Signing in to a different server or user removes them.")
+                        Text("Refresh Library fetches your library again now, so new music, ratings and favorites show at once in Search's filters, Spin It Back and Mix My Cuts, which otherwise keep their copy for 30 minutes. Signing out sets your settings, history and queue aside, so Bzide shows its defaults until you sign back in; your downloads stay on this iPhone. Signing in to a different server or user removes the downloads.")
                     }
                 }
                 .themedRows(grouped: true)
@@ -289,7 +289,7 @@ struct SettingsView: View {
         .confirmationDialog("Sign out?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
             Button("Sign Out", role: .destructive) { signOut() }
         } message: {
-            Text("Playback stops. Your downloads and history stay unless you sign in to a different account.")
+            Text("Playback stops, and Bzide goes back to its default settings until you sign in again, when yours come back. Your downloads and history stay unless you sign in to a different account.")
         }
         .confirmationDialog("Restore default settings?", isPresented: $isConfirmingRestoreDefaults, titleVisibility: .visible) {
             Button("Restore Defaults", role: .destructive) { restoreDefaults() }

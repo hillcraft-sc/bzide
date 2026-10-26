@@ -4,8 +4,10 @@ import Foundation
 /// Keeps one account's data from leaking into another's.
 ///
 /// Everything on the iPhone belongs to the server and user it came from.
-/// Signing out leaves it in place, so signing back in to the same account
-/// keeps everything. When a different server or user signs in, the large,
+/// Signing out sets the account's settings and small files aside
+/// (`setAside`), so the sign-in screen and whoever signs in next start from
+/// the defaults; they come back when the same account signs in again. Its
+/// downloads and caches stay where they are. When a different server or user signs in, the large,
 /// re-fetchable data (downloads, cached cover art and Gravatar pictures) is
 /// deleted, and the rest (settings, the queue, play history, unsent
 /// scrobbles, the profile, saved stations, the Wishlist…) is set aside
@@ -21,6 +23,8 @@ public struct AccountScope {
     private let settings: AccountSettings?
 
     static let fingerprintKey = "accountFingerprint"
+    /// Set while the owner is signed out and its settings are set aside.
+    static let setAsideKey = "accountSetAside"
 
     public init(defaults: UserDefaults = .standard, dataLocations: [URL], settings: AccountSettings? = nil) {
         self.defaults = defaults
@@ -53,7 +57,24 @@ public struct AccountScope {
     /// same server reached at a different address (say, the local network
     /// instead of the domain), which counts as a different account otherwise.
     public func adopt(_ credentials: ServerCredentials) {
+        // It's the same account: what signing out set aside comes back.
+        if defaults.bool(forKey: Self.setAsideKey), let owner = defaults.string(forKey: Self.fingerprintKey) {
+            settings?.bringBack(owner)
+            defaults.removeObject(forKey: Self.setAsideKey)
+        }
         defaults.set(Self.fingerprint(of: credentials), forKey: Self.fingerprintKey)
+    }
+
+    /// Signing out: sets the owner's settings and small files aside, so
+    /// everything reads its default until someone signs in. The owner's come
+    /// back when it signs in again (`prepare`). Downloads and caches stay:
+    /// they're still the owner's, and another account's sign-in removes them.
+    public func setAside() {
+        guard let settings, let owner = defaults.string(forKey: Self.fingerprintKey),
+              !defaults.bool(forKey: Self.setAsideKey)
+        else { return }
+        settings.setAside(owner)
+        defaults.set(true, forKey: Self.setAsideKey)
     }
 
     /// Bytes in a folder and everything in it (0 if it's missing), for the
@@ -70,17 +91,29 @@ public struct AccountScope {
     /// Call before any account data or settings are loaded. If the data on the
     /// device belongs to a different account, sets its settings and data aside,
     /// brings back this account's, and deletes the downloads and caches; then
-    /// records this one as the owner.
-    /// Returns whether it switched.
+    /// records this one as the owner. The same account signing back in gets
+    /// back what signing out set aside.
+    /// Returns whether this account's settings were put in place (a switch, or
+    /// a return after signing out), so loaded models should read them again.
     ///
     /// With no owner recorded (data from before this check existed), the data is
     /// assumed to be this account's and kept.
     @discardableResult
     public func prepare(for credentials: ServerCredentials) -> Bool {
         let fingerprint = Self.fingerprint(of: credentials)
-        defer { defaults.set(fingerprint, forKey: Self.fingerprintKey) }
-        guard let owner = defaults.string(forKey: Self.fingerprintKey), owner != fingerprint else { return false }
-        settings?.switchAccount(from: owner, to: fingerprint)
+        let isSetAside = defaults.bool(forKey: Self.setAsideKey)
+        defer {
+            defaults.set(fingerprint, forKey: Self.fingerprintKey)
+            defaults.removeObject(forKey: Self.setAsideKey)
+        }
+        guard let owner = defaults.string(forKey: Self.fingerprintKey), owner != fingerprint else {
+            // The same account: what signing out set aside comes back.
+            guard isSetAside else { return false }
+            settings?.bringBack(fingerprint)
+            return true
+        }
+        // Already set aside when the owner signed out: nothing more to keep.
+        settings?.switchAccount(from: isSetAside ? nil : owner, to: fingerprint)
         for location in dataLocations {
             try? FileManager.default.removeItem(at: location)
         }
