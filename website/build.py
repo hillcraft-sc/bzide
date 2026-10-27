@@ -28,6 +28,8 @@ SITE = {
     "support_email": "bzide-admin@hillcraft-sc.com",
     # The App Store link, once Bzide is published; until then the button is hidden.
     "app_store_url": "",
+    # The tip page (Ko-fi), linked from Support, Home and the footer.
+    "tip_url": "https://ko-fi.com/hillcraftsc",
 }
 
 
@@ -111,6 +113,10 @@ def markdown(source: str) -> tuple[str, str, list[tuple[str, str]]]:
     return title, "\n".join(parts), sections
 
 
+def tip_link(text: str) -> str:
+    return f'<a href="{SITE["tip_url"]}">{text}</a>'
+
+
 def email_link() -> str:
     """The support address as a mailto link. Cloudflare's Email Address
     Obfuscation would swap it for a link to its own page and a script to
@@ -148,7 +154,7 @@ def page(slug_name: str, title: str, body: str, description: str) -> str:
 </main>
 <footer class="site">
   <p>Bzide is an independent app for Navidrome and other Subsonic-compatible servers. It is not affiliated with or endorsed by the Navidrome or Subsonic projects.</p>
-  <p><a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · <a href="/accessibility.html">Accessibility</a> · {email_link()}</p>
+  <p><a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · <a href="/accessibility.html">Accessibility</a> · {tip_link("Leave a tip")} · {email_link()}</p>
 </footer>
 </body>
 </html>
@@ -191,6 +197,7 @@ def home() -> str:
 <section class="features">{cards}</section>
 <section class="more">
   <p>New to Bzide? The <a href="/support.html">user guide</a> walks through everything. Wondering what goes where? See <a href="/privacy.html">privacy</a>.</p>
+  <p>Bzide is free. If you enjoy it, you can {tip_link("leave a tip on Ko-fi")}.</p>
 </section>"""
     return page("home", "Home", body, "Bzide: a fast, private iPhone music player for your own Navidrome or Subsonic server.")
 
@@ -206,6 +213,9 @@ def build():
         f'<div class="contact"><h2>Contact</h2><p>Questions, problems or ideas? Email '
         f'{email_link()}. '
         "It helps to include your iPhone model and iOS version (iPhone Settings > General > About), and what you were doing when it happened.</p></div>"
+        '<div class="contact"><h2>Tip jar</h2><p>Bzide is free, with no ads or subscriptions. '
+        f'If it\'s made your listening better and you want to say thanks, you can {tip_link("leave a tip on Ko-fi")}. '
+        "Tips are entirely optional and unlock nothing. Thank you!</p></div>"
     )
     pages = {
         "index.html": home(),
