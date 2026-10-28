@@ -7,8 +7,9 @@
 //
 // Saves upload-ready JPEGs in <screenshots folder>/upload, at the size taken
 // (iPhone 6.9" 1320 x 2868, iPad 13" 2064 x 2752), plus 1206 x 2622 copies
-// of the iPhone ones, the size App Store Connect requires. Only Apple
-// frameworks, so nothing to install.
+// of the iPhone ones, the size App Store Connect requires; from the iPhone
+// shots, also the universal header and search results image (5244 x 2950
+// PNG). Only Apple frameworks, so nothing to install.
 
 import AppKit
 
@@ -56,25 +57,35 @@ func drawBackground(_ context: CGContext, size: CGSize) {
     context.drawLinearGradient(gradient, start: .zero, end: CGPoint(x: 0, y: size.height), options: [])
 }
 
-/// Centered white headline from `top`; returns where it ends.
-func drawHeadline(_ text: String, context: CGContext, size: CGSize, top: CGFloat) -> CGFloat {
+/// Text in a column `width` wide from `origin`; returns where it ends.
+func drawText(
+    _ text: String, context: CGContext, origin: CGPoint, width: CGFloat, fontSize: CGFloat,
+    weight: NSFont.Weight = .heavy, alignment: NSTextAlignment = .center, color: NSColor = .white
+) -> CGFloat {
     let paragraph = NSMutableParagraphStyle()
-    paragraph.alignment = .center
+    paragraph.alignment = alignment
     paragraph.lineHeightMultiple = 0.95
-    let fontSize = min(size.width * 0.085, size.height * 0.042)
     let attributed = NSAttributedString(string: text, attributes: [
-        .font: NSFont.systemFont(ofSize: fontSize, weight: .heavy),
-        .foregroundColor: NSColor.white,
+        .font: NSFont.systemFont(ofSize: fontSize, weight: weight),
+        .foregroundColor: color,
         .paragraphStyle: paragraph,
     ])
-    let width = size.width * 0.86
     let bounds = attributed.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin])
-    let rect = CGRect(x: (size.width - width) / 2, y: top, width: width, height: ceil(bounds.height))
+    let rect = CGRect(x: origin.x, y: origin.y, width: width, height: ceil(bounds.height))
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
     attributed.draw(with: rect, options: [.usesLineFragmentOrigin])
     NSGraphicsContext.restoreGraphicsState()
     return rect.maxY
+}
+
+/// Centered white headline from `top`; returns where it ends.
+func drawHeadline(_ text: String, context: CGContext, size: CGSize, top: CGFloat) -> CGFloat {
+    let width = size.width * 0.86
+    return drawText(
+        text, context: context, origin: CGPoint(x: (size.width - width) / 2, y: top), width: width,
+        fontSize: min(size.width * 0.085, size.height * 0.042)
+    )
 }
 
 /// The screenshot in a rounded rectangle with a soft shadow, its top left at
@@ -130,6 +141,78 @@ func compose(headline: String, shots: [CGImage], size: CGSize) -> CGImage? {
     return context.makeImage()
 }
 
+// MARK: - Header and search results
+
+/// The App Store's universal creative asset (iOS 27): one 16:9 image it crops
+/// to 21:9 for the product page header (trimming top and bottom) and to 3:2
+/// for search results (trimming the sides), so everything that matters stays
+/// well inside the middle. Apple's templates define the exact safe area;
+/// check it with Preview in App Store Connect.
+let banner = (
+    size: CGSize(width: 5244, height: 2950),
+    headline: "Your music,\nyour server.",
+    line: "Fast, private playback from\nyour own Navidrome server.",
+    // Left, front (middle), right.
+    shots: ["03-radio", "01-now-playing", "04-spectrum"]
+)
+
+func composeBanner(icon: CGImage?, shots: [CGImage]) -> CGImage? {
+    let size = banner.size
+    guard let context = makeContext(width: Int(size.width), height: Int(size.height)) else { return nil }
+    drawBackground(context, size: size)
+
+    // Text on the left, centered vertically as a block.
+    let left = size.width * 0.15
+    let column = size.width * 0.34
+    let iconSize = size.height * 0.12
+    let blockHeight = size.height * 0.5
+    var y = (size.height - blockHeight) / 2
+    if let icon {
+        let rect = CGRect(x: left, y: y, width: iconSize, height: iconSize)
+        context.saveGState()
+        context.addPath(CGPath(roundedRect: rect, cornerWidth: iconSize * 0.2237, cornerHeight: iconSize * 0.2237, transform: nil))
+        context.clip()
+        context.translateBy(x: 0, y: rect.maxY + rect.minY)
+        context.scaleBy(x: 1, y: -1)
+        context.draw(icon, in: rect)
+        context.restoreGState()
+    }
+    _ = drawText(
+        "Bzide", context: context, origin: CGPoint(x: left + iconSize * 1.25, y: y + iconSize * 0.18), width: column,
+        fontSize: iconSize * 0.5, weight: .bold, alignment: .left
+    )
+    y += iconSize * 1.45
+    y = drawText(banner.headline, context: context, origin: CGPoint(x: left, y: y), width: column, fontSize: size.height * 0.095, alignment: .left)
+    _ = drawText(
+        banner.line, context: context, origin: CGPoint(x: left, y: y + size.height * 0.035), width: column,
+        fontSize: size.height * 0.04, weight: .medium, alignment: .left, color: .white.withAlphaComponent(0.85)
+    )
+
+    // Three screenshots on the right, fanned around the front one.
+    let width = size.width * 0.16
+    guard let first = shots.first else { return context.makeImage() }
+    let height = width * CGFloat(first.height) / CGFloat(first.width)
+    let center = size.width * 0.665
+    let top = (size.height - height) / 2
+    let placements: [(index: Int, dx: CGFloat, dy: CGFloat, degrees: CGFloat)] = [
+        (0, -0.115, 0.03, -7), (2, 0.115, 0.03, 7), (1, 0, 0, 0),
+    ]
+    for placement in placements where shots.indices.contains(placement.index) {
+        let origin = CGPoint(x: center - width / 2 + size.width * placement.dx, y: top + size.height * placement.dy)
+        drawShot(shots[placement.index], context: context, origin: origin, width: width, degrees: placement.degrees)
+    }
+    return context.makeImage()
+}
+
+func savePNG(_ image: CGImage, to url: URL) {
+    let rep = NSBitmapImageRep(cgImage: image)
+    guard let data = rep.representation(using: .png, properties: [:]) else {
+        print("Couldn't encode \(url.lastPathComponent)")
+        return
+    }
+    do { try data.write(to: url) } catch { print("Couldn't save \(url.path): \(error.localizedDescription)") }
+}
+
 func saveJPEG(_ image: CGImage, to url: URL) {
     let rep = NSBitmapImageRep(cgImage: image)
     guard let data = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.92]) else {
@@ -164,6 +247,18 @@ for (number, entry) in images.enumerated() {
         let suffix = size == sizes[0] ? "" : "-\(Int(size.width))x\(Int(size.height))"
         let url = upload.appendingPathComponent("\(name)\(suffix).jpg")
         saveJPEG(image, to: url)
+        print(url.path)
+    }
+}
+
+// The universal header and search results image, from the iPhone shots.
+let bannerShots = banner.shots.compactMap { loadImage(folder.appendingPathComponent("\($0).png")) }
+if bannerShots.count == banner.shots.count, bannerShots.allSatisfy({ $0.width == 1320 }) {
+    let iconURL = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        .appendingPathComponent("../MusicApp/Assets.xcassets/AppIcon.appiconset/AppIcon.png").standardized
+    if let image = composeBanner(icon: loadImage(iconURL), shots: bannerShots) {
+        let url = upload.appendingPathComponent("header-and-search-5244x2950.png")
+        savePNG(image, to: url)
         print(url.path)
     }
 }
