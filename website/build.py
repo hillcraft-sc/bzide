@@ -26,8 +26,8 @@ SITE = {
     "url": "https://bzide.hillcraft-sc.com",
     # The dedicated support address (public on the Support page).
     "support_email": "bzide-admin@hillcraft-sc.com",
-    # The App Store link, once Bzide is published; until then the button is hidden.
-    "app_store_url": "",
+    # The App Store link (empty hides the button and shows "Coming soon").
+    "app_store_url": "https://apps.apple.com/app/bzide/id6825602899",
     # The tip page (Ko-fi), linked from Support, Home and the footer.
     "tip_url": "https://ko-fi.com/hillcraftsc",
 }

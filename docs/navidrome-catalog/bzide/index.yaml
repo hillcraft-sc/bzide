@@ -7,8 +7,7 @@ isOpenSource: false
 pricing: free
 platforms:
   ios:
-    # TODO when it's live: the App Store link, e.g. https://apps.apple.com/app/bzide/id<number>
-    store: https://apps.apple.com/app/bzide/idTODO
+    store: https://apps.apple.com/app/bzide/id6825602899
 api: OpenSubsonic
 description: "A native iPhone and iPad player for Navidrome, built for reliable playback: gapless, offline downloads, CarPlay, widgets, Siri, synced lyrics, internet radio and a music visualizer."
 screenshots:
