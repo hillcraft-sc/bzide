@@ -17,15 +17,18 @@ Then open http://127.0.0.1:8765.
 
 ## Deploy
 
-On the server, as a dedicated user, check out only the folders the site needs, using a read-only deploy key:
+On the server, as a dedicated user (`bzide-web`), check out only the folders the site needs. Forgejo's SSH isn't reachable through the Cloudflare Tunnel, so the checkout uses HTTPS with a Forgejo access token that can only read repositories (Settings > Applications), saved for that user by git's `store` helper (`~/.git-credentials`, readable only by them). Revoke it in Forgejo to cut off access.
 
 ```
-git clone --filter=blob:none --sparse <repo SSH address> /srv/bzide-website
+sudo -u bzide-web git config --global credential.helper store
+sudo -u bzide-web git clone --filter=blob:none --sparse https://git.hillcraft-sc.com/eric/MusicApp.git /srv/bzide-website
 cd /srv/bzide-website
-git sparse-checkout set docs website
+sudo -u bzide-web git sparse-checkout set docs website
 cd website
 docker compose up -d --build
 ```
+
+The first clone or pull asks for a username and password: enter the Forgejo username and the token.
 
 The site has no published port. It joins `tunnel`, the Docker network the `cloudflared` container is on (an external network in `docker-compose.yml`), so only the tunnel can reach it. In the tunnel's Public Hostname (Cloudflare dashboard, Zero Trust > Networks > Tunnels), map `bzide.hillcraft-sc.com` to `http://bzide-website:8080`.
 
@@ -35,4 +38,4 @@ To check it from the server (the cloudflared image has no shell tools):
 docker run --rm --network tunnel busybox wget -qO- http://bzide-website:8080 | head -3
 ```
 
-To update after the docs change: `git pull && docker compose up -d --build`.
+To update after the docs change, from `/srv/bzide-website/website`: `sudo -u bzide-web git pull && docker compose up -d --build` (with `sudo` before `docker` if needed). The pull runs as `bzide-web` because git refuses a checkout owned by another user.
