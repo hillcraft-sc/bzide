@@ -96,6 +96,7 @@ struct RootView: View {
 
     #if DEBUG
     private func runScreenshotScript() async {
+        if ScreenshotScript.screen != nil { ScreenshotScript.applySettings(model, library) }
         guard let screen = ScreenshotScript.screen,
               let album = await ScreenshotScript.playAlbum(library)
         else { return }
@@ -106,6 +107,7 @@ struct RootView: View {
         case .artist:
             if let artistID = album.artistID { libraryPath.append(LibraryRoute.artist(id: artistID)) }
         case .nowPlaying, .visualizer, .lyrics: isNowPlayingOpen = true
+        case .findStations: libraryPath.append(LibraryRoute.radio)
         }
     }
     #endif

@@ -118,6 +118,9 @@ struct RadioView: View {
             await model.findMissingDetails()
         }
         .refreshable { await model.load() }
+        #if DEBUG
+        .task { isFinding = ScreenshotScript.screen == .findStations }
+        #endif
     }
 
     // MARK: - Filters

@@ -22,7 +22,11 @@ struct StationSearchView: View {
     init(library: Library, stations: RadioStationsModel) {
         self.library = library
         self.stations = stations
-        _model = State(initialValue: library.stationSearchModel())
+        let model = library.stationSearchModel()
+        #if DEBUG
+        if ScreenshotScript.screen == .findStations { model.query.tag = ScreenshotScript.stationGenre }
+        #endif
+        _model = State(initialValue: model)
     }
 
     private var isOn: Bool { library.settings.settings.findStationsOnline }
