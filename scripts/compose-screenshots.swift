@@ -128,14 +128,17 @@ func compose(headline: String, shots: [CGImage], size: CGSize) -> CGImage? {
         drawShot(shot, context: context, origin: CGPoint(x: (size.width - width) / 2, y: top), width: width)
     } else {
         // Staggered: each card behind is further left, higher and turned a
-        // little more, so a strip of every theme shows.
-        let width = size.width * 0.64
-        let step = size.width * 0.085
+        // little more, so a strip of every theme shows. An iPhone's narrow
+        // image gets smaller cards spread wider, or the strips are slivers.
+        let isPhone = size.height > size.width * 1.5
+        let width = size.width * (isPhone ? 0.56 : 0.64)
+        let step = size.width * (isPhone ? 0.12 : 0.085)
         let rise = size.height * 0.035
-        let frontX = size.width - width - size.width * 0.06
+        let turn: CGFloat = isPhone ? -2 : -3
+        let frontX = size.width - width - size.width * (isPhone ? 0.04 : 0.06)
         for (index, shot) in shots.enumerated().reversed() {
             let origin = CGPoint(x: frontX - step * CGFloat(index), y: top + rise * CGFloat(shots.count - 1 - index))
-            drawShot(shot, context: context, origin: origin, width: width, degrees: -3 * CGFloat(index))
+            drawShot(shot, context: context, origin: origin, width: width, degrees: turn * CGFloat(index))
         }
     }
     return context.makeImage()
