@@ -17,6 +17,7 @@ import SwiftUI
 /// - `-screenshotDownload YES`: downloads the album.
 /// - `-screenshotStationGenre <genre>`: what `findStations` searches for;
 ///   it turns Find Stations Online on.
+/// - Sync Queue with Server is turned off, so no queue is offered.
 /// - Signed out, it signs in with `SCREENSHOT_SERVER`, `SCREENSHOT_USER` and
 ///   `SCREENSHOT_PASSWORD` from the environment (`SIMCTL_CHILD_…` with
 ///   `simctl launch`), never from code.
@@ -53,6 +54,8 @@ enum ScreenshotScript {
         if screen == .findStations {
             library.settings.settings.findStationsOnline = true
         }
+        // Not offered a queue someone else saved on the shared demo server.
+        library.settings.settings.syncQueueWithServer = false
     }
 
     static func signInIfNeeded(_ model: AppModel) async {

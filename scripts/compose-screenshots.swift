@@ -82,8 +82,10 @@ func drawHeadline(_ text: String, context: CGContext, size: CGSize, top: CGFloat
 func drawShot(_ image: CGImage, context: CGContext, origin: CGPoint, width: CGFloat, degrees: CGFloat = 0) {
     let height = width * CGFloat(image.height) / CGFloat(image.width)
     let rect = CGRect(x: 0, y: 0, width: width, height: height)
-    // About the corners of the device the screenshot came from.
-    let path = CGPath(roundedRect: rect, cornerWidth: width * 0.11, cornerHeight: width * 0.11, transform: nil)
+    // About the corners of the device the screenshot came from: an iPad's
+    // (wider screen) are much smaller for its size than an iPhone's.
+    let radius = width * (image.width > image.height * 2 / 3 ? 0.035 : 0.11)
+    let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
     context.saveGState()
     context.translateBy(x: origin.x + width / 2, y: origin.y + height / 2)
     context.rotate(by: degrees * .pi / 180)
