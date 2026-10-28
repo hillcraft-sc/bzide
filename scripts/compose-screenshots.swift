@@ -8,8 +8,8 @@
 // Saves upload-ready JPEGs in <screenshots folder>/upload, at the size taken
 // (iPhone 6.9" 1320 x 2868, iPad 13" 2064 x 2752), plus 1206 x 2622 copies
 // of the iPhone ones, the size App Store Connect requires; from the iPhone
-// shots, also the universal header and search results image (5244 x 2950
-// PNG). Only Apple frameworks, so nothing to install.
+// shots, also the search results (5244 x 2950) and product page header
+// (3840 x 1646) images, as PNGs. Only Apple frameworks, so nothing to install.
 
 import AppKit
 
@@ -143,11 +143,11 @@ func compose(headline: String, shots: [CGImage], size: CGSize) -> CGImage? {
 
 // MARK: - Header and search results
 
-/// The App Store's universal creative asset (iOS 27): one 16:9 image it crops
-/// to 21:9 for the product page header (trimming top and bottom) and to 3:2
-/// for search results (trimming the sides), so everything that matters stays
-/// well inside the middle. Apple's templates define the exact safe area;
-/// check it with Preview in App Store Connect.
+/// The App Store's search results image (iOS 27), as its 16:9 universal
+/// size, which it shows whole there (trimmed a little at the sides). As the
+/// product page header it doesn't work: on iPhone only about the middle 60%
+/// of the width shows, under the back and share buttons, so that has its own
+/// image (`header`).
 let banner = (
     size: CGSize(width: 5244, height: 2950),
     headline: "Your music,\nyour server.",
@@ -155,6 +155,35 @@ let banner = (
     // Left, front (middle), right.
     shots: ["03-radio", "01-now-playing", "04-spectrum"]
 )
+
+/// The product page header: no text, as the name and Get button are just
+/// below it; the phones fanned around the middle, where an iPhone shows it,
+/// starting below the buttons over its top and running off the bottom edge.
+/// An iPad shows more of the width, so the outer ones fill it out.
+let header = (
+    size: CGSize(width: 3840, height: 1646),
+    // Left to right; the middle one in front.
+    shots: ["03-radio", "02-library", "01-now-playing", "04-spectrum", "07-album"]
+)
+
+func composeHeader(shots: [CGImage]) -> CGImage? {
+    let size = header.size
+    guard let context = makeContext(width: Int(size.width), height: Int(size.height)) else { return nil }
+    drawBackground(context, size: size)
+    let width = size.width * 0.15
+    let middle = shots.count / 2
+    // Outermost first, so the middle one is drawn on top.
+    let order = shots.indices.sorted { abs($0 - middle) > abs($1 - middle) }
+    for index in order {
+        let step = CGFloat(index - middle)
+        let origin = CGPoint(
+            x: size.width / 2 - width / 2 + step * size.width * 0.125,
+            y: size.height * (0.24 + 0.05 * abs(step))
+        )
+        drawShot(shots[index], context: context, origin: origin, width: width, degrees: step * 6)
+    }
+    return context.makeImage()
+}
 
 func composeBanner(icon: CGImage?, shots: [CGImage]) -> CGImage? {
     let size = banner.size
@@ -251,14 +280,20 @@ for (number, entry) in images.enumerated() {
     }
 }
 
-// The universal header and search results image, from the iPhone shots.
+// The search results and header images, from the iPhone shots.
 let bannerShots = banner.shots.compactMap { loadImage(folder.appendingPathComponent("\($0).png")) }
 if bannerShots.count == banner.shots.count, bannerShots.allSatisfy({ $0.width == 1320 }) {
     let iconURL = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
         .appendingPathComponent("../MusicApp/Assets.xcassets/AppIcon.appiconset/AppIcon.png").standardized
     if let image = composeBanner(icon: loadImage(iconURL), shots: bannerShots) {
-        let url = upload.appendingPathComponent("header-and-search-5244x2950.png")
+        let url = upload.appendingPathComponent("search-results-5244x2950.png")
         savePNG(image, to: url)
         print(url.path)
     }
+}
+let headerShots = header.shots.compactMap { loadImage(folder.appendingPathComponent("\($0).png")) }
+if headerShots.count == header.shots.count, headerShots.allSatisfy({ $0.width == 1320 }), let image = composeHeader(shots: headerShots) {
+    let url = upload.appendingPathComponent("header-3840x1646.png")
+    savePNG(image, to: url)
+    print(url.path)
 }
