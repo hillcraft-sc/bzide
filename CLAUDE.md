@@ -43,7 +43,8 @@ A native iOS music player for a self-hosted Navidrome server. The owner finds ex
 │       └── Cache/         # Cover art cache, offline downloads
 ├── MusicApp/              # iOS app target (SwiftUI), thin layer over NavidromeCore
 ├── scripts/
-│   └── screenshots.sh     # App Store screenshots in a Simulator (MusicApp/Debug/ScreenshotScript.swift)
+│   ├── screenshots.sh     # App Store screenshots in a Simulator (MusicApp/Debug/ScreenshotScript.swift)
+│   └── compose-screenshots.swift # Their App Store images: headlines on Bzide Red, stacked themes
 └── website/               # bzide.hillcraft-sc.com: Home, Support and Privacy, built from docs/ (see its README)
 ```
 
