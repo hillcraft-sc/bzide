@@ -154,7 +154,7 @@ def page(slug_name: str, title: str, body: str, description: str) -> str:
 </main>
 <footer class="site">
   <p>Bzide is an independent app for Navidrome and other Subsonic-compatible servers. It is not affiliated with or endorsed by the Navidrome or Subsonic projects.</p>
-  <p><a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · <a href="/accessibility.html">Accessibility</a> · {tip_link("Leave a tip")} · {email_link()}</p>
+  <p>Made by <a href="https://hillcraft-sc.com">Hillcraft</a> · <a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · <a href="/accessibility.html">Accessibility</a> · {tip_link("Leave a tip")} · {email_link()}</p>
 </footer>
 </body>
 </html>
