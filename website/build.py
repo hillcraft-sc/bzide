@@ -131,7 +131,7 @@ def email_link() -> str:
 def page(slug_name: str, title: str, body: str, description: str) -> str:
     nav = "".join(
         f'<a href="{href}"{" aria-current=\"page\"" if key == slug_name else ""}>{label}</a>'
-        for key, href, label in (("home", "/", "Home"), ("support", "/support.html", "Support"), ("privacy", "/privacy.html", "Privacy"), ("accessibility", "/accessibility.html", "Accessibility"))
+        for key, href, label in (("home", "/", "Home"), ("support", "/support.html", "Support"), ("privacy", "/privacy.html", "Privacy"), ("accessibility", "/accessibility.html", "Accessibility"), ("more", "https://hillcraft-sc.com", "More Apps"))
     )
     full_title = SITE["name"] if slug_name == "home" else f"{title} · {SITE['name']}"
     return f"""<!doctype html>
