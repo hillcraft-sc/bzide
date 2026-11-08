@@ -34,7 +34,7 @@ struct RootView: View {
         }
         // iPad: tabs that open into a sidebar (Gitea #22); iPhone keeps its tab bar.
         .tabViewStyle(.sidebarAdaptable)
-        .tabViewBottomAccessory {
+        .tabViewBottomAccessory(isEnabled: showsMiniPlayer) {
             MiniPlayer(library: library) { isNowPlayingOpen = true }
         }
         .nowPlaying(isPresented: $isNowPlayingOpen) {
@@ -92,6 +92,15 @@ struct RootView: View {
             await sync.saveNow()
             task.end()
         }
+    }
+
+    /// Always, except in a Debug screenshot that asks for the room (`-screenshotNoMiniPlayer YES`).
+    private var showsMiniPlayer: Bool {
+        #if DEBUG
+        !ScreenshotScript.hidesMiniPlayer
+        #else
+        true
+        #endif
     }
 
     #if DEBUG

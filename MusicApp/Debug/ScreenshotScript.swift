@@ -12,11 +12,13 @@ import SwiftUI
 /// - `-screenshotSeek <seconds>`: where in that song to be.
 /// - `-screenshotTheme <theme>`: the theme (`AppTheme`), e.g. `light` or `tokyoNight`.
 /// - `-screenshotShowAll YES`: every Library section shown (the carousels
-///   start hidden). Collapsed carousels open with their own settings:
+///   are shown by default but collapsed). They open with their own settings:
 ///   `-recentlyAddedCollapsed NO` and so on.
 /// - `-screenshotDownload YES`: downloads the album.
 /// - `-screenshotStationGenre <genre>`: what `findStations` searches for;
 ///   it turns Find Stations Online on.
+/// - `-screenshotNoMiniPlayer YES`: the mini player above the tab bar is
+///   hidden, which otherwise covers the last row of a tall Library.
 /// - Sync Queue with Server is turned off, so no queue is offered.
 /// - Signed out, it signs in with `SCREENSHOT_SERVER`, `SCREENSHOT_USER` and
 ///   `SCREENSHOT_PASSWORD` from the environment (`SIMCTL_CHILD_…` with
@@ -35,6 +37,10 @@ enum ScreenshotScript {
 
     private static var albumID: String? {
         UserDefaults.standard.string(forKey: "screenshotAlbum")
+    }
+
+    static var hidesMiniPlayer: Bool {
+        UserDefaults.standard.bool(forKey: "screenshotNoMiniPlayer")
     }
 
     static var stationGenre: String? {

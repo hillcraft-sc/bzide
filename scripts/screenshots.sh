@@ -15,9 +15,20 @@
 # (1320 x 2868) also at 1206 x 2622, the size App Store Connect requires
 # ("iPhone with Dynamic Island (medium display)"); the iPad 13" size is
 # required as taken. Each Simulator uses a lot of memory: run one at a time.
+#
+# iPhone Duo: the Simulator starts folded, which takes the outer display
+# (1398 x 2034). For the inner display (2007 x 2853), unfold it in Xcode's
+# Device Hub first and set SCREENSHOT_DISPLAY=primary-1 (the screens are
+# listed by `xcrun simctl io <id> enumerate`).
+#
+# To retake one shot (say, when the demo server's Recently Played shows
+# something unsuitable), set SCREENSHOT_ONLY=<its name>, e.g. 02-library. The
+# others are skipped and nothing is composed; copy the new PNG into the folder
+# of a full run and run `swift scripts/compose-screenshots.swift <folder>`.
 set -euo pipefail
 
 device=$1
+display=${SCREENSHOT_DISPLAY:-}
 out=$2
 cd "$(dirname "$0")/.."
 mkdir -p "$out"
@@ -37,12 +48,13 @@ xcrun simctl status_bar "$device" override --time 9:41 --dataNetwork wifi --wifi
 shot() {
   local name=$1 wait=$2
   shift 2
+  if [[ -n ${SCREENSHOT_ONLY:-} && $name != "$SCREENSHOT_ONLY" ]]; then return 0; fi
   SIMCTL_CHILD_SCREENSHOT_SERVER=${SCREENSHOT_SERVER:-} \
   SIMCTL_CHILD_SCREENSHOT_USER=${SCREENSHOT_USER:-} \
   SIMCTL_CHILD_SCREENSHOT_PASSWORD=${SCREENSHOT_PASSWORD:-} \
     xcrun simctl launch --terminate-running-process "$device" com.erichebert.musicapp "$@" >/dev/null
   sleep "$wait"
-  xcrun simctl io "$device" screenshot "$out/$name.png" >/dev/null 2>&1
+  xcrun simctl io "$device" screenshot ${display:+--display=$display} "$out/$name.png" >/dev/null 2>&1
   echo "$out/$name.png"
 }
 
@@ -54,13 +66,17 @@ slip=2ilrD9t8Kda9ozUDLBqBE1        # Nine Inch Nails, The Slip (has lyrics)
 # The App Store set, in its order, all in the Light theme; the themes shots
 # make the stacked Themes image (scripts/compose-screenshots.swift).
 light=(-screenshotTheme light)
-library=(-screenshot library -screenshotShowAll YES -recentlyAddedCollapsed NO -recentlyPlayedCollapsed NO
-  -spinItBackCollapsed NO -screenshotAlbum $chillhop -screenshotSeek 40)
+library_base=(-screenshot library -screenshotShowAll YES -recentlyAddedCollapsed NO -recentlyPlayedCollapsed NO
+  -spinItBackCollapsed NO)
+library=($library_base -screenshotAlbum $chillhop -screenshotSeek 40)
+library_bare=($library_base -screenshotNoMiniPlayer YES)
 
 # The album shown downloaded (07) starts downloading first, so it's done by then.
 shot 01-now-playing 10 -screenshot nowPlaying -screenshotAlbum $fairytale -screenshotSeek 79 $light \
   -screenshotDownload YES
-shot 02-library 15 $library $light
+# Library shows its three carousels open and no mini player (it would cover
+# the last row, even when nothing is playing).
+shot 02-library 15 "${library_bare[@]}" $light
 shot 03-radio 15 -screenshot findStations -screenshotStationGenre jazz -screenshotAlbum $chillhop -screenshotSeek 40 $light
 shot 04-spectrum 15 -screenshot visualizer -screenshotAlbum $chillhop -screenshotSeek 90 \
   -visualizerStyle spectrum -visualizerColors multicolor $light
@@ -75,4 +91,4 @@ shot 07-album 15 -screenshot album -screenshotAlbum $fairytale -screenshotSeek 7
 xcrun simctl terminate "$device" com.erichebert.musicapp 2>/dev/null || true
 xcrun simctl shutdown "$device" 2>/dev/null || true
 
-swift scripts/compose-screenshots.swift "$out"
+[[ -n ${SCREENSHOT_ONLY:-} ]] || swift scripts/compose-screenshots.swift "$out"
