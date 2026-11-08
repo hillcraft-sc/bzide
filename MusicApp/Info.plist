@@ -59,7 +59,7 @@
 	</dict>
 	<!-- Internet radio: many stations stream over plain http. This lets
 	     AVFoundation load http audio only; API calls, artwork and playlist
-	     files still need https. See CLAUDE.md (Security). -->
+	     files still need https. See .claude/CLAUDE.md (Security). -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsForMedia</key>

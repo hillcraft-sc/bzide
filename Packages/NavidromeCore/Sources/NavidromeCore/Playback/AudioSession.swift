@@ -76,7 +76,7 @@ public final class SystemAudioSession: AudioSessionControlling {
     }
 
     /// The system calls this on its own queue, so it's built nonisolated (not
-    /// main-actor isolated; see CLAUDE.md) and hops to the main actor itself.
+    /// main-actor isolated; see .claude/CLAUDE.md) and hops to the main actor itself.
     nonisolated private static func activationHandler(
         startedAt start: ContinuousClock.Instant,
         then completion: @escaping @MainActor @Sendable (AudioSessionError?) -> Void
