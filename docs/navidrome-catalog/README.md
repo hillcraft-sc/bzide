@@ -2,6 +2,8 @@
 
 Bzide's entry for the list of apps at [navidrome.org/apps](https://www.navidrome.org/apps/) (Gitea #23), ready for a pull request to [navidrome/website](https://github.com/navidrome/website). Their guide: [Adding apps](https://www.navidrome.org/docs/developers/adding-apps/).
 
+**Open source:** the entry has `repoUrl` (the public GitHub repo) and no `isOpenSource: false`, so the catalog treats Bzide as open source. Its images (`thumbnail.webp`, `screen1.webp` to `screen4.webp`) are in this folder.
+
 **When:** now; Bzide is on the App Store and `bzide/index.yaml` has its link. A closed-source app is only accepted once it's publicly available in a store (open-source ones need a public repo with 15 stars instead).
 
 **Steps:**
