@@ -7,7 +7,7 @@ This page is also in the app, under Settings > Privacy.
 ## The short version
 
 - **No tracking, no ads, no analytics.** Bzide contains no third-party code at all: no analytics or crash-reporting kits, no ad networks. It's Apple's frameworks and Bzide's own code.
-- **The code is open.** Bzide's source is public under the GPL-3.0 license at github.com/hillcraft-sc/bzide, so anyone can check what this page says.
+- **The code is open.** Bzide's source is public under the GPL-3.0 license at github.com/hillcraft-sc/bzide, so anyone can check what this page says. The links to it in Settings > About open in your browser; Bzide sends nothing to GitHub.
 - **We never see your data.** There's no Bzide account and no Bzide server. Nothing you play, search or save is ever sent to us.
 - **Your listening goes to your server, and only there.** What you play is reported to *your own* server, the same as any other app you use with it, and you can turn that off.
 - **Every outside service is off until you turn it on,** and each one gets only what it needs to do its job. None of them ever gets your server's address or your login.

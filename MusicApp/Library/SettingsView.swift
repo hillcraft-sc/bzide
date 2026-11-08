@@ -33,6 +33,42 @@ struct SettingsView: View {
     @State private var isConfirmingClearHistory = false
     @State private var isConfirmingRestoreDefaults = false
     @State private var photoItem: PhotosPickerItem?
+    private static let sourceURL = URL(string: "https://github.com/hillcraft-sc/bzide")
+    private static let issuesURL = URL(string: "https://github.com/hillcraft-sc/bzide/issues")
+
+    /// "1.1 (3)", for bug reports.
+    private var versionText: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
+    }
+
+    /// The version, and where the open source code and its issues are. The
+    /// links open in the browser: Bzide itself sends nothing to GitHub.
+    private var aboutSection: some View {
+        Section {
+            LabeledContent("Version", value: versionText)
+            if let url = Self.sourceURL {
+                Link(destination: url) {
+                    Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                }
+                .accessibilityHint("Opens GitHub in your browser")
+            }
+            if let url = Self.issuesURL {
+                Link(destination: url) {
+                    Label("Report a Problem", systemImage: "exclamationmark.bubble")
+                }
+                .accessibilityHint("Opens GitHub in your browser")
+            }
+        } header: {
+            Text("About")
+        } footer: {
+            Text("Bzide is free, open source software (GPL-3.0). Source Code and Report a Problem open GitHub in your browser; Bzide sends nothing to it. Reports there are public, so leave out anything private.")
+        }
+        .themedRows(grouped: true)
+    }
+
     /// Why the last picked picture couldn't be used.
     @State private var pickError: String?
 
@@ -261,6 +297,7 @@ struct SettingsView: View {
                 Text("Help: how to use everything in Bzide. Privacy: what Bzide sends, to whom, and what it keeps on this iPhone.")
             }
             .themedRows(grouped: true)
+            aboutSection
             if account != nil {
                 BackupSection(actions: backup)
             }

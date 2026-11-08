@@ -221,4 +221,5 @@ Bzide has no ads, no tracking and no accounts of its own. Your music and listeni
 - **Downloads aren't starting:** they wait for Wi-Fi unless Settings > Downloads > Download over Cellular is on.
 - **Siri doesn't understand:** Siri needs Apple Intelligence, and the phrase must say "in Bzide" (say it "Bee-zide"). If Siri plays something from Apple Music instead, it probably misheard the app's name: try again, stressing "in Bee-zide".
 - **Everything looks wrong after changing lots of settings:** Settings > Restore Default Settings.
+- **Something else, or a bug:** Settings > About shows Bzide's version (handy to include when you get in touch), **Source Code** (Bzide is open source) and **Report a Problem**, which opens GitHub in your browser. Reports there are public, so leave out anything private; or email the address on the Support page.
 - **Still stuck?** Ask whoever runs your server, or the person who gave you Bzide.
