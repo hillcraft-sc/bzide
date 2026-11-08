@@ -1,6 +1,6 @@
 ---
 name: build-and-test
-description: How to build, run and test Bzide: the two test suites and their schemes, xcodebuild commands for the iOS Simulator, integration tests against a real Navidrome server, Metal Toolchain setup, and installing on a device. Use when building, running or testing, or when a build or test setup fails.
+description: "How to build, run and test Bzide: the two test suites and their schemes, xcodebuild commands for the iOS Simulator, integration tests against a real Navidrome server, Metal Toolchain setup, and installing on a device. Use when building, running or testing, or when a build or test setup fails."
 ---
 
 # Building and testing Bzide
