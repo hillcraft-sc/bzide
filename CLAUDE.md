@@ -24,30 +24,6 @@ A native iOS music player for a self-hosted Navidrome server. The owner finds ex
 
 ## Architecture
 
-```
-/
-├── CLAUDE.md
-├── docs/
-│   ├── BEHAVIOR.md        # Spec: queue rules, interruption handling, prefetch, caching
-│   ├── PRIVACY.md         # Plain-language privacy page: what's sent where, what's stored
-│   ├── USER-GUIDE.md      # How to use Bzide, for users (Settings > Help; also hostable)
-│   ├── ACCESSIBILITY.md   # For users: how Bzide works with iOS accessibility (the website's App Store Accessibility URL)
-│   └── ISSUES.md          # Running log of bugs and annoyances found in real-world use
-├── Packages/
-│   └── NavidromeCore/     # Swift package, NO UI imports (no SwiftUI/UIKit)
-│       ├── API/           # Subsonic/OpenSubsonic client
-│       ├── Models/        # Artist, Album, Song, Playlist, etc.
-│       ├── Auth/          # Credentials, Keychain storage
-│       ├── Library/       # Screen logic for browsing: loading, paging, search, starring
-│       ├── Playback/      # Audio engine, queue, session handling, Now Playing
-│       └── Cache/         # Cover art cache, offline downloads
-├── MusicApp/              # iOS app target (SwiftUI), thin layer over NavidromeCore
-├── scripts/
-│   ├── screenshots.sh     # App Store screenshots in a Simulator (MusicApp/Debug/ScreenshotScript.swift)
-│   └── compose-screenshots.swift # Their App Store images: headlines on Bzide Red, stacked themes
-└── website/               # bzide.hillcraft-sc.com: Home, Support and Privacy, built from docs/ (see its README)
-```
-
 Siri lives in `MusicApp/Siri/`: App Intents entities and intents using the system audio schemas, annotations that tell Siri what a view shows, and lookups through the same `Library` models (`QuickActions`, `PlaylistEditor`). It needs no entitlement.
 
 CarPlay lives in `MusicApp/CarPlay/` (a template scene declared in `Info.plist`) and fills Apple's templates from the same `Library` models as the phone. The owner has a paid Apple Developer account (individual, since 2026-10-21; same team ID as before). Entitlements: `Config/MusicApp.entitlements` (the app, device and simulator builds: CarPlay audio, WeatherKit and the App Group) and `Config/BzideControls.entitlements` (the extension: the App Group). Apple granted the CarPlay audio entitlement on 2026-10-22; it's enabled on the App ID, and Xcode's automatic signing includes it. Widgets and controls live in the `BzideControls` WidgetKit extension (target `BzideControlsExtension`, which links `NavidromeCore`): the Now Playing and Shortcuts widgets and the Lock Screen and Control Center "Favorite Song" control. They can't see the engine: the app shares what's playing through the App Group `group.com.erichebert.musicapp` (`WidgetSnapshot`, written by `WidgetFeed`), never credentials or server details. Their buttons are audio playback intents, which the system runs in the app's process. The intent definitions are in `MusicApp/Siri/FavoriteIntentDefinitions.swift` and `MusicApp/Siri/PlaybackIntentDefinitions.swift`, compiled into both targets (folder membership exceptions in the project); each target has its own `CurrentSongFavorite` and `WidgetPlayback` (the app's do the work, the extension's do nothing or say to play something first). All of these depend on `NavidromeCore` and must not duplicate logic.
