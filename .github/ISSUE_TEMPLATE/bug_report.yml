@@ -1,0 +1,86 @@
+name: Bug report
+description: Something doesn't work, or works wrong
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting it. **This issue is public**, so please leave out your server address, username, password, API key and anything else private. Blur them in screenshots too.
+
+        Found a security problem? Don't post it here; see [SECURITY.md](https://github.com/hillcraft-sc/bzide/blob/main/SECURITY.md).
+  - type: input
+    id: bzide-version
+    attributes:
+      label: Bzide version
+      description: Settings > About shows it, for example "1.1 (3)".
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: iPhone or iPad, and iOS version
+      description: For example "iPhone 16 Pro, iOS 27.1". iPhone Settings > General > About has both.
+    validations:
+      required: true
+  - type: input
+    id: server
+    attributes:
+      label: Navidrome version
+      description: Shown on your Navidrome server's web page, in its About dialog. Say which server you use if it isn't Navidrome.
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it happen?
+      options:
+        - Playback (gapless, queue, lock screen, interruptions)
+        - Library, search or playlists
+        - Downloads and offline listening
+        - CarPlay
+        - Widgets, controls or Siri
+        - Lyrics
+        - Radio
+        - Visualizer or themes
+        - Signing in or settings
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What you did, in order. Say if it happens every time or only sometimes.
+      placeholder: |
+        1. Play an album
+        2. Lock the phone
+        3. ...
+    validations:
+      required: false
+  - type: dropdown
+    id: connection
+    attributes:
+      label: How do you reach your server?
+      description: Playback problems often depend on this.
+      options:
+        - Directly on my home network
+        - Over https through a reverse proxy or tunnel
+        - Over a VPN (such as Tailscale)
+        - Over plain http on the internet
+        - Not sure
+    validations:
+      required: false
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots or a screen recording help. If the app crashed, say when, and attach the crash report if you have one (iPhone Settings > Privacy & Security > Analytics & Improvements > Analytics Data).
+    validations:
+      required: false

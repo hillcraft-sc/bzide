@@ -45,11 +45,11 @@ You need Xcode 27 with its Metal Toolchain (Xcode > Settings > Components, or `x
 2. Under Signing & Capabilities, choose your own team, and change the bundle identifiers and the App Group (`group.com.erichebert.musicapp`) to ones you own. CarPlay audio and WeatherKit need entitlements from Apple, which you'd request for your own app; without them, remove those entitlements to build.
 3. Run on a device or Simulator.
 
-Tests: ⌘U on the `MusicApp` scheme for the app, and on the `NavidromeCore` scheme (open `Packages/NavidromeCore/Package.swift` on its own) for the core. Integration tests against a real server run only when `NAVIDROME_URL`, `NAVIDROME_USER` and `NAVIDROME_PASSWORD` are set; see [`CLAUDE.md`](CLAUDE.md).
+Tests: ⌘U on the `MusicApp` scheme for the app, and on the `NavidromeCore` scheme (open `Packages/NavidromeCore/Package.swift` on its own) for the core. Integration tests against a real server run only when `NAVIDROME_URL`, `NAVIDROME_USER` and `NAVIDROME_PASSWORD` are set; see [the build-and-test notes](.claude/skills/build-and-test/SKILL.md).
 
 ## Contributing
 
-Bug reports and ideas are welcome as issues. For a code change, please open an issue first so we can agree on it before you write it.
+Bug reports and ideas are welcome as [issues](https://github.com/hillcraft-sc/bzide/issues/new/choose). For a code change, please open an issue first so we can agree on it before you write it; [CONTRIBUTING.md](CONTRIBUTING.md) has the details. For a security problem, see [SECURITY.md](SECURITY.md).
 
 ## License
 

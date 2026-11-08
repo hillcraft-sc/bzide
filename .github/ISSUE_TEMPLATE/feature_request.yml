@@ -1,0 +1,48 @@
+name: Feature request
+description: An idea for something Bzide could do
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Bzide puts reliable playback first, then a clean, fast interface, then CarPlay and widgets, so requests are weighed against that. Check the [user guide](https://github.com/hillcraft-sc/bzide/blob/main/docs/USER-GUIDE.md) first, since it may already do what you want.
+
+        **This issue is public**, so leave out your server address and anything private.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation or problem, rather than the solution. "When I'm driving I can't..." is more useful than "add a button".
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Bzide to do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today, or what else have you considered?
+    validations:
+      required: false
+  - type: dropdown
+    id: server
+    attributes:
+      label: Does it need something from the server?
+      description: Bzide works with any Navidrome setup, so features that depend on a server feature or plugin need a fallback.
+      options:
+        - No, it works on the phone alone
+        - Yes, a Navidrome or OpenSubsonic feature
+        - Yes, a plugin or an outside service
+        - Not sure
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: Bzide version
+      description: Settings > About.
+    validations:
+      required: false
