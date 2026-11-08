@@ -30,6 +30,8 @@ SITE = {
     "app_store_url": "https://apps.apple.com/app/bzide/id6825602899",
     # The tip page (Ko-fi), linked from Support, Home and the footer.
     "tip_url": "https://ko-fi.com/hillcraftsc",
+    # The public source repository (GPL-3.0), linked from the nav, Home, Support and the footer.
+    "source_url": "https://github.com/hillcraft-sc/bzide",
 }
 
 
@@ -131,7 +133,7 @@ def email_link() -> str:
 def page(slug_name: str, title: str, body: str, description: str) -> str:
     nav = "".join(
         f'<a href="{href}"{" aria-current=\"page\"" if key == slug_name else ""}>{label}</a>'
-        for key, href, label in (("home", "/", "Home"), ("support", "/support.html", "Support"), ("privacy", "/privacy.html", "Privacy"), ("accessibility", "/accessibility.html", "Accessibility"), ("more", "https://hillcraft-sc.com", "More Apps"))
+        for key, href, label in (("home", "/", "Home"), ("support", "/support.html", "Support"), ("privacy", "/privacy.html", "Privacy"), ("accessibility", "/accessibility.html", "Accessibility"), ("source", SITE["source_url"], "Source"), ("more", "https://hillcraft-sc.com", "More Apps"))
     )
     full_title = SITE["name"] if slug_name == "home" else f"{title} · {SITE['name']}"
     return f"""<!doctype html>
@@ -154,7 +156,7 @@ def page(slug_name: str, title: str, body: str, description: str) -> str:
 </main>
 <footer class="site">
   <p>Bzide is an independent app for Navidrome and other Subsonic-compatible servers. It is not affiliated with or endorsed by the Navidrome or Subsonic projects.</p>
-  <p>Made by <a href="https://hillcraft-sc.com">Hillcraft</a> · <a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · <a href="/accessibility.html">Accessibility</a> · {tip_link("Leave a tip")} · {email_link()}</p>
+  <p>Made by <a href="https://hillcraft-sc.com">Hillcraft</a> · <a href="/support.html">Support</a> · <a href="/privacy.html">Privacy</a> · <a href="/accessibility.html">Accessibility</a> · <a href="{SITE["source_url"]}">Source code (GPL-3.0)</a> · {tip_link("Leave a tip")} · {email_link()}</p>
 </footer>
 </body>
 </html>
@@ -178,9 +180,10 @@ def home() -> str:
         ("Listen anywhere", "Download albums, playlists and songs for offline listening. Downloaded playlists stay up to date, and you choose the streaming quality for Wi-Fi and cellular."),
         ("Lyrics", "Synced lyrics that light up word by word. Tap a line to jump there; fix timing that runs early or late."),
         ("Internet radio", "Your server's stations, thousands more to discover, and Spin the Dial for something new that fits your taste."),
-        ("Make it yours", "Catppuccin, Gruvbox, Nord, Dracula and Tokyo Night themes, a 10-band equalizer, and eleven visualizers."),
+        ("Make it yours", "Catppuccin, Gruvbox, Nord, Dracula and Tokyo Night themes, a 10-band equalizer, and twelve visualizers."),
         ("Everywhere on your iPhone", "CarPlay, Home Screen widgets in your theme, a Favorite Song button for the Lock Screen, and Siri."),
         ("Built for privacy", "Your music and listening go only to your own server. No ads, no tracking, no accounts, no third-party code. Every outside service is off until you turn it on."),
+        ("Open source", "The code is public under the GPL-3.0 license, so you can read it, check the privacy claims yourself, and report a problem or suggest an idea on GitHub."),
         ("Accessible", "VoiceOver and Voice Control throughout, Larger Text, Reduce Motion and Increase Contrast."),
     ]
     cards = "".join(f'<div class="card"><h3>{html.escape(t)}</h3><p>{html.escape(d)}</p></div>' for t, d in features)
@@ -197,7 +200,7 @@ def home() -> str:
 <section class="features">{cards}</section>
 <section class="more">
   <p>New to Bzide? The <a href="/support.html">user guide</a> walks through everything. Wondering what goes where? See <a href="/privacy.html">privacy</a>.</p>
-  <p>Bzide is free. If you enjoy it, you can {tip_link("leave a tip on Ko-fi")}.</p>
+  <p>Bzide is free and <a href="{SITE["source_url"]}">open source</a>. If you enjoy it, you can {tip_link("leave a tip on Ko-fi")}.</p>
 </section>"""
     return page("home", "Home", body, "Bzide: a fast, private iPhone music player for your own Navidrome or Subsonic server.")
 
@@ -212,7 +215,8 @@ def build():
     contact = (
         f'<div class="contact"><h2>Contact</h2><p>Questions, problems or ideas? Email '
         f'{email_link()}. '
-        "It helps to include your iPhone model and iOS version (iPhone Settings > General > About), and what you were doing when it happened.</p></div>"
+        "It helps to include your iPhone model and iOS version (iPhone Settings > General > About), and what you were doing when it happened. "
+        f'You can also <a href="{SITE["source_url"]}/issues">open an issue on GitHub</a>, which is public, so leave out anything private.</p></div>'
         '<div class="contact"><h2>Tip jar</h2><p>Bzide is free, with no ads or subscriptions. '
         f'If it\'s made your listening better and you want to say thanks, you can {tip_link("leave a tip on Ko-fi")}. '
         "Tips are entirely optional and unlock nothing. Thank you!</p></div>"
