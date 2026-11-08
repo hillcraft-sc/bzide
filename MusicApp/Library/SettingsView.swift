@@ -72,6 +72,8 @@ struct SettingsView: View {
                 } footer: {
                     if case .failed(let message) = refreshState {
                         Text("Couldn't refresh: \(message)")
+                    } else if account.isDemo {
+                        Text("You're using the Navidrome project's demo library, shared with everyone who tries it: favorites, ratings and playlists you change are seen by others, and the queue and plays aren't saved to it. Sign Out to use your own server.")
                     } else {
                         Text("Refresh Library fetches your library again now, so new music, ratings and favorites show at once in Search's filters, Spin It Back and Mix My Cuts, which otherwise keep their copy for 30 minutes. Signing out sets your settings, history and queue aside, so Bzide shows its defaults until you sign back in; your downloads stay on this iPhone. Signing in to a different server or user removes the downloads.")
                     }

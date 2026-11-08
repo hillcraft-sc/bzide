@@ -1,6 +1,6 @@
 # Accessibility in Bzide
 
-Bzide is built to work with the accessibility features in iOS. You can sign in, browse your library, search, play music and control playback using any of the features below. If something doesn't work for you, please tell us (see Contact on the Support page).
+Bzide is built to work with the accessibility features in iOS. You can sign in (or try the demo library), browse your library, search, play music and control playback using any of the features below. If something doesn't work for you, please tell us (see Contact on the Support page).
 
 ## VoiceOver
 

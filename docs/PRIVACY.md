@@ -18,6 +18,8 @@ This page is also in the app, under Settings > Privacy.
 
 Bzide talks to the server you sign in to: to browse and search your library, play and download music, and save favorites, ratings and playlists. It also saves your queue there (its songs, the one playing and how far in), so you can continue on another device; **Settings > Playback > Sync Queue with Server** turns that off.
 
+**Try the Demo** (on the sign-in screen) signs you in to the Navidrome project's public demo library, `demo.navidrome.org`, only when you tap it. It's an ordinary server as far as Bzide is concerned: the same requests as above, with nothing about your phone or your own server. While you're on the demo, Bzide doesn't save your queue there or report your plays.
+
 It also reports what you play (scrobbling), so your server can keep play counts and lists such as Recently Played, and pass your plays to Last.fm or ListenBrainz *if you've linked them on your server*. Bzide itself never contacts Last.fm or ListenBrainz. **Settings > Scrobbling > Send Plays to Server** turns this off entirely.
 
 ### Outside services (all off by default)

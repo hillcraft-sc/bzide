@@ -75,6 +75,12 @@ final class AppModel {
 
     /// With an API key, `username` and `password` are ignored: the server
     /// says whose key it is (OpenSubsonic `tokenInfo`).
+    /// "Try the Demo": the Navidrome project's public library, signed in to
+    /// like any other server.
+    func signInToDemo() async {
+        await signIn(serverURL: DemoServer.baseURL.absoluteString, username: DemoServer.username, password: DemoServer.password)
+    }
+
     func signIn(serverURL: String, username: String, password: String, apiKey: String? = nil) async {
         signInError = nil
         let trimmed = serverURL.trimmingCharacters(in: .whitespaces)
@@ -132,6 +138,10 @@ final class AppModel {
     /// app-lifetime system services.
     private func start(with credentials: ServerCredentials) {
         removeOtherAccountsData(for: credentials)
+        // Shared by everyone who tries it, so it keeps its writes small.
+        if DemoServer.isDemo(credentials) {
+            system.settings.settings = DemoServer.adjusting(system.settings.settings)
+        }
         let client = SubsonicClient(credentials: credentials)
         let scrobbler = Scrobbler(
             sender: client, store: FileScrobbleStore.applicationSupport() ?? InMemoryScrobbleStore(),
@@ -368,8 +378,10 @@ final class AppModel {
 struct AccountSummary: Equatable {
     let server: String
     let username: String
+    let isDemo: Bool
 
     init(credentials: ServerCredentials) {
+        isDemo = DemoServer.isDemo(credentials)
         server = credentials.baseURL.host(percentEncoded: false) ?? credentials.baseURL.absoluteString
         username = credentials.username
     }

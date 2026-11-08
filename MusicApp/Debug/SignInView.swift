@@ -78,6 +78,16 @@ struct SignInView: View {
                         }
                         .disabled(!canSignIn)
                     }
+                    Section {
+                        Button("Try the Demo") {
+                            Task { await model.signInToDemo() }
+                        }
+                        .disabled(model.isSigningIn)
+                    } header: {
+                        Text("No server?")
+                    } footer: {
+                        Text("Browse and play a sample library hosted by the Navidrome project. You can sign out and use your own server any time.")
+                    }
                 }
                 .themedRows(grouped: true)
             }

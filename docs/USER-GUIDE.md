@@ -21,6 +21,8 @@ Your login is saved securely on this iPhone, so you only do this once. If the ad
 
 **Tip:** an API key is the most private option. Your password never touches the phone.
 
+**No server yet?** Tap **Try the Demo** under the sign-in form. It signs you in to a sample library hosted by the Navidrome project, so you can see how Bzide plays, searches and looks before setting up your own. The demo is shared with everyone who tries it: favorites, ratings and playlists you change are seen by others, and your queue and plays aren't saved to it. To switch to your own server, go to **Settings > Sign Out**, then sign in as usual.
+
 ## Finding your way around
 
 Bzide has two tabs at the bottom:
