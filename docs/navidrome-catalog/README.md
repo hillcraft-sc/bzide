@@ -2,7 +2,7 @@
 
 Bzide's entry for the list of apps at [navidrome.org/apps](https://www.navidrome.org/apps/) (Gitea #23), ready for a pull request to [navidrome/website](https://github.com/navidrome/website). Their guide: [Adding apps](https://www.navidrome.org/docs/developers/adding-apps/).
 
-**Open source:** the entry has `repoUrl` (the public GitHub repo) and no `isOpenSource: false`, so the catalog treats Bzide as open source. Its images (`thumbnail.webp`, `screen1.webp` to `screen4.webp`) are in this folder.
+**Open source:** with a `repoUrl`, the catalog treats an entry as open source and requires the repo to have at least 15 stars (the validator fails below that). Bzide's repo (github.com/hillcraft-sc/bzide) is public but doesn't have them yet, so the entry has no `repoUrl` (it's commented out in `bzide/index.yaml`) and is accepted as a store-listed app (navidrome/website PR #541). Once the repo has 15 stars, add the `repoUrl` line in a small follow-up pull request to get the open source badge. Don't use `isOpenSource: false` for this: it says the source isn't public. Its images (`thumbnail.webp`, `screen1.webp` to `screen4.webp`) are in this folder.
 
 **When:** now; Bzide is on the App Store and `bzide/index.yaml` has its link. A closed-source app is only accepted once it's publicly available in a store (open-source ones need a public repo with 15 stars instead).
 
