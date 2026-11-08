@@ -14,9 +14,9 @@ struct LibraryView: View {
     /// Spin the Dial was tapped with Find Stations Online off.
     @State private var isAskingForStations = false
     /// Remembered on this device: display preferences, nothing to sync.
-    @AppStorage("recentlyAddedCollapsed") private var isRecentlyAddedCollapsed = false
-    @AppStorage("recentlyPlayedCollapsed") private var isRecentlyPlayedCollapsed = false
-    @AppStorage("spinItBackCollapsed") private var isSpinItBackCollapsed = false
+    @AppStorage("recentlyAddedCollapsed") private var isRecentlyAddedCollapsed = true
+    @AppStorage("recentlyPlayedCollapsed") private var isRecentlyPlayedCollapsed = true
+    @AppStorage("spinItBackCollapsed") private var isSpinItBackCollapsed = true
 
     init(model: AppModel, library: Library) {
         self.model = model

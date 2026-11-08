@@ -31,10 +31,11 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
         self == .recentlyAdded || self == .recentlyPlayed || self == .spinItBack
     }
 
-    /// Shown until the user hides it. Carousels start hidden, so Library
-    /// stays simple unless the user wants more.
+    /// Shown until the user hides it. Carousels are on too, but start
+    /// collapsed (see `BrowseViews`), so Library stays simple until the user
+    /// opens one.
     public var isShownByDefault: Bool {
-        !isCarousel
+        true
     }
 
     /// Plays something at once (Random Mix, Mix My Cuts, Spin the Dial)
@@ -49,8 +50,8 @@ public enum LibraryFeature: String, CaseIterable, Codable, Sendable {
     }
 }
 
-/// What the Library screen shows, and in what order. Everything but the
-/// carousels is shown by default; the user can show or hide items and reorder them.
+/// What the Library screen shows, and in what order. Everything is shown by
+/// default; the user can show or hide items and reorder them.
 public struct LibraryLayout: Codable, Equatable, Sendable {
     public struct Entry: Codable, Equatable, Sendable {
         public var item: LibraryFeature

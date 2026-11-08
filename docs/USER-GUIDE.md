@@ -85,7 +85,7 @@ Favorited and rated songs show a small heart, and a face or their stars (such as
 - **The funnel** filters by rating, favorites, or what's downloaded. With a filter on and nothing typed, Search lists everything in your library that matches.
 - **Genres:** tap a genre tile to see its albums, or long-press it to play the whole genre.
 - **History** (in Library) lists what you've played on this iPhone, by day. Filter by text or dates; set how long it's kept in Settings > Play History.
-- **Make Library yours:** tap **Edit** (top of Library) to show, hide and reorder what's there, including optional rows of covers: Recently Added, Recently Played, and Spin It Back (albums you love but haven't played in a while).
+- **Make Library yours:** tap **Edit** (top of Library) to show, hide and reorder what's there, including the rows of covers at the top: Recently Added, Recently Played, and Spin It Back (albums you love but haven't played in a while). They start collapsed: tap a heading to open it.
 
 ## Playlists
 

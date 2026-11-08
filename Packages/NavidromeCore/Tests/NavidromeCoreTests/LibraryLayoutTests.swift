@@ -5,9 +5,10 @@ import Testing
 struct LibraryLayoutTests {
     @Test func theUsualItemsAreShownByDefaultInOrder() {
         let layout = LibraryLayout()
-        // Carousels start hidden, so Library stays simple.
-        #expect(layout.shown == LibraryFeature.allCases.filter { !$0.isCarousel })
+        // Carousels are shown too (they start collapsed, which the screen keeps).
+        #expect(layout.shown == LibraryFeature.allCases)
         #expect(layout.groups == [
+            .carousel(.recentlyAdded), .carousel(.recentlyPlayed), .carousel(.spinItBack),
             .mixes([.randomMix, .ratedShuffle, .spinTheDial]),
             .links([.artists, .albums, .playlists, .favorites, .genres, .radio, .downloads, .history, .wishlist]),
         ])
@@ -32,7 +33,8 @@ struct LibraryLayoutTests {
         layout.setShown(.spinTheDial, false)
         #expect(!layout.shown.contains(.radio))
         #expect(layout.groups.first == .carousel(.recentlyAdded))
-        #expect(layout.groups.count == 2)
+        // The three carousels, then the links that are left.
+        #expect(layout.groups.count == 4)
     }
 
     @Test func linksMovedFirstAreGroupedBeforeTheRest() {
@@ -41,7 +43,7 @@ struct LibraryLayoutTests {
         // Artists and Albums to the top; Recently Added after them.
         layout.move(fromOffsets: IndexSet([6, 7]), toOffset: 0)
         #expect(layout.shown.prefix(3) == [.artists, .albums, .recentlyAdded])
-        #expect(layout.groups.prefix(3) == [.links([.artists, .albums]), .carousel(.recentlyAdded), .mixes([.randomMix, .ratedShuffle, .spinTheDial])])
+        #expect(layout.groups.prefix(3) == [.links([.artists, .albums]), .carousel(.recentlyAdded), .carousel(.recentlyPlayed)])
     }
 
     @Test func itsSavedAndRestored() throws {
@@ -64,16 +66,15 @@ struct LibraryLayoutTests {
         let layout = try JSONDecoder().decode(LibraryLayout.self, from: Data(saved.utf8))
         // New items go in their usual place: the carousels after Recently Added,
         // Mix My Cuts after Random Mix, Favorites and Genres after Playlists,
-        // History and Wishlist after Downloaded. New carousels arrive hidden; a saved
-        // choice for one (Recently Added here) is kept.
+        // History and Wishlist after Downloaded. New items arrive shown; a saved
+        // choice for one (Recently Added here, Artists hidden) is kept.
         #expect(layout.entries.map(\.item) == [
             .albums, .artists, .recentlyAdded, .recentlyPlayed, .spinItBack, .randomMix, .ratedShuffle, .spinTheDial,
             .playlists, .favorites, .genres, .radio, .downloads, .history, .wishlist,
         ])
         #expect(layout.entries.first?.isShown == true)
         #expect(layout.entries[1].isShown == false)
-        #expect(layout.entries.allSatisfy { [.ratedShuffle, .spinTheDial, .favorites, .genres, .history, .wishlist].contains($0.item) ? $0.isShown : true })
-        #expect(layout.entries.allSatisfy { [.recentlyPlayed, .spinItBack].contains($0.item) ? !$0.isShown : true })
+        #expect(layout.entries.allSatisfy { [.recentlyPlayed, .spinItBack, .ratedShuffle, .spinTheDial, .favorites, .genres, .history, .wishlist].contains($0.item) ? $0.isShown : true })
     }
 
     @Test func unreadableSavedLayoutFallsBackToTheDefault() throws {
